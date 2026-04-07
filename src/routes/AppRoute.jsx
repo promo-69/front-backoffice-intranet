@@ -1,9 +1,10 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "../pages/auth/login";
-//import AdminDashboard from "../pages/admin/Dashboard";
+import Dashboard from "../pages/admin/dashboard";
 //import TicketDashboard from "../pages/ticketOffice/Dashboard";
 //import PrivateRoute from "./PrivateRoute";
-import AuthLayout from "../layouts/AuthLayout";
+//import AuthLayout from "../layouts/AuthLayout";
+import AdminLayout from "../layouts/AdminLayout";
 
 function AppRoute() {
   return (
@@ -13,13 +14,14 @@ function AppRoute() {
         <Route
           path="/"
           element={
-            <AuthLayout>
-              <Login />
-            </AuthLayout>
+            <AdminLayout>
+              <Dashboard />
+            </AdminLayout>
           }
         />
 
-        {/* Rutas privada */}
+        {/* Rutas privadas */}
+        
       </Routes>
     </BrowserRouter>
   );
