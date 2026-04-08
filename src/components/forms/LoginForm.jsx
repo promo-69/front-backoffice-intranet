@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { AiFillEye, AiFillEyeInvisible } from "react-icons/ai";
 import {
-  validateEmail,
+  validateUsername,
   validatePassword,
 } from "../../validators/authValidators";
 import Button from "../ui/Button";
@@ -18,11 +18,11 @@ function LoginForm() {
 
   const onSubmit = (data) => {
     const payload = {
-      email: data.email.trim(),
+      username: data.username.trim(),
       password: data.password,
     };
+
     console.log("Iniciando sesión con:", payload);
-    // lógica de autenticación (fetch, API, etc.)
   };
 
   return (
@@ -33,16 +33,16 @@ function LoginForm() {
       <div className="flex flex-col gap-8 items-center">
         <div className="w-80">
           <input
-            type="email"
-            placeholder="Correo"
-            {...register("email", {
+            type="text"
+            placeholder="Usuario"
+            {...register("username", {
               validate: (value) =>
-                validateEmail(value) === true || validateEmail(value),
+                validateUsername(value) === true || validateUsername(value),
             })}
             className="w-full bg-transparent border-0 border-b-2 border-white text-white placeholder-white focus:outline-none focus:border-white font-montserrat"
           />
-          {errors.email && (
-            <p className="text-red-500 text-sm">{errors.email.message}</p>
+          {errors.username && (
+            <p className="text-red-500 text-sm">{errors.username.message}</p>
           )}
         </div>
 

@@ -4,12 +4,16 @@ import {
   AiOutlineBarChart,
   AiOutlineAppstore,
   AiOutlineLogout,
+  AiOutlineVideoCamera,
+  AiOutlineShop,
+  AiOutlineTransaction,
+  AiOutlineDatabase,
 } from "react-icons/ai";
 import Loguito from "../../assets/images/logotype/logoCiineflix.png"
 
 export default function Sidebar() {
   return (
-    <aside className="w-64 bg-[#1d1430] text-white min-h-screen p-6 flex flex-col">
+    <aside className="w-64 bg-[#1d1430] text-white min-h-screen p-6 flex flex-col sticky top-0 h-screen overflow-y-auto">
       <img src={Loguito} alt="logo" className="w-full mb-6 object-contain" />
       <div className="mb-8">
         <h1 className="text-sm font-bold leading-tight">
@@ -31,14 +35,14 @@ export default function Sidebar() {
           href="/admin/users"
           className="flex items-center gap-3 hover:text-purple-400"
         >
-          <AiOutlineUser /> Cartelera
+          <AiOutlineVideoCamera /> Cartelera
         </a>
 
         <a
           href="/admin/users"
           className="flex items-center gap-3 hover:text-purple-400"
         >
-          <AiOutlineUser /> Sucursales
+          <AiOutlineShop /> Sucursales
         </a>
 
         <a
@@ -52,14 +56,14 @@ export default function Sidebar() {
           href="/admin/users"
           className="flex items-center gap-3 hover:text-purple-400"
         >
-          <AiOutlineUser /> Transacciones
+          <AiOutlineTransaction /> Transacciones
         </a>
 
         <a
           href="/admin/users"
           className="flex items-center gap-3 hover:text-purple-400"
         >
-          <AiOutlineUser /> Inventario
+          <AiOutlineDatabase /> Inventario
         </a>
 
         <a
