@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import PrivateRoute from "./PrivateRoute";
+import PrivateRoute from "../PrivateRoute";
 
 beforeEach(() => {
   localStorage.clear();
