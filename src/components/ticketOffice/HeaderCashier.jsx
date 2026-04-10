@@ -6,6 +6,7 @@ export default function HeaderCashier({ title }) {
     const menuItems = [
       { label: "Dashboard", path: "/ticketOffice/dashboard" },
       { label: "Venta de boletos por taquilla", path: "/ticketOffice/sell" },
+      { label: "SALIR", path: "/login" },
     ];
   return (
     <header className="w-full bg-[#1d1430]/90 shadow px-6 py-4 flex justify-between items-center">

@@ -74,9 +74,25 @@ function AppRoute() {
           path="/admin/transacciones"
           element={
             <PrivateRoute role="admin">
-              <AdminLayout>
-                
-              </AdminLayout>
+              <AdminLayout></AdminLayout>
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/admin/inventario"
+          element={
+            <PrivateRoute role="admin">
+              <AdminLayout></AdminLayout>
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/admin/reports"
+          element={
+            <PrivateRoute role="admin">
+              <AdminLayout></AdminLayout>
             </PrivateRoute>
           }
         />
