@@ -25,21 +25,21 @@ export default function Sidebar() {
       </div>
       <nav className="flex-1 space-y-4">
         <a
-          href="/admin"
+          href="/admin/dashboard"
           className="flex items-center gap-3 hover:text-purple-400"
         >
           <AiOutlineHome /> Dashboard
         </a>
 
         <a
-          href="/admin/users"
+          href="/admin/cartelera"
           className="flex items-center gap-3 hover:text-purple-400"
         >
           <AiOutlineVideoCamera /> Cartelera
         </a>
 
         <a
-          href="/admin/users"
+          href="/admin/sucursales"
           className="flex items-center gap-3 hover:text-purple-400"
         >
           <AiOutlineShop /> Sucursales
@@ -53,14 +53,14 @@ export default function Sidebar() {
         </a>
 
         <a
-          href="/admin/users"
+          href="/admin/transacciones"
           className="flex items-center gap-3 hover:text-purple-400"
         >
           <AiOutlineTransaction /> Transacciones
         </a>
 
         <a
-          href="/admin/users"
+          href="/admin/inventario"
           className="flex items-center gap-3 hover:text-purple-400"
         >
           <AiOutlineDatabase /> Inventario
@@ -75,7 +75,7 @@ export default function Sidebar() {
       </nav>
 
       <a
-        href="/logout"
+        href="/login"
         className="mt-auto flex items-center gap-2 text-white hover:text-red-200"
       >
         <AiOutlineLogout />

@@ -12,10 +12,23 @@ function AppRoute() {
     <BrowserRouter>
       <Routes>
         {/* Ruta pública con layout */}
-        <Route path="/" element={
-          <AuthLayout>
-            <Login />
-          </AuthLayout>} />
+        <Route
+          path="/"
+          element={
+            <AuthLayout>
+              <Login />
+            </AuthLayout>
+          }
+        />
+
+        <Route
+          path="/login"
+          element={
+            <AuthLayout>
+              <Login />
+            </AuthLayout>
+          }
+        />
 
         {/* Rutas privadas */}
         {/* Rutas privadas admin */}
@@ -25,6 +38,44 @@ function AppRoute() {
             <PrivateRoute role="admin">
               <AdminLayout>
                 <Dashboard />
+              </AdminLayout>
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/admin/cartelera"
+          element={
+            <PrivateRoute role="admin">
+              <AdminLayout></AdminLayout>
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/admin/sucursales"
+          element={
+            <PrivateRoute role="admin">
+              <AdminLayout></AdminLayout>
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/admin/users"
+          element={
+            <PrivateRoute role="admin">
+              <AdminLayout></AdminLayout>
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/admin/transacciones"
+          element={
+            <PrivateRoute role="admin">
+              <AdminLayout>
+                
               </AdminLayout>
             </PrivateRoute>
           }
@@ -44,8 +95,7 @@ function AppRoute() {
           path="/ticketOffice/sell"
           element={
             <PrivateRoute role="cashier">
-              <CashierLayout>
-              </CashierLayout>
+              <CashierLayout></CashierLayout>
             </PrivateRoute>
           }
         />

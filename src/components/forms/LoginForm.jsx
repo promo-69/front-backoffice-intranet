@@ -2,13 +2,15 @@ import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { AiFillEye, AiFillEyeInvisible } from "react-icons/ai";
 import {
-  validateUsername,
+  validateEmail,
   validatePassword,
 } from "../../validators/authValidators";
 import Button from "../ui/Button";
+import { useNavigate } from "react-router-dom";
 
-function LoginForm() {
+export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate();
 
   const {
     register,
@@ -18,11 +20,26 @@ function LoginForm() {
 
   const onSubmit = (data) => {
     const payload = {
-      username: data.username.trim(),
+      email: data.email.trim(),
       password: data.password,
     };
 
-    console.log("Iniciando sesión con:", payload);
+    console.log("Simulando login con:", payload);
+
+    // Simulación de login según correo
+    if (payload.email === "admin@cine.com") {
+      localStorage.setItem(
+        "user",
+        JSON.stringify({ role: "admin", name: "Jennifer" }),
+      );
+      navigate("/admin/dashboard");
+    } else {
+      localStorage.setItem(
+        "user",
+        JSON.stringify({ role: "cashier", name: "Maria" }),
+      );
+      navigate("/ticketOffice/dashboard");
+    }
   };
 
   return (
@@ -31,21 +48,23 @@ function LoginForm() {
       className="flex flex-col items-center justify-center gap-6"
     >
       <div className="flex flex-col gap-8 items-center">
+        {/* Email */}
         <div className="w-80">
           <input
-            type="text"
-            placeholder="Usuario"
-            {...register("username", {
+            type="email"
+            placeholder="Correo"
+            {...register("email", {
               validate: (value) =>
-                validateUsername(value) === true || validateUsername(value),
+                validateEmail(value) === true || validateEmail(value),
             })}
             className="w-full bg-transparent border-0 border-b-2 border-white text-white placeholder-white focus:outline-none focus:border-white font-montserrat"
           />
-          {errors.username && (
-            <p className="text-red-500 text-sm">{errors.username.message}</p>
+          {errors.email && (
+            <p className="text-red-500 text-sm">{errors.email.message}</p>
           )}
         </div>
 
+        {/* Password */}
         <div className="relative w-80">
           <input
             type={showPassword ? "text" : "password"}
@@ -60,9 +79,6 @@ function LoginForm() {
             type="button"
             onClick={() => setShowPassword((prev) => !prev)}
             className="absolute right-0 top-1/4 -translate-y-1/2 text-white text-xl opacity-80 hover:opacity-100"
-            aria-label={
-              showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
-            }
           >
             {showPassword ? <AiFillEyeInvisible /> : <AiFillEye />}
           </button>
@@ -73,6 +89,7 @@ function LoginForm() {
           )}
         </div>
 
+        {/* Forgot password */}
         <a
           href="/forgot-password"
           className="text-[#D9982F] text-sm opacity-80 hover:opacity-100"
@@ -80,6 +97,7 @@ function LoginForm() {
           ¿Olvidaste tu contraseña?
         </a>
 
+        {/* Buttons */}
         <div className="w-full flex items-center justify-center gap-3 pt-4">
           <Button
             text="Cancelar"
@@ -97,5 +115,3 @@ function LoginForm() {
     </form>
   );
 }
-
-export default LoginForm;

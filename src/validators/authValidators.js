@@ -1,5 +1,4 @@
-// USERNAME
-export const validateUsername = (value) => {
+/*{export const validateUsername = (value) => {
   if (!value) return "El usuario es requerido";
 
   const regex = /^(?!.*[-_.]{2})[a-zA-Z0-9][a-zA-Z0-9-_.]{2,18}[a-zA-Z0-9]$/;
@@ -9,11 +8,22 @@ export const validateUsername = (value) => {
   }
 
   return true;
-};
+};}*/
+
+export function validateEmail(value) {
+  const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+  if (!value) return "El correo es obligatorio";
+  if (!regex.test(value)) return "Ingresa un correo válido";
+
+  return true;
+}
+
+
 
 // PASSWORD
-export const validatePassword = (value) => {
-  if (!value) return "Contraseña requerida";
+export function validatePassword(value) {
+  if (!value) return "La contraseña es obligatoria";
 
   const regex = /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[\W_])[a-zA-Z\d\W_]{8,20}$/;
 
@@ -22,4 +32,6 @@ export const validatePassword = (value) => {
   }
 
   return true;
-};
+}
+
+
