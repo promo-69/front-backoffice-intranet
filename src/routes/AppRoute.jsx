@@ -6,6 +6,7 @@ import PrivateRoute from "./PrivateRoute";
 import AuthLayout from "../layouts/AuthLayout";
 import AdminLayout from "../layouts/AdminLayout";
 import CashierLayout from "../layouts/CashierLayout";
+import Users from "../pages/admin/users/users";
 
 function AppRoute() {
   return (
@@ -65,7 +66,9 @@ function AppRoute() {
           path="/admin/users"
           element={
             <PrivateRoute role="admin">
-              <AdminLayout></AdminLayout>
+              <AdminLayout>
+                <Users />
+              </AdminLayout>
             </PrivateRoute>
           }
         />
@@ -115,6 +118,7 @@ function AppRoute() {
             </PrivateRoute>
           }
         />
+
       </Routes>
     </BrowserRouter>
   );
