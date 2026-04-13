@@ -1,4 +1,3 @@
-import React from "react";
 
 function Button({ text, onClick, type = "button", className = "" }) {
   return (
