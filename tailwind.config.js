@@ -4,10 +4,11 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        montserrat: ["Montserrat", "beubas-neue"],
-      },
-    },
+         bebas: ['"Bebas Neue"', "cursive"],
+         montserrat: ["Montserrat", "sans-serif"],
+      },    
   },
   plugins: [],
+},
 };
 
