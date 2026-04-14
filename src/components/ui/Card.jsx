@@ -10,7 +10,7 @@ export default function Card({
   className = "" 
 }) {
   return (
-    <div className={`bg-[#D9D9D9] rounded-lg shadow-md overflow-hidden flex flex-col w-full ${className}`}>
+    <div className={`bg-[#D9D9D9] rounded-xl shadow-md overflow-hidden flex flex-col w-full ${className}`}>
       {actions && (
         <div className="bg-[#ABAFAB] flex items-center justify-end gap-2 px-3 py-1.5 flex-shrink-0">
           {actions}

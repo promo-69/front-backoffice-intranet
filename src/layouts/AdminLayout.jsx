@@ -9,7 +9,7 @@ export default function AdminLayout({ children }) {
   const getPageTitle = (pathname) => {
     const titles = {
       "/admin/users": "Usuarios",
-      "/admin/cartelera": "Cartelera",
+      "/admin/cartelera": "Gestión de Peliculas/Funciones",
       "/admin/sucursales": "Sucursales",
       "/admin/transacciones": "Transacciones",
       "/admin/inventario": "Inventario",

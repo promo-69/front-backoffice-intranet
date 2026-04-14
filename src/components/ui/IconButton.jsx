@@ -1,6 +1,6 @@
 
 export default function IconButton({ 
-  icon, 
+  icon: Icon, 
   onClick, 
   label, 
   colorClass = "text-black", 
@@ -8,7 +8,6 @@ export default function IconButton({
 }) {
   return (
     <button
-      icon={icon} 
       onClick={onClick}
       aria-label={label}
       title={label} 

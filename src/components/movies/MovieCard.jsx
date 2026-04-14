@@ -1,7 +1,7 @@
-import { Pencil, Trash2, Clock } from "react-icons";
+import { LuPencil, LuTrash2, LuClock } from "react-icons/lu";
 import Card from "../ui/Card";
 import IconButton from "../ui/IconButton"; 
-import GenreBadge from "../ui/Badge";
+import Badge from "../ui/Badge";
 
 export default function MovieCard({ movie, onEdit, onDelete }) {
   const { id, title, description, genres, time, imageUrl } = movie;
@@ -9,12 +9,12 @@ export default function MovieCard({ movie, onEdit, onDelete }) {
   const actions = (
     <>
       <IconButton 
-        icon={Pencil} 
+        icon={LuPencil} 
         label="Editar" 
         onClick={() => onEdit?.(id)} 
       />
       <IconButton 
-        icon={Trash2} 
+        icon={LuTrash2} 
         label="Eliminar" 
         colorClass="text-red-600"
         onClick={() => onDelete?.(id)} 
@@ -42,15 +42,15 @@ export default function MovieCard({ movie, onEdit, onDelete }) {
 	))
 
 	const footer = time && (
-        <div className="flex items-center gap-1.5 text-black">
-          <Clock size={16} />
-          <span className="text-xs font-montserrat font-semibold">{time}</span>
+        <div className="flex items-center gap-1.5  text-black">
+          <LuClock size={16} />
+          <span className="text-xs font-bebas font-semibold">{time}</span>
         </div>
       )
 
   return (
     <Card
-      actionSlot={actions}
+      actions={actions}
       title={title}
       description={description}
       media={media}
