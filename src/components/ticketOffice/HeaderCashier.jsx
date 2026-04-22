@@ -3,11 +3,11 @@ import Menu from "./Menu";
 import Logo from "../../assets/images/logotype/logoCiineflix.png";
 
 export default function HeaderCashier({ title }) {
-    const menuItems = [
-      { label: "Dashboard", path: "/ticketOffice/dashboard" },
-      { label: "Venta de boletos por taquilla", path: "/ticketOffice/sell" },
-      { label: "SALIR", path: "/login" },
-    ];
+  const menuItems = [
+    { label: "Dashboard", path: "/ticketOffice/dashboard" },
+    { label: "Venta de boletos por taquilla", path: "/ticketOffice/sell" },
+    { label: "SALIR", path: "/login" },
+  ];
   return (
     <header className="w-full bg-[#1d1430]/90 shadow px-6 py-4 flex justify-between items-center">
       <img src={Logo} alt="Logo" className="h-10" />
@@ -19,7 +19,7 @@ export default function HeaderCashier({ title }) {
         <span className="text-white">Cajero: Maria</span>
         <Menu items={menuItems} />
         <div className="w-8 h-8 bg-[#F6AD38] rounded-full flex items-center justify-center">
-          <AiOutlineUser className="w-5 h-5 text-white" />
+          <AiOutlineUser className="w-5 h-5" />
         </div>
       </div>
     </header>

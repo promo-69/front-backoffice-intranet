@@ -2,10 +2,10 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "../pages/auth/login";
 import Dashboard from "../pages/admin/dashboard";
 import DashboardCashier from "../pages/ticketOffice/dashboardCashier";
+import SellTickets from "../pages/ticketOffice/sellTickets";
 import PrivateRoute from "./PrivateRoute";
 import AuthLayout from "../layouts/AuthLayout";
 import AdminLayout from "../layouts/AdminLayout";
-import CashierLayout from "../layouts/CashierLayout";
 
 function AppRoute() {
   return (
@@ -111,7 +111,7 @@ function AppRoute() {
           path="/ticketOffice/sell"
           element={
             <PrivateRoute role="cashier">
-              <CashierLayout></CashierLayout>
+              <SellTickets />
             </PrivateRoute>
           }
         />
