@@ -1,26 +1,4 @@
-export default function TableEmployees() {
-  // Datos simulados por ahora
-  const employees = [
-    {
-      id: "001",
-      nombre: "Pedro",
-      apellido: "Pérez",
-      correo: "pedro.perez@cineflix.com",
-      cargo: "Operador",
-      sucursal: "Sucursal Centro",
-      activo: true,
-    },
-    {
-      id: "002",
-      nombre: "María",
-      apellido: "Jiménez",
-      correo: "maria.jimenez@cineflix.com",
-      cargo: "Cajero",
-      sucursal: "Sucursal Norte",
-      activo: false,
-    },
-  ];
-
+export default function TableEmployees({ employees = [] }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse bg-white rounded shadow">
