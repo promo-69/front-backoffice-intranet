@@ -1,9 +1,36 @@
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;500;600;700;800&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: 'Montserrat';
+@layer base {
+  body {
+    @apply font-montserrat;
+  }
+}
+
+@layer components {
+  /* Títulos de página: Interlineado muy cerrado para impacto visual */
+  .text-h1-display {
+    @apply font-bebas text-4xl md:text-5xl tracking-wide uppercase leading-[0.9] text-brand-dark;
+  }
+
+  /* Títulos de Cards y Modales */
+  .text-h2-subtitle {
+    @apply font-bebas text-2xl tracking-normal leading-tight text-neutral-800;
+  }
+
+  /* Texto de cuerpo: Interlineado abierto para lectura cómoda */
+  .text-body-base {
+    @apply font-montserrat text-base font-normal leading-relaxed text-neutral-600;
+  }
+
+  /* Etiquetas de Interfaz (Botones, Tablas, Labels) */
+  .text-ui-label {
+    @apply font-montserrat text-sm font-semibold leading-none tracking-tight text-neutral-700;
+  }
+
+  /* Datos técnicos: Monoespaciado para IDs y Coordenadas */
+  .text-data-mono {
+    @apply font-mono text-xs md:text-sm font-medium leading-tight text-neutral-500;
+  }
 }
