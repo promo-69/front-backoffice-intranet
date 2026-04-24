@@ -6,176 +6,54 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /* Fondo claro de la web operativa (#F9F9F8) */
+    --background: 30 14% 98%; 
+    --foreground: 240 10% 4%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 4%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 4%;
+
+    /* COLOR PRIMARIO: Midnight/Morado (#3E2186) */
+    /* Este será el color por defecto de los botones de shadcn */
+    --primary: 258 61% 33%;
+    --primary-foreground: 0 0% 100%;
+
+    /* COLOR ACCENT: Dorado Cineflix (#d9982f) */
+    --accent: 37 66% 52%;
+    --accent-foreground: 0 0% 100%;
+
+    /* COLOR SECONDARY: Lila para Hovers y selección (#E7E3F4) */
+    --secondary: 252 45% 92%;
+    --secondary-foreground: 258 61% 33%;
+
+    --muted: 252 45% 96%;
+    --muted-foreground: 240 5% 45%;
+
+    /* Bordes y estados usando tu Lila 300 (#B6A9DF) */
+    --border: 252 46% 77%;
+    --input: 252 46% 77%;
+    --ring: 258 61% 33%; 
+
+    --sidebar-background: 258 61% 33%; /*Midnight */
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 37 66% 52%; 
+
+    /* Radio de borde Cineflix (8px) */
+    --radius: 0.5rem;
+  }
+
   body {
     @apply font-montserrat bg-background text-foreground;
-  }
-  .theme {
-
-    --font-heading: var(--font-sans);
-
-    --font-sans: 'Montserrat Variable', sans-serif
-  }
-  :root {
-
-    --background: oklch(1 0 0);
-
-    --foreground: oklch(0.145 0 0);
-
-    --card: oklch(1 0 0);
-
-    --card-foreground: oklch(0.145 0 0);
-
-    --popover: oklch(1 0 0);
-
-    --popover-foreground: oklch(0.145 0 0);
-
-    --primary: oklch(0.205 0 0);
-
-    --primary-foreground: oklch(0.985 0 0);
-
-    --secondary: oklch(0.97 0 0);
-
-    --secondary-foreground: oklch(0.205 0 0);
-
-    --muted: oklch(0.97 0 0);
-
-    --muted-foreground: oklch(0.556 0 0);
-
-    --accent: oklch(0.205 0 0);
-
-    --accent-foreground: oklch(0.985 0 0);
-
-    --destructive: oklch(0.577 0.245 27.325);
-
-    --border: oklch(0.922 0 0);
-
-    --input: oklch(0.922 0 0);
-
-    --ring: oklch(0.708 0 0);
-
-    --chart-1: oklch(0.87 0 0);
-
-    --chart-2: oklch(0.556 0 0);
-
-    --chart-3: oklch(0.439 0 0);
-
-    --chart-4: oklch(0.371 0 0);
-
-    --chart-5: oklch(0.269 0 0);
-
-    --radius: 0.625rem;
-
-    --sidebar: oklch(0.985 0 0);
-
-    --sidebar-foreground: oklch(0.145 0 0);
-
-    --sidebar-primary: oklch(0.205 0 0);
-
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-
-    --sidebar-accent: oklch(0.97 0 0);
-
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-
-    --sidebar-border: oklch(0.922 0 0);
-
-    --sidebar-ring: oklch(0.708 0 0)
-  }
-  .dark {
-
-    --background: oklch(0.145 0 0);
-
-    --foreground: oklch(0.985 0 0);
-
-    --card: oklch(0.205 0 0);
-
-    --card-foreground: oklch(0.985 0 0);
-
-    --popover: oklch(0.205 0 0);
-
-    --popover-foreground: oklch(0.985 0 0);
-
-    --primary: oklch(0.922 0 0);
-
-    --primary-foreground: oklch(0.205 0 0);
-
-    --secondary: oklch(0.269 0 0);
-
-    --secondary-foreground: oklch(0.985 0 0);
-
-    --muted: oklch(0.269 0 0);
-
-    --muted-foreground: oklch(0.708 0 0);
-
-    --accent: oklch(0.922 0 0);
-
-    --accent-foreground: oklch(0.205 0 0);
-
-    --destructive: oklch(0.704 0.191 22.216);
-
-    --border: oklch(1 0 0 / 10%);
-
-    --input: oklch(1 0 0 / 15%);
-
-    --ring: oklch(0.556 0 0);
-
-    --chart-1: oklch(0.87 0 0);
-
-    --chart-2: oklch(0.556 0 0);
-
-    --chart-3: oklch(0.439 0 0);
-
-    --chart-4: oklch(0.371 0 0);
-
-    --chart-5: oklch(0.269 0 0);
-
-    --sidebar: oklch(0.205 0 0);
-
-    --sidebar-foreground: oklch(0.985 0 0);
-
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-
-    --sidebar-accent: oklch(0.269 0 0);
-
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-
-    --sidebar-border: oklch(1 0 0 / 10%);
-
-    --sidebar-ring: oklch(0.556 0 0)
-  }
-  * {
-    @apply border-border outline-ring/50;
-  }
-  html {
-    @apply font-sans;
   }
 }
 
 @layer components {
-  /* Títulos de página: Interlineado muy cerrado para impacto visual */
+  /* Mantengo tus estilos de tipografía impactante */
   .text-h1-display {
-    @apply font-bebas text-4xl md:text-5xl tracking-wide uppercase leading-[0.9] text-brand-dark;
-  }
-
-  /* Títulos de Cards y Modales */
-  .text-h2-subtitle {
-    @apply font-bebas text-2xl tracking-normal leading-tight text-neutral-800;
-  }
-
-  /* Texto de cuerpo: Interlineado abierto para lectura cómoda */
-  .text-body-base {
-    @apply font-montserrat text-base font-normal leading-relaxed text-neutral-600;
-  }
-
-  /* Etiquetas de Interfaz (Botones, Tablas, Labels) */
-  .text-ui-label {
-    @apply font-montserrat text-sm font-semibold leading-none tracking-tight text-neutral-700;
-  }
-
-  /* Datos técnicos: Monoespaciado para IDs y Coordenadas */
-  .text-data-mono {
-    @apply font-mono text-xs md:text-sm font-medium leading-tight text-neutral-500;
+    @apply font-bebas text-4xl md:text-5xl tracking-wide uppercase leading-[0.9] ;
   }
 }

@@ -1,35 +1,53 @@
-import { useLocation } from "react-router-dom";
-import Sidebar from "../components/admin/Sidebar";
-import Header from "../components/admin/Header";
+
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
+import { AppSidebar } from "@/components/admin/AppSidebar"
+import { Navbar } from "@/components/admin/Header"
+import { useLocation } from "react-router-dom"
+import { TooltipProvider } from "@/components/ui/tooltip"
 
 export default function AdminLayout({ children }) {
-  const location = useLocation();
+  const location = useLocation()
 
-  // Mapeo de rutas a títulos
   const getPageTitle = (pathname) => {
     const titles = {
-      "/admin/users": "Usuarios",
-      "/admin/cartelera": "Gestión de Peliculas/Funciones",
-      "/admin/sucursales": "Sucursales",
-      "/admin/transacciones": "Transacciones",
-      "/admin/inventario": "Inventario",
+      "/admin/dashboard": "Dashboard",
+      "/admin/cartelera": "Gestión de Cartelera",
+      "/admin/sucursales": "Administración de Sucursales",
+      "/admin/users": "Control de Usuarios",
+      "/admin/transacciones": "Registro de Transacciones",
+      "/admin/inventario": "Control de Inventario",
       "/admin/reports": "Reportes",
-      "/": "Dashboard",
-    };
+    }
+    return titles[pathname] || "Dashboard"
+  }
 
-    return titles[pathname] || "Dashboard";
-  };
-
-  const currentTitle = getPageTitle(location.pathname);
+  const currentTitle = getPageTitle(location.pathname)
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      <Sidebar />
-      <div className="flex-1 flex flex-col min-h-screen">
-        <Header title={currentTitle} />
-        {/* Contenido dinámico */}
-        <main className="flex-1 p-6 bg-[#CAC6DA]">{children}</main>
-      </div>
-    </div>
-  );
+    <TooltipProvider>
+      <SidebarProvider>
+        <AppSidebar />
+        
+        <SidebarInset className="bg-surface-main flex flex-col min-h-screen w-full overflow-hidden">
+    
+          <Navbar sectionTitle={currentTitle} />
+          
+          <main className="flex-1 w-full overflow-y-auto">
+            <div className="p-6 lg:p-10 max-w-[1600px] mx-auto w-full"> 
+              <header className="mb-8">
+                <h1 className="text-h1-display text-brand-primary font-bebas tracking-wide uppercase">
+                  {currentTitle}
+                </h1>
+                <div className="h-1 w-20 bg-brand-gold mt-2 rounded-full" />
+              </header>
+
+              <section className="bg-surface-container rounded-cineflix p-6 shadow-sm border border-border">
+                {children}
+              </section>
+            </div>
+          </main>
+        </SidebarInset>
+      </SidebarProvider>
+    </TooltipProvider>
+  )
 }
