@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "../pages/auth/login";
 import Dashboard from "../pages/admin/dashboard";
 import DashboardCashier from "../pages/ticketOffice/dashboardCashier";
+import Cartelera from "@/pages/admin/cartelera";
 import SellTickets from "../pages/ticketOffice/sellTickets";
 import PrivateRoute from "./PrivateRoute";
 import AuthLayout from "../layouts/AuthLayout";
@@ -47,7 +48,9 @@ function AppRoute() {
           path="/admin/cartelera"
           element={
             <PrivateRoute role="admin">
-              <AdminLayout></AdminLayout>
+              <AdminLayout>
+                <Cartelera />
+              </AdminLayout>
             </PrivateRoute>
           }
         />
