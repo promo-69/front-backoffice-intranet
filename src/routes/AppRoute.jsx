@@ -2,11 +2,14 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "../pages/auth/login";
 import Dashboard from "../pages/admin/dashboard";
 import DashboardCashier from "../pages/ticketOffice/dashboardCashier";
+import Cartelera from "@/pages/admin/cartelera";
+import SellTickets from "../pages/ticketOffice/sellTickets";
 import PrivateRoute from "./PrivateRoute";
 import AuthLayout from "../layouts/AuthLayout";
 import AdminLayout from "../layouts/AdminLayout";
 import CashierLayout from "../layouts/CashierLayout";
 import Users from "../pages/admin/users/users";
+
 
 function AppRoute() {
   return (
@@ -48,7 +51,9 @@ function AppRoute() {
           path="/admin/cartelera"
           element={
             <PrivateRoute role="admin">
-              <AdminLayout></AdminLayout>
+              <AdminLayout>
+                <Cartelera />
+              </AdminLayout>
             </PrivateRoute>
           }
         />
@@ -111,14 +116,22 @@ function AppRoute() {
         />
 
         <Route
-          path="/ticketOffice/sell"
+          path="/ticketOffice/dashboard"
           element={
             <PrivateRoute role="cashier">
-              <CashierLayout></CashierLayout>
+              <CashierLayout />
             </PrivateRoute>
           }
         />
 
+        <Route
+          path="/ticketOffice/sell"
+          element={
+            <PrivateRoute role="cashier">
+              <SellTickets />
+            </PrivateRoute>
+          }
+        />
       </Routes>
     </BrowserRouter>
   );

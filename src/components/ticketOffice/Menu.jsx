@@ -23,7 +23,7 @@ export default function Menu({ items }) {
                 navigate(item.path);
                 setOpen(false);
               }}
-              className="w-full text-left px-4 py-2 hover:bg-gray-100"
+              className="w-full text-left px-4 py-2 hover:bg-gray-100 text-black font-medium"
             >
               {item.label}
             </button>

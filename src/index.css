@@ -1,9 +1,59 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap');
-
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/montserrat";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: 'Montserrat';
+@layer base {
+  :root {
+    /* Fondo claro de la web operativa (#F9F9F8) */
+    --background: 30 14% 98%; 
+    --foreground: 240 10% 4%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 4%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 4%;
+
+    /* COLOR PRIMARIO: Midnight/Morado (#3E2186) */
+    /* Este será el color por defecto de los botones de shadcn */
+    --primary: 258 61% 33%;
+    --primary-foreground: 0 0% 100%;
+
+    /* COLOR ACCENT: Dorado Cineflix (#d9982f) */
+    --accent: 37 66% 52%;
+    --accent-foreground: 0 0% 100%;
+
+    /* COLOR SECONDARY: Lila para Hovers y selección (#E7E3F4) */
+    --secondary: 252 45% 92%;
+    --secondary-foreground: 258 61% 33%;
+
+    --muted: 252 45% 96%;
+    --muted-foreground: 240 5% 45%;
+
+    /* Bordes y estados usando tu Lila 300 (#B6A9DF) */
+    --border: 252 46% 77%;
+    --input: 252 46% 77%;
+    --ring: 258 61% 33%; 
+
+    --sidebar-background: 258 61% 33%; /*Midnight */
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 37 66% 52%; 
+
+    /* Radio de borde Cineflix (8px) */
+    --radius: 0.5rem;
+  }
+
+  body {
+    @apply font-montserrat bg-background text-foreground;
+  }
+}
+
+@layer components {
+  /* Mantengo tus estilos de tipografía impactante */
+  .text-h1-display {
+    @apply font-bebas text-4xl md:text-5xl tracking-wide uppercase leading-[0.9] ;
+  }
 }
