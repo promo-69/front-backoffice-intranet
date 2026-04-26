@@ -27,7 +27,7 @@ function AdminLayoutContent({ location, children }) {
     const titles = {
       "/admin/dashboard": "Dashboard",
       "/admin/cartelera": "Gestión de Cartelera",
-      "/admin/sucursales": "Administración de Sucursales",
+      "/admin/sucursales": "Gestión de Sucursales y Salas",
       "/admin/users": "Control de Usuarios",
       "/admin/transacciones": "Registro de Transacciones",
       "/admin/inventario": "Control de Inventario",

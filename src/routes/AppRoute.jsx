@@ -9,7 +9,7 @@ import AuthLayout from "../layouts/AuthLayout";
 import AdminLayout from "../layouts/AdminLayout";
 import CashierLayout from "../layouts/CashierLayout";
 import Users from "../pages/admin/users/users";
-
+import CinemasPage from "../pages/admin/cinemas/cinemas";
 
 function AppRoute() {
   return (
@@ -62,7 +62,9 @@ function AppRoute() {
           path="/admin/sucursales"
           element={
             <PrivateRoute role="admin">
-              <AdminLayout></AdminLayout>
+              <AdminLayout>
+                <CinemasPage />
+              </AdminLayout>
             </PrivateRoute>
           }
         />
