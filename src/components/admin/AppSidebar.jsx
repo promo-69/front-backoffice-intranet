@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/sidebar"
 import LogoCineflix from "@/assets/images/logotype/logoCineflix.png"
 import { Link } from "react-router-dom"
+import { cn } from "@/lib/utils";
 
 const navItems = [
   { title: "Dashboard", url: "/admin/dashboard", icon: LayoutDashboard },
@@ -24,15 +25,18 @@ const navItems = [
   { title: "Reportes", url: "/admin/reports", icon: BarChart3 },
 ]
 
-export function AppSidebar({ ...props }) {
+export function AppSidebar({ className, ...props }) {
   return (
-   <Sidebar {...props} className="bg-brand-primary text-white border-r-0">
+    <Sidebar
+      {...props}
+      className={cn("bg-brand-primary text-white border-r-0", className)}
+    >
       <SidebarHeader className="p-6">
-       <div className="w-full flex justify-center mb-4">
-          <img 
-            src={LogoCineflix} 
-            alt="Cineflix Logo" 
-            className="h-12 w-auto object-contain" 
+        <div className="w-full flex justify-center mb-4">
+          <img
+            src={LogoCineflix}
+            alt="Cineflix Logo"
+            className="h-12 w-auto object-contain"
           />
         </div>
         <p className="text-[10px] font-montserrat text-gray-400 uppercase tracking-widest -mt-1">
@@ -42,22 +46,26 @@ export function AppSidebar({ ...props }) {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-gray-500 px-6 mb-2">Menú Principal</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-gray-500 px-6 mb-2">
+            Menú Principal
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => (
-              <SidebarMenuItem key={item.url}>
-              <SidebarMenuButton 
-                asChild 
-                tooltip={item.title}
-                className="hover:bg-white/10 hover:text-white py-6 px-6 group transition-colors"
-              >
-              <Link to={item.url}>
-                <item.icon className="group-hover:text-brand-gold transition-colors" />
-                <span className="font-montserrat font-medium">{item.title}</span>
-               </Link>
-              </SidebarMenuButton>
-              </SidebarMenuItem>
+                <SidebarMenuItem key={item.url}>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip={item.title}
+                    className="hover:bg-white/10 hover:text-white py-6 px-6 group transition-colors"
+                  >
+                    <Link to={item.url}>
+                      <item.icon className="group-hover:text-brand-gold transition-colors" />
+                      <span className="font-montserrat font-medium">
+                        {item.title}
+                      </span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
@@ -67,7 +75,10 @@ export function AppSidebar({ ...props }) {
       <SidebarFooter className="p-4 border-t border-white/10">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild className="hover:bg-red-500/10 hover:text-red-400 py-6 px-6">
+            <SidebarMenuButton
+              asChild
+              className="hover:bg-red-500/10 hover:text-red-400 py-6 px-6"
+            >
               <a href="/login">
                 <LogOut />
                 <span className="font-bold">Cerrar sesión</span>
@@ -77,5 +88,5 @@ export function AppSidebar({ ...props }) {
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }

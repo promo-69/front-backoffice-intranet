@@ -5,6 +5,10 @@
 @tailwind components;
 @tailwind utilities;
 
+.sidebar-root {
+  @apply z-30;
+}
+
 @layer base {
   :root {
     /* Fondo claro de la web operativa (#F9F9F8) */
