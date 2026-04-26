@@ -1,16 +1,15 @@
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, Clock } from 'lucide-react';
 
 const CinemaTable = ({ data, onEdit, onDelete }) => (
   <div className="overflow-x-auto bg-surface-container rounded-cineflix border border-border">
     <table className="w-full text-left text-xs">
       <thead>
-        <tr className="text-gray-400 uppercase tracking-wider border-b border-border">
+        <tr className="text-gray-600 uppercase tracking-wider border-b border-border">
           <th className="py-4 px-4">ID</th>
           <th className="py-4 px-4">NOMBRE</th>
           <th className="py-4 px-4">DIRECCIÓN</th>
           <th className="py-4 px-4">TELÉFONO</th>
-          <th className="py-4 px-4">APERTURA</th>
-          <th className="py-4 px-4">CIERRE</th>
+          <th className="py-4 px-4 text-center">HORARIO</th>
           <th className="py-4 px-4">ESTADO</th>
           <th className="py-4 px-4 text-center">ACCIONES</th>
         </tr>
@@ -22,8 +21,14 @@ const CinemaTable = ({ data, onEdit, onDelete }) => (
             <td className="py-4 px-4 font-bold text-slate-700">{item.name}</td>
             <td className="py-4 px-4 text-gray-500 max-w-xs truncate">{item.address}</td>
             <td className="py-4 px-4 text-gray-500">{item.phone}</td>
-            <td className="py-4 px-4 text-gray-500">{item.opening_time}</td>
-            <td className="py-4 px-4 text-gray-500">{item.closing_time}</td>
+            <td className="py-4 px-4 text-center">
+              <div className="flex items-center justify-center gap-1.5 text-gray-500 font-medium">
+                <Clock className="w-3 h-3 text-brand-gold" />
+                <span>{item.opening_time}</span>
+                <span className="text-brand-primary">-</span>
+                <span>{item.closing_time}</span>
+              </div>
+            </td>
             <td className="py-4 px-4">
               <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${
                 item.status === 'Activo' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'

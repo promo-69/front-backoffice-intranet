@@ -15,35 +15,80 @@ const CinemasPage = () => {
       closing_time: '11:00 PM', 
       status: 'Activo' 
     },
+
+    { 
+      id: 1, 
+      name: 'Sambil Barquisimeto', 
+      address: 'Av. Venezuela, C.C. Sambil', 
+      phone: '0251-1234567', 
+      opening_time: '10:00 AM', 
+      closing_time: '11:00 PM', 
+      status: 'Activo' 
+    },
+
+        { 
+      id: 1, 
+      name: 'Sambil Barquisimeto', 
+      address: 'Av. Venezuela, C.C. Sambil', 
+      phone: '0251-1234567', 
+      opening_time: '10:00 AM', 
+      closing_time: '11:00 PM', 
+      status: 'Activo' 
+    },
+
+        { 
+      id: 1, 
+      name: 'Sambil Barquisimeto', 
+      address: 'Av. Venezuela, C.C. Sambil', 
+      phone: '0251-1234567', 
+      opening_time: '10:00 AM', 
+      closing_time: '11:00 PM', 
+      status: 'Activo' 
+    },
+
+        { 
+      id: 1, 
+      name: 'Sambil Barquisimeto', 
+      address: 'Av. Venezuela, C.C. Sambil', 
+      phone: '0251-1234567', 
+      opening_time: '10:00 AM', 
+      closing_time: '11:00 PM', 
+      status: 'Activo' 
+    },
   ];
 
   const CinemaTabs = ({ activeTab, setActiveTab }) => (
-  <div className="flex border-b border-gray-200">
-    <button 
-      onClick={() => setActiveTab('sucursales')}
-      className={`pb-2 px-4 font-bold transition-colors ${activeTab === 'sucursales' ? 'border-b-2 border-brand-primary text-brand-primary' : 'text-gray-400'}`}
-    >
-      SUCURSALES
-    </button>
-    <button 
-      onClick={() => setActiveTab('salas')}
-      className={`pb-2 px-4 font-bold transition-colors ${activeTab === 'salas' ? 'border-b-2 border-brand-primary text-brand-primary' : 'text-gray-400'}`}
-    >
-      SALAS
-    </button>
-  </div>
-);
+    <div className="flex gap-8 border-b border-gray-200">
+      <button 
+        onClick={() => setActiveTab('sucursales')}
+        className={`pb-4 px-2 text-sm font-black transition-all relative ${
+          activeTab === 'sucursales' 
+          ? 'text-brand-primary' 
+          : 'text-gray-400 hover:text-gray-600'
+        }`}
+      >
+        SUCURSALES
+        {activeTab === 'sucursales' && (
+          <div className="absolute bottom-0 left-0 w-full h-1 bg-brand-primary rounded-t-full" />
+        )}
+      </button>
+    </div>
+  );
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+    <div className="space-y-8 p-2">
+
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
         <CinemaTabs activeTab={activeTab} setActiveTab={setActiveTab} />
-        <CinemaSearch 
-          placeholder="BUSCAR SUCURSAL..." 
-          onAddClick={() => console.log("Abrir modal de registro")} 
-        />
+        <div className="pb-1">
+          <CinemaSearch 
+            placeholder="BUSCAR SUCURSAL..." 
+            onAddClick={() => console.log("Abrir modal")} 
+          />
+        </div>
       </div>
 
+      {/* Contenido Principal */}
       {activeTab === 'sucursales' ? (
         <CinemaTable 
           data={sucursales} 
@@ -51,7 +96,9 @@ const CinemasPage = () => {
           onDelete={(id) => console.log("Eliminar", id)}
         />
       ) : (
-        <div className="p-10 text-center text-gray-400">Panel de Salas en desarrollo...</div>
+        <div className="p-20 text-center bg-slate-50 rounded-xl border-2 border-dashed border-slate-200 text-slate-400 font-medium">
+          El panel de gestión de Salas - Ricardo
+        </div>
       )}
     </div>
   );
