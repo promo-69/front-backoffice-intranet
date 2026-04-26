@@ -1,6 +1,6 @@
 import { useState } from "react";
-import EmployeesTab from "./EmployeesTab";
-import ClientsTab from "./ClientsTab";
+import EmployeesTab from "./employeesTab";
+import ClientsTab from "./clientsTab";
 
 export default function Users() {
   const [activeTab, setActiveTab] = useState("employees");

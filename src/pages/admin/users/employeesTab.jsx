@@ -1,5 +1,5 @@
 import TableEmployees from "../../../components/admin/users/TableEmployees";
-import Button from "../../../components/ui/Button";
+import {Button} from "../../../components/ui/button";
 import { useState } from "react";
 
 export default function EmployeesTab() {
