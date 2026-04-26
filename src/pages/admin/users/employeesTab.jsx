@@ -38,8 +38,6 @@ export default function EmployeesTab() {
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Consulta de EMPLEADOS</h2>
-
         <Button
           text="Agregar empleado"
           type="submit"

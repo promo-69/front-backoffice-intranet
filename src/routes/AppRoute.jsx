@@ -62,7 +62,8 @@ function AppRoute() {
           path="/admin/sucursales"
           element={
             <PrivateRoute role="admin">
-              <AdminLayout></AdminLayout>
+              <AdminLayout>
+              </AdminLayout>
             </PrivateRoute>
           }
         />
