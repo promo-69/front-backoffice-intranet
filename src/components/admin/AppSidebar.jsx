@@ -11,7 +11,7 @@ import {
   SidebarGroupLabel,
   SidebarGroupContent,
 } from "@/components/ui/sidebar"
-import LogoCineflix from "@/assets/images/logotype/logoCineflix.png"
+import LogoCineflix from "@/assets/images/logotype/logoCiineflix.png"
 import { Link } from "react-router-dom"
 import { cn } from "@/lib/utils";
 
@@ -25,28 +25,28 @@ const navItems = [
   { title: "Reportes", url: "/admin/reports", icon: BarChart3 },
 ]
 
-export function AppSidebar({ className, ...props }) {
+export function AppSidebar({className, ...props }) {
   return (
     <Sidebar
       {...props}
       className={cn("bg-brand-primary text-white border-r-0", className)}
     >
-      <SidebarHeader className="p-6">
+      <SidebarHeader className="px-6 pt-6 pb-2">
         <div className="w-full flex justify-center mb-4">
           <img
             src={LogoCineflix}
             alt="Cineflix Logo"
-            className="h-12 w-auto object-contain"
+            className="h-10 w-auto object-contain"
           />
         </div>
-        <p className="text-[10px] font-montserrat text-gray-400 uppercase tracking-widest -mt-1">
+        <p className="text-[10px] font-montserrat text-gray-400 uppercase tracking-widest mt-1">
           Intranet Administrativa
         </p>
       </SidebarHeader>
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-gray-500 px-6 mb-2">
+          <SidebarGroupLabel className="text-gray-500 px-6 mb-1">
             Menú Principal
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -72,7 +72,7 @@ export function AppSidebar({ className, ...props }) {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-4 border-t border-white/10">
+      <SidebarFooter className="p-2 border-t border-white/10">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton

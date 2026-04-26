@@ -21,7 +21,7 @@ import {
 export function Navbar({ sectionTitle }) {
   return (
     <header
-      className="flex h-16 items-center gap-4 border-b bg-white px-6 fixed top-0 left-0 right-0 z-20 transition-all duration-300"
+      className="flex h-16 items-center gap-4 border-b bg-white px-6 fixed top-0 left-0 right-0 z-10 transition-all duration-300"
     >
       <div
         className="flex items-center gap-2 w-full transition-all duration-300"
