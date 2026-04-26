@@ -40,22 +40,16 @@ function AdminLayoutContent({ location, children }) {
 
   return (
     <>
-      <AppSidebar />
+      <AppSidebar className="z-20" />
 
-      <SidebarInset className="bg-surface-main flex flex-col min-h-screen w-full overflow-hidden transition-all duration-300">
-        <div
-          className="transition-all duration-300"
-          style={{
-            paddingLeft: open ? "215px" : "5px",
-          }}
-        >
-          <Navbar sectionTitle={currentTitle} />
-        </div>
+      <SidebarInset className="bg-surface-main flex flex-col min-h-screen w-full overflow-y-auto transition-all duration-300">
+        <Navbar sectionTitle={currentTitle} />
 
         <main
-          className="flex-1 w-full overflow-y-auto transition-all duration-300"
+          className="flex-1 w-full transition-all duration-300"
           style={{
             paddingLeft: open ? "200px" : "80px",
+            paddingTop: "45px",
           }}
         >
           <div className="p-6 lg:p-10 max-w-[1600px] mx-auto w-full">
