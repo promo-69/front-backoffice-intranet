@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Plus } from 'lucide-react'; 
 import CinemaSearch from '../../components/admin/cinemas/SearchBar';
 import CinemaTable from '../../components/admin/cinemas/CinemaTable';
-import RoomManager from "../../components/admin/sucursales/RoomManager";
+import RoomManager from "../../components/admin/cinemas/RoomManager";
 
 const SucursalesPage = () => {
   const [selectedBranch, setSelectedBranch] = useState(null);

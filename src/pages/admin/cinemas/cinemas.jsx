@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-/* IMPORTANTE: Añadimos Plus a las importaciones */
-import { Plus } from 'lucide-react'; 
+import { Plus } from 'lucide-react';
 import CinemaSearch from '../../../components/admin/cinemas/SearchBar';
 import CinemaTable from '../../../components/admin/cinemas/CinemaTable';
-import RoomManager from "../../../components/admin/sucursales/RoomManager";
+import RoomManager from "../../../components/admin/cinemas/RoomManager";
 
 const CinemaPage = () => {
-  const [selectedBranch, setSelectedBranch] = useState(null);
+  // ✅ ahora solo guardamos el ID
+  const [selectedId, setSelectedId] = useState(null);
 
   const [branches] = useState([
     { 
@@ -19,6 +19,15 @@ const CinemaPage = () => {
       status: 'Activo' 
     },
     { 
+      id: 4, 
+      name: 'Metróss', 
+      address: 'Av. Florencio Jiménez', 
+      phone: '0251-7654321', 
+      opening_time: '11:00 AM', 
+      closing_time: '09:00 PM', 
+      status: 'Activo' 
+    },
+    { 
       id: 2, 
       name: 'Metrópolis', 
       address: 'Av. Florencio Jiménez', 
@@ -27,20 +36,9 @@ const CinemaPage = () => {
       closing_time: '09:00 PM', 
       status: 'Activo' 
     },
-
-        { 
-      id: 2, 
-      name: 'Metrópolis', 
-      address: 'Av. Florencio Jiménez', 
-      phone: '0251-7654321', 
-      opening_time: '11:00 AM', 
-      closing_time: '09:00 PM', 
-      status: 'Activo' 
-    },
-
-        { 
-      id: 2, 
-      name: 'Metrópolis', 
+    { 
+      id: 3, 
+      name: 'Vallenato', 
       address: 'Av. Florencio Jiménez', 
       phone: '0251-7654321', 
       opening_time: '11:00 AM', 
@@ -49,12 +47,19 @@ const CinemaPage = () => {
     },
   ]);
 
+  // 🔥 obtenemos el objeto seleccionado a partir del ID
+  const selectedBranch = branches.find(
+    (b) => Number(b.id) === Number(selectedId)
+  );
+
   return (
     <div className="space-y-10 p-2">
-      {/* SECCIÓN SUPERIOR: Títulos y Buscador */}
+      {/* HEADER */}
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Gestión de Sedes</h1>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+            Gestión de Sedes
+          </h1>
           <p className="text-sm text-slate-500 mt-1">
             Visualiza tus sucursales y selecciona una para gestionar sus salas de proyección.
           </p>
@@ -64,6 +69,7 @@ const CinemaPage = () => {
           <h2 className="text-sm font-black text-brand-primary uppercase tracking-widest">
             Listado de Sucursales
           </h2>
+
           <CinemaSearch 
             placeholder="BUSCAR SEDE..." 
             onAddClick={() => console.log("Abrir modal de registro")} 
@@ -71,28 +77,35 @@ const CinemaPage = () => {
         </div>
       </div>
 
-      {/* SECCIÓN MEDIA: La Tabla Profesional */}
+      {/* TABLA */}
       <div className="w-full">
         <CinemaTable 
-          data={branches} 
+          data={branches}
+          selectedId={selectedId}
+          onSelectBranch={(id) => setSelectedId(id)} // ✅ ahora recibe ID
           onEdit={(branch) => console.log("Editando:", branch)}
           onDelete={(id) => console.log("Eliminando ID:", id)}
-          onSelectBranch={(branch) => setSelectedBranch(branch)} 
-          selectedId={selectedBranch?.id}
         />
       </div>
 
-      {/* SECCIÓN INFERIOR: Gestión de Salas (RoomManager) */}
+      {/* ROOM MANAGER */}
       <div className="w-full pt-6 border-t-2 border-dashed border-slate-200">
         {selectedBranch ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="mb-6 flex items-center gap-3">
               <div className="h-8 w-1 bg-brand-primary rounded-full"></div>
               <h3 className="text-lg font-black text-slate-800 uppercase">
-                Salas: <span className="text-brand-primary">{selectedBranch.name}</span>
+                Salas:{" "}
+                <span className="text-brand-primary">
+                  {selectedBranch.name}
+                </span>
               </h3>
             </div>
-            <RoomManager key={selectedBranch.id} branch={selectedBranch} />
+
+            <RoomManager 
+              key={selectedBranch.id} 
+              branch={selectedBranch} 
+            />
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-20 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-300 transition-all">
