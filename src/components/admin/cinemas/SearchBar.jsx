@@ -2,22 +2,24 @@ import { Plus } from 'lucide-react';
 
 const SearchBar = ({ searchTerm, setSearchTerm, onAddClick, placeholder = "BUSCAR..." }) => (
   <div className="flex gap-4 items-center">
-    {/* Input idéntico al de Empleados */}
+    {/* Input con diseño unificado */}
     <input
       type="text"
       placeholder={placeholder}
       value={searchTerm}
       onChange={(e) => setSearchTerm(e.target.value)}
       className="
-        w-64 px-3 py-2 
-        rounded-cineflix border border-gray-300 
+        w-64 px-4 py-2.5 
+        rounded-xl border border-gray-200 
         text-sm font-montserrat 
-        focus:outline-none focus:ring-2 focus:ring-brand-primary/40
-        transition-all
+        bg-slate-50/50
+        placeholder:text-slate-400
+        focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:bg-white focus:border-brand-primary/40
+        transition-all duration-200
       "
     />
     
-    {/* Botón de acción */}
+    {/* Botón de acción idéntico al de Gestión de Personal */}
     <button 
       onClick={onAddClick}
       className="
