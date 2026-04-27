@@ -3,29 +3,34 @@ import { useState, useEffect } from "react"
 import { 
   useReactTable, 
   getCoreRowModel, 
-  flexRender 
 } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs" 
 import { MoviesTab } from "@/components/admin/exhibition/MoviesTab"
 import { SuccessModal } from "@/components/ui/SuccessModal"
+import { DeleteConfirmModal } from "@/components/ui/DialogConfirmModal"
 import { ShowtimesTab } from "@/components/admin/exhibition/ShowtimesTab"
 import { RegisterMovieForm } from "@/components/forms/RegisterMovieForm"
+import { ColumnsMovies } from "@/components/admin/exhibition/ColumnsMovies";
 import poster1 from "@/assets/images/posters/the-drama-poster.jpg"
 
 export default function ExhibitionPage() {
   const [activeTab, setActiveTab] = useState("movies");
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
-  const [data, setData] = useState([]);
-  const [totalElements, setTotalElements] = useState(0);
+
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [movieToDelete, setMovieToDelete] = useState(null);
+  const [isDeleteSuccessOpen, setIsDeleteSuccessOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState({ title: "", message: "" });
+  const [totalElements, setTotalElements] = useState(50); 
   const [{ pageIndex, pageSize }, setPagination] = useState({
     pageIndex: 0,
     pageSize: 10,
   });
-  
-  const [moviesData, setMoviesData] = useState([
+   
+  const [data, setData] = useState([
     {
       id: 1,
       title: "EL Drama",
@@ -36,21 +41,46 @@ export default function ExhibitionPage() {
     }
   ]);
  
-  const handleRegistrationSuccess = () => {
-    setIsSuccessOpen(true);
+  const handleDelete = (movie) => {
+    setMovieToDelete(movie);
+    setIsDeleteConfirmOpen(true);
   };
+  const handleView = (movie) => console.log("Ver:", movie);
+  const handleEdit = (movie) => console.log("Edit:", movie);
+  // handleDelete ahora usa nuestra función de arriba
+  const columns = ColumnsMovies(handleView, handleEdit, handleDelete);
+
+  const handleConfirmDelete = () => {
+    // Aquí iría tu llamada al API: await deleteMovie(movieToDelete.id)
+    console.log("Eliminando:", movieToDelete.title);
+    // Opcional: Actualizar la lista local (reemplazar por fetch real luego)
+    setData(prev => prev.filter(m => m.id !== movieToDelete.id));
+    setTotalElements(prev => prev - 1);
+    
+    // Simulación de éxito:
+    setIsDeleteConfirmOpen(false);
+    setSuccessMessage({
+      title: "¡Eliminado con Éxito!",
+      message: "La película ha sido removida del catálogo correctamente."
+    });
+    setIsDeleteSuccessOpen(true); 
+    
+    
+  };
+
+  const table = useReactTable({
+    data,
+    columns,
+    pageCount: Math.ceil(totalElements / pageSize),
+    state: {
+      pagination: { pageIndex, pageSize },
+    },
+    onPaginationChange: setPagination,
+    manualPagination: true, 
+    getCoreRowModel: getCoreRowModel(),
+  });
+ 
 /** 
- *  const table = useReactTable({
-  data,
-  columns,
-  pageCount: Math.ceil(totalElements / pageSize),
-  state: {
-    pagination: { pageIndex, pageSize },
-  },
-  onPaginationChange: setPagination,
-  manualPagination: true,
-  getCoreRowModel: getCoreRowModel(),
-});
     
   // Fetch al backend 
   useEffect(() => {
@@ -115,8 +145,7 @@ export default function ExhibitionPage() {
           <p className="text-sm text-slate-500 mb-4 italic">
             Gestiona el catálogo de películas disponibles
           </p>
-          <MoviesTab moviesData={moviesData} />
-          {/* <MoviesTab table={table} totalElements={totalElements} /> */}
+          <MoviesTab table={table} totalElements={totalElements} />
         </TabsContent>
 
         <TabsContent value="functions" className="mt-0 outline-none">
@@ -132,15 +161,27 @@ export default function ExhibitionPage() {
         onSuccess={() => setIsSuccessOpen(true)} 
       />
 
-      <SuccessModal 
-        isOpen={isSuccessOpen} 
-        onClose={() => setIsSuccessOpen(false)} 
+    
+      <DeleteConfirmModal 
+        isOpen={isDeleteConfirmOpen}
+        onClose={() => setIsDeleteConfirmOpen(false)}
+        onConfirm={handleConfirmDelete}
+        itemName={movieToDelete?.title}
       />
 
-      {/* Botón de prueba (puedes borrarlo luego o integrarlo al flujo real) */}
-      <Button onClick={handleRegistrationSuccess} >
+      <SuccessModal 
+        isOpen={isSuccessOpen} 
+        onClose={() => setIsSuccessOpen(false)}
+        title={successMessage.title}
+        message={successMessage.message} 
+      />
+
+      {/*  
+         <Button onClick={handleRegistrationSuccess} >
         Probar Éxito
       </Button>
+      */}
+     
     </div>
   )
 }

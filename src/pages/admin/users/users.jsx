@@ -9,7 +9,7 @@ export default function Users() {
   const [activeTab, setActiveTab] = useState("employees");
   const [openModal, setOpenModal] = useState(false);
 
-  // ⭐ BUSCADOR GLOBAL PARA EMPLEADOS
+  
   const [search, setSearch] = useState("");
 
   return (
