@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Presentation, Plus, Square, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import SeatGridDesigner from "./SeatGridDesigner";
 
-export default function RoomManager({ branch }) {
-  const [isAddingRoom, setIsAddingRoom] = useState(false);
+export default function RoomManager({ branch, externalIsAdding, setExternalIsAdding }) {
+  // Sincronizamos el estado interno con el externo del padre
   const [editingRoomId, setEditingRoomId] = useState(null);
   const [isLayoutValid, setIsLayoutValid] = useState(false);
   const [roomLayout, setRoomLayout] = useState([]);
@@ -25,8 +25,9 @@ export default function RoomManager({ branch }) {
     status: "Activa"
   });
 
+  // Limpiar el formulario y avisar al padre que ya no estamos agregando
   const resetForm = () => {
-    setIsAddingRoom(false);
+    setExternalIsAdding(false);
     setEditingRoomId(null);
     setFormData({ name: "", capacity: "", rows: "", cols: "", status: "Activa" });
     setIsLayoutValid(false);
@@ -42,9 +43,9 @@ export default function RoomManager({ branch }) {
       status: room.status
     });
     setRoomLayout(room.layout || []);
-    setIsLayoutValid(true); // Asumimos que el layout guardado es válido
+    setIsLayoutValid(true); 
     setEditingRoomId(room.id);
-    setIsAddingRoom(true);
+    setExternalIsAdding(true); // Abrimos el formulario mediante el estado del padre
   };
 
   const handleSaveRoom = () => {
@@ -73,7 +74,7 @@ export default function RoomManager({ branch }) {
   };
 
   const handleDeleteRoom = (id, name) => {
-    const confirmMessage = `¿Estás seguro de que deseas eliminar la ${name}?\n\n(En el futuro, esto hará un "borrado lógico" en la base de datos).`;
+    const confirmMessage = `¿Estás seguro de que deseas eliminar la ${name}?`;
     if (window.confirm(confirmMessage)) {
       setRooms(rooms.filter(room => room.id !== id));
       if (editingRoomId === id) {
@@ -91,24 +92,11 @@ export default function RoomManager({ branch }) {
 
   return (
     <div className="bg-white p-6 rounded-cineflix border border-gray-100 shadow-sm min-h-[400px]">
-      <div className="flex justify-between items-center border-b border-gray-100 pb-4 mb-6">
-        <div>
-          <h2 className="text-xl font-montserrat font-bold text-brand-primary">
-            Salas
-          </h2>
-          <p className="text-sm text-muted-foreground">Gestión de salas de la sucursal {branch?.name}</p>
-        </div>
-        <Button
-          onClick={() => { resetForm(); setIsAddingRoom(true); }}
-          className="bg-brand-primary hover:bg-brand-primary/90 text-white font-montserrat font-bold rounded-cineflix transition-transform hover:scale-105"
-        >
-          <Plus className="mr-2 h-4 w-4 text-brand-gold" />
-          Agregar Sala
-        </Button>
-      </div>
+      
+      {/* ELIMINADO EL BOTÓN ANTERIOR: Ahora el control vive en CinemaPage */}
 
-      {isAddingRoom ? (
-        <div className="bg-gray-50 p-6 rounded-cineflix border border-gray-200 mt-4 shadow-inner">
+      {externalIsAdding ? (
+        <div className="bg-gray-50 p-6 rounded-cineflix border border-gray-200 shadow-inner">
           <div className="flex items-center gap-2 mb-6 border-b border-gray-200 pb-3">
             <Square className="text-orange-500 h-6 w-6 fill-orange-500" />
             <h3 className="text-lg font-montserrat font-bold text-gray-800">
@@ -232,7 +220,6 @@ export default function RoomManager({ branch }) {
                   size="icon"
                   onClick={() => handleDeleteRoom(room.id, room.name)}
                   className="h-8 w-8 text-white bg-red-500 hover:bg-red-600 rounded-lg"
-                  title="Eliminar Sala"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
