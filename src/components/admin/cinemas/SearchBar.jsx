@@ -1,31 +1,23 @@
-import { Search, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 
-const SearchBar = ({ onSearch, onAddClick, placeholder = "BUSCAR..." }) => (
+const SearchBar = ({ searchTerm, setSearchTerm, onAddClick, placeholder = "BUSCAR..." }) => (
   <div className="flex gap-4 items-center">
-    <div className="relative group flex-1 w-72">
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4 group-focus-within:text-brand-primary transition-colors duration-300" />
-      
-      <input 
-        type="text" 
-        onChange={(e) => onSearch(e.target.value)}
-        placeholder={placeholder} 
-        className="
-          w-full pl-10 pr-4 py-2
-          bg-slate-50 
-          /* Borde en gris fuerte (slate-500) para mayor énfasis */
-          border-2 border-slate-500 rounded-xl
-          text-xs font-bold text-slate-800
-          placeholder:text-slate-500 placeholder:font-normal
-          
-          /* Interacción: se oscurece más en hover antes de pasar al color de marca */
-          hover:border-slate-700
-          focus:bg-white focus:border-brand-primary focus:outline-none
-          
-          transition-all duration-300
-        "
-      />
-    </div>
-
+    {/* Input idéntico al de Empleados */}
+    <input
+      type="text"
+      placeholder={placeholder}
+      value={searchTerm}
+      onChange={(e) => setSearchTerm(e.target.value)}
+      className="
+        w-64 px-3 py-2 
+        rounded-cineflix border border-gray-300 
+        text-sm font-montserrat 
+        focus:outline-none focus:ring-2 focus:ring-brand-primary/40
+        transition-all
+      "
+    />
+    
+    {/* Botón de acción */}
     <button 
       onClick={onAddClick}
       className="

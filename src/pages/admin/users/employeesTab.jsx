@@ -3,6 +3,7 @@ import { Pencil, Trash2 } from "lucide-react";
 export default function EmployeesTab({ search }) {
   const employees = [
     {
+      id: 1,
       nombre: "Pedro Perez",
       correo: "pedro.perez@cineflix.com",
       cargo: "Operador",
@@ -10,6 +11,7 @@ export default function EmployeesTab({ search }) {
       activo: true,
     },
     {
+      id: 2,
       nombre: "María Jiménez",
       correo: "maria.jimenez@cineflix.com",
       cargo: "Cajero",
@@ -18,7 +20,6 @@ export default function EmployeesTab({ search }) {
     },
   ];
 
-  // ⭐ FILTRO
   const filtered = employees.filter((emp) => {
     const text = search.toLowerCase();
     return (
@@ -29,11 +30,11 @@ export default function EmployeesTab({ search }) {
 
   return (
     <div className="space-y-4">
-      {/* TABLA ESTILO CAPTURE */}
-      <div className="overflow-x-auto bg-white rounded-cineflix border border-border shadow-sm">
+      <div className="overflow-x-auto bg-surface-container rounded-cineflix border border-border shadow-sm">
         <table className="w-full text-left text-xs">
           <thead>
             <tr className="text-gray-600 uppercase tracking-wider border-b border-border font-montserrat">
+              {/* Se eliminó la columna vacía del check */}
               <th className="py-4 px-4">Nombre completo</th>
               <th className="py-4 px-4">Correo</th>
               <th className="py-4 px-4">Cargo</th>
@@ -44,9 +45,9 @@ export default function EmployeesTab({ search }) {
           </thead>
 
           <tbody className="divide-y divide-border">
-            {filtered.map((emp, index) => (
+            {filtered.map((emp) => (
               <tr
-                key={index}
+                key={emp.id}
                 className="hover:bg-gray-50/50 transition-colors font-montserrat"
               >
                 {/* NOMBRE */}
@@ -55,13 +56,19 @@ export default function EmployeesTab({ search }) {
                 </td>
 
                 {/* CORREO */}
-                <td className="py-4 px-4 text-gray-500">{emp.correo}</td>
+                <td className="py-4 px-4 text-gray-500 font-medium">
+                  {emp.correo}
+                </td>
 
                 {/* CARGO */}
-                <td className="py-4 px-4 text-gray-500">{emp.cargo}</td>
+                <td className="py-4 px-4 text-gray-500">
+                  {emp.cargo}
+                </td>
 
                 {/* SUCURSAL */}
-                <td className="py-4 px-4 text-gray-500">{emp.sucursal}</td>
+                <td className="py-4 px-4 text-gray-500">
+                  {emp.sucursal}
+                </td>
 
                 {/* ESTADO */}
                 <td className="py-4 px-4 text-center">
@@ -79,11 +86,17 @@ export default function EmployeesTab({ search }) {
                 {/* ACCIONES */}
                 <td className="py-4 px-4">
                   <div className="flex justify-center gap-3">
-                    <button className="text-brand-primary hover:scale-110 transition-transform">
+                    <button 
+                      onClick={() => console.log("Editando:", emp.id)}
+                      className="text-brand-primary hover:scale-110 transition-transform"
+                    >
                       <Pencil className="w-4 h-4" />
                     </button>
 
-                    <button className="text-red-500 hover:scale-110 transition-transform">
+                    <button 
+                      onClick={() => console.log("Eliminando:", emp.id)}
+                      className="text-red-500 hover:scale-110 transition-transform"
+                    >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>

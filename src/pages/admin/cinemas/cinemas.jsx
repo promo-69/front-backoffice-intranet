@@ -6,62 +6,41 @@ import RoomManager from "../../../components/admin/cinemas/RoomManager";
 
 const CinemaPage = () => {
   const [selectedId, setSelectedId] = useState(null);
-  // Estado para controlar la visibilidad del formulario de salas desde el padre
   const [isAddingRoom, setIsAddingRoom] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const [branches] = useState([
-    { 
-      id: 1, 
-      name: 'Sambil Barquisimeto', 
-      address: 'Av. Venezuela, C.C. Sambil', 
-      phone: '0251-1234567', 
-      opening_time: '10:00 AM', 
-      closing_time: '11:00 PM', 
-      status: 'Activo' 
-    },
-    { 
-      id: 4, 
-      name: 'Metróss', 
-      address: 'Av. Florencio Jiménez', 
-      phone: '0251-7654321', 
-      opening_time: '11:00 AM', 
-      closing_time: '09:00 PM', 
-      status: 'Activo' 
-    },
-    { 
-      id: 2, 
-      name: 'Metrópolis', 
-      address: 'Av. Florencio Jiménez', 
-      phone: '0251-7654321', 
-      opening_time: '11:00 AM', 
-      closing_time: '09:00 PM', 
-      status: 'Activo' 
-    },
-    { 
-      id: 3, 
-      name: 'Vallenato', 
-      address: 'Av. Florencio Jiménez', 
-      phone: '0251-7654321', 
-      opening_time: '11:00 AM', 
-      closing_time: '09:00 PM', 
-      status: 'Activo' 
-    },
+    { id: 1, name: 'Sambil Barquisimeto', address: 'Av. Venezuela, C.C. Sambil', phone: '0251-1234567', opening_time: '10:00 AM', closing_time: '11:00 PM', status: 'Activo' },
+    { id: 4, name: 'Metróss', address: 'Av. Florencio Jiménez', phone: '0251-7654321', opening_time: '11:00 AM', closing_time: '09:00 PM', status: 'Activo' },
+    { id: 2, name: 'Metrópolis', address: 'Av. Florencio Jiménez', phone: '0251-7654321', opening_time: '11:00 AM', closing_time: '09:00 PM', status: 'Activo' },
+    { id: 3, name: 'Vallenato', address: 'Av. Florencio Jiménez', phone: '0251-7654321', opening_time: '11:00 AM', closing_time: '09:00 PM', status: 'Activo' },
   ]);
+
+  const filteredBranches = branches.filter((b) =>
+    b.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const selectedBranch = branches.find(
     (b) => Number(b.id) === Number(selectedId)
   );
 
   return (
-    <div className="space-y-10 p-2">
+    <div className="space-y-6">
       {/* SECCIÓN 1: LISTADO DE SUCURSALES */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-200 pb-6">
-        <h2 className="text-sm font-black text-brand-primary uppercase tracking-widest">
-          Listado de Sucursales
-        </h2>
+      <div className="flex justify-between items-center border-b border-gray-100 pb-4">
+        <div>
+          <h3 className="text-lg font-montserrat font-bold text-brand-primary">
+            Listado de Sucursales
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            Administra y configura las sucursales, horarios y contactos de la cadena.
+          </p>
+        </div>
 
         <CinemaSearch 
-          placeholder="BUSCAR SEDE..." 
+          placeholder="Buscar Sucursal..." 
+          searchTerm={searchTerm}      
+          setSearchTerm={setSearchTerm}
           onAddClick={() => console.log("Abrir modal de registro")} 
         />
       </div>
@@ -69,30 +48,34 @@ const CinemaPage = () => {
       {/* TABLA DE SUCURSALES */}
       <div className="w-full">
         <CinemaTable 
-          data={branches}
+          data={filteredBranches}
           selectedId={selectedId}
           onSelectBranch={(id) => {
             setSelectedId(id);
-            setIsAddingRoom(false); // Cerramos el formulario si cambia de sucursal
+            setIsAddingRoom(false);
           }}
           onEdit={(branch) => console.log("Editando:", branch)}
           onDelete={(id) => console.log("Eliminando ID:", id)}
         />
       </div>
 
-      {/* SECCIÓN 2: GESTIÓN DE SALAS (DISEÑO UNIFICADO) */}
+      {/* SECCIÓN 2: GESTIÓN DE SALAS */}
       <div className="w-full pt-8 mt-4 border-t-2 border-dashed border-slate-200">
         {selectedBranch ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             
-            {/* TÍTULO Y BOTÓN: CLON DEL DISEÑO SUPERIOR */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-200 pb-6 mb-8">
-              <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest">
-                Salas en:{" "}
-                <span className="text-brand-primary">
-                  {selectedBranch.name}
-                </span>
-              </h2>
+            <div className="flex justify-between items-center border-b border-gray-100 pb-4 mb-8">
+              <div>
+                <h3 className="text-lg font-montserrat font-bold text-slate-800">
+                  Salas en /{" "}
+                  <span className="text-brand-primary">
+                    {selectedBranch.name}
+                  </span>
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Configura la capacidad, tecnología y disponibilidad de las salas en esta sede.
+                </p>
+              </div>
 
               <button
                 onClick={() => setIsAddingRoom(true)}
@@ -113,7 +96,6 @@ const CinemaPage = () => {
               </button>
             </div>
 
-            {/* MANAGER DE SALAS */}
             <RoomManager 
               key={selectedBranch.id} 
               branch={selectedBranch} 
@@ -122,7 +104,6 @@ const CinemaPage = () => {
             />
           </div>
         ) : (
-          /* ESTADO VACÍO */
           <div className="flex flex-col items-center justify-center py-20 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-300 transition-all">
             <div className="p-4 bg-white rounded-full shadow-sm mb-4">
               <Plus className="h-8 w-8 text-slate-300" />
