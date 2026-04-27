@@ -1,5 +1,10 @@
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { 
+  useReactTable, 
+  getCoreRowModel, 
+  flexRender 
+} from "@tanstack/react-table";
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs" 
@@ -13,6 +18,12 @@ export default function ExhibitionPage() {
   const [activeTab, setActiveTab] = useState("movies");
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
+  const [data, setData] = useState([]);
+  const [totalElements, setTotalElements] = useState(0);
+  const [{ pageIndex, pageSize }, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+  });
   
   const [moviesData, setMoviesData] = useState([
     {
@@ -28,6 +39,31 @@ export default function ExhibitionPage() {
   const handleRegistrationSuccess = () => {
     setIsSuccessOpen(true);
   };
+/** 
+ *  const table = useReactTable({
+  data,
+  columns,
+  pageCount: Math.ceil(totalElements / pageSize),
+  state: {
+    pagination: { pageIndex, pageSize },
+  },
+  onPaginationChange: setPagination,
+  manualPagination: true,
+  getCoreRowModel: getCoreRowModel(),
+});
+    
+  // Fetch al backend 
+  useEffect(() => {
+    const fetchData = async () => {
+      const response = await fetch(`/api/movies?page=${pageIndex}&limit=${pageSize}`);
+      const result = await response.json();
+      setData(result.movies);
+      setTotalElements(result.total);
+    };
+    fetchData();
+  }, [pageIndex, pageSize]);
+*/
+ 
 
   return (
     <div className="flex flex-col w-full space-y-4">
@@ -80,6 +116,7 @@ export default function ExhibitionPage() {
             Gestiona el catálogo de películas disponibles
           </p>
           <MoviesTab moviesData={moviesData} />
+          {/* <MoviesTab table={table} totalElements={totalElements} /> */}
         </TabsContent>
 
         <TabsContent value="functions" className="mt-0 outline-none">
@@ -92,7 +129,7 @@ export default function ExhibitionPage() {
       <RegisterMovieForm 
         isOpen={isFormOpen} 
         onClose={() => setIsFormOpen(false)}
-        onSuccess={() => setIsSuccessOpen(true)} // Activa el modal de éxito
+        onSuccess={() => setIsSuccessOpen(true)} 
       />
 
       <SuccessModal 
