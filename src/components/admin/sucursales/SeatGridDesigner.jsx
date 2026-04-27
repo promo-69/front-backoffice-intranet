@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { MonitorPlay } from 'lucide-react';
+import { MonitorPlay, Wrench } from 'lucide-react';
 
 export default function SeatGridDesigner({ rows, cols, totalCapacity, onValidationChange, initialLayout }) {
   // Estado para guardar el mapa de asientos. True = Asiento activo, False = Pasillo/Espacio vacío
@@ -15,8 +15,8 @@ export default function SeatGridDesigner({ rows, cols, totalCapacity, onValidati
       if (initialLayout && initialLayout.length === numRows && initialLayout[0] && initialLayout[0].length === numCols) {
         setSeatMap(initialLayout);
       } else {
-        // Creamos una nueva matriz llena de "true" (todos son asientos por defecto)
-        const newMap = Array(numRows).fill().map(() => Array(numCols).fill(true));
+        // Creamos una nueva matriz llena de "active" (todos son asientos por defecto)
+        const newMap = Array(numRows).fill().map(() => Array(numCols).fill('active'));
         setSeatMap(newMap);
       }
     } else {
@@ -25,20 +25,31 @@ export default function SeatGridDesigner({ rows, cols, totalCapacity, onValidati
   }, [rows, cols, initialLayout]);
 
   // Contar cuántos asientos están activos actualmente
-  const activeSeatsCount = seatMap.flat().filter(seat => seat === true).length;
+  const activeSeatsCount = seatMap.flat().filter(seat => seat === true || seat === 'active').length;
+  const maintenanceSeatsCount = seatMap.flat().filter(seat => seat === 'maintenance').length;
   const targetCapacity = parseInt(totalCapacity) || 0;
 
   // Validar si el diseño cumple con la capacidad y notificar al padre
   useEffect(() => {
-    const isValid = activeSeatsCount === targetCapacity && targetCapacity > 0;
+    // Ahora permite guardar si los asientos activos son menores o iguales a la capacidad (por los que están en mantenimiento o pasillos extra)
+    const isValid = activeSeatsCount <= targetCapacity && activeSeatsCount > 0;
     onValidationChange(isValid, seatMap);
-  }, [activeSeatsCount, targetCapacity, seatMap, onValidationChange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSeatsCount, targetCapacity, seatMap]);
 
-  // Función para apagar/encender un asiento
+  // Función para cambiar el estado de un asiento (3 estados: activo -> pasillo -> mantenimiento -> activo)
   const toggleSeat = (rowIndex, colIndex) => {
     const newMap = [...seatMap];
     newMap[rowIndex] = [...newMap[rowIndex]];
-    newMap[rowIndex][colIndex] = !newMap[rowIndex][colIndex];
+    
+    const currentState = newMap[rowIndex][colIndex];
+    let nextState;
+    
+    if (currentState === true || currentState === 'active') nextState = 'empty';
+    else if (currentState === false || currentState === 'empty') nextState = 'maintenance';
+    else nextState = 'active';
+
+    newMap[rowIndex][colIndex] = nextState;
     setSeatMap(newMap);
   };
 
@@ -59,15 +70,15 @@ export default function SeatGridDesigner({ rows, cols, totalCapacity, onValidati
         
         {/* Marcador de estado */}
         <div className={`px-4 py-2 rounded-lg border flex flex-col items-center ${
-          activeSeatsCount === targetCapacity ? 'bg-green-50 border-green-200 text-green-700' : 
-          isOverCapacity ? 'bg-red-50 border-red-200 text-red-700' : 'bg-yellow-50 border-yellow-200 text-yellow-700'
+          activeSeatsCount <= targetCapacity ? 'bg-green-50 border-green-200 text-green-700' : 
+          'bg-red-50 border-red-200 text-red-700'
         }`}>
           <span className="text-xs font-bold uppercase tracking-wider opacity-80">Asientos Activos</span>
           <span className="text-xl font-black font-montserrat">
             {activeSeatsCount} <span className="text-sm font-normal">/ {targetCapacity}</span>
           </span>
-          {isOverCapacity && <span className="text-xs font-medium">Sobran {activeSeatsCount - targetCapacity}</span>}
-          {isUnderCapacity && <span className="text-xs font-medium">Faltan {targetCapacity - activeSeatsCount}</span>}
+          {isOverCapacity && <span className="text-xs font-medium">Límite excedido por {activeSeatsCount - targetCapacity}</span>}
+          {maintenanceSeatsCount > 0 && <span className="text-xs font-medium text-orange-600 mt-1">{maintenanceSeatsCount} en mantenimiento</span>}
         </div>
       </div>
 
@@ -90,22 +101,29 @@ export default function SeatGridDesigner({ rows, cols, totalCapacity, onValidati
           }}
         >
           {seatMap.map((row, rowIndex) => (
-            row.map((isActive, colIndex) => (
-              <button
-                key={`${rowIndex}-${colIndex}`}
-                onClick={() => toggleSeat(rowIndex, colIndex)}
-                className={`
-                  w-8 h-8 rounded-t-lg rounded-b-sm transition-all duration-200 flex items-center justify-center text-[10px] font-bold shadow-sm
-                  ${isActive 
-                    ? 'bg-brand-primary hover:bg-brand-primary/80 text-white border-b-4 border-brand-primary/90 hover:-translate-y-1' 
-                    : 'bg-gray-100 hover:bg-gray-200 border border-gray-200 text-gray-300 shadow-inner'
-                  }
-                `}
-                title={`Fila ${rowIndex + 1}, Columna ${colIndex + 1}`}
-              >
-                {isActive ? '' : 'X'}
-              </button>
-            ))
+            row.map((seatState, colIndex) => {
+              const isActive = seatState === true || seatState === 'active';
+              const isMaintenance = seatState === 'maintenance';
+              
+              return (
+                <button
+                  key={`${rowIndex}-${colIndex}`}
+                  onClick={() => toggleSeat(rowIndex, colIndex)}
+                  className={`
+                    w-8 h-8 rounded-t-lg rounded-b-sm transition-all duration-200 flex items-center justify-center text-[10px] font-bold shadow-sm
+                    ${isActive 
+                      ? 'bg-brand-primary hover:bg-brand-primary/80 text-white border-b-4 border-brand-primary/90 hover:-translate-y-1' 
+                      : isMaintenance
+                      ? 'bg-red-500 hover:bg-red-600 text-white border-b-4 border-red-700'
+                      : 'bg-gray-100 hover:bg-gray-200 border border-gray-200 text-gray-300 shadow-inner'
+                    }
+                  `}
+                  title={`Fila ${rowIndex + 1}, Columna ${colIndex + 1} - ${isActive ? 'Activo' : isMaintenance ? 'Mantenimiento' : 'Pasillo'}`}
+                >
+                  {isActive ? '' : isMaintenance ? <Wrench className="w-3 h-3" /> : 'X'}
+                </button>
+              );
+            })
           ))}
         </div>
       </div>
@@ -115,6 +133,12 @@ export default function SeatGridDesigner({ rows, cols, totalCapacity, onValidati
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 bg-brand-primary rounded-sm"></div>
           <span className="text-xs text-gray-600">Asiento Activo</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 bg-red-500 flex items-center justify-center rounded-sm">
+            <Wrench className="w-2 h-2 text-white" />
+          </div>
+          <span className="text-xs text-gray-600">En Mantenimiento</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 bg-gray-100 border border-gray-200 rounded-sm flex items-center justify-center text-[8px] text-gray-400 font-bold">X</div>

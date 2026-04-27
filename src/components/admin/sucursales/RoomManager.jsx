@@ -68,7 +68,7 @@ export default function RoomManager({ branch }) {
     } else {
       setRooms([...rooms, newRoom]);
     }
-    
+
     resetForm();
   };
 
@@ -81,7 +81,7 @@ export default function RoomManager({ branch }) {
       }
     }
   };
-  
+
   const getIdentifier = (name) => {
     return name.toLowerCase().replace('sala', '').split('-')[0].trim();
   };
@@ -141,7 +141,7 @@ export default function RoomManager({ branch }) {
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700">Filas (Grid Rows)</label>
+              <label className="text-sm font-medium text-gray-700">Filas</label>
               <input
                 type="number"
                 placeholder="Ej: 10"
@@ -151,7 +151,7 @@ export default function RoomManager({ branch }) {
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700">Columnas (Grid Columns)</label>
+              <label className="text-sm font-medium text-gray-700">Columnas</label>
               <input
                 type="number"
                 placeholder="Ej: 10"
@@ -161,7 +161,7 @@ export default function RoomManager({ branch }) {
               />
             </div>
             <div className="flex flex-col gap-1 md:col-span-2">
-              <label className="text-sm font-medium text-gray-700">Estado (Status)</label>
+              <label className="text-sm font-medium text-gray-700">Estado</label>
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
@@ -219,17 +219,17 @@ export default function RoomManager({ branch }) {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => handleEditRoom(room)}
                   className="text-brand-primary text-xs bg-yellow-300 hover:bg-yellow-400 rounded-lg"
                 >
                   Editar
                 </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => handleDeleteRoom(room.id, room.name)}
                   className="h-8 w-8 text-white bg-red-500 hover:bg-red-600 rounded-lg"
                   title="Eliminar Sala"
