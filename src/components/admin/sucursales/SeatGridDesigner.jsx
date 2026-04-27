@@ -1,27 +1,32 @@
 import { useState, useEffect } from 'react';
 import { MonitorPlay } from 'lucide-react';
 
-export default function SeatGridDesigner({ filas, columnas, capacidadTotal, onValidationChange }) {
+export default function SeatGridDesigner({ rows, cols, totalCapacity, onValidationChange, initialLayout }) {
   // Estado para guardar el mapa de asientos. True = Asiento activo, False = Pasillo/Espacio vacío
   const [seatMap, setSeatMap] = useState([]);
 
   // Inicializar o redimensionar la cuadrícula cuando cambian las filas o columnas
   useEffect(() => {
-    const rows = parseInt(filas) || 0;
-    const cols = parseInt(columnas) || 0;
+    const numRows = parseInt(rows) || 0;
+    const numCols = parseInt(cols) || 0;
     
-    if (rows > 0 && cols > 0) {
-      // Creamos una nueva matriz llena de "true" (todos son asientos por defecto)
-      const newMap = Array(rows).fill().map(() => Array(cols).fill(true));
-      setSeatMap(newMap);
+    if (numRows > 0 && numCols > 0) {
+      // Si tenemos un layout inicial y sus dimensiones coinciden, lo usamos
+      if (initialLayout && initialLayout.length === numRows && initialLayout[0] && initialLayout[0].length === numCols) {
+        setSeatMap(initialLayout);
+      } else {
+        // Creamos una nueva matriz llena de "true" (todos son asientos por defecto)
+        const newMap = Array(numRows).fill().map(() => Array(numCols).fill(true));
+        setSeatMap(newMap);
+      }
     } else {
       setSeatMap([]);
     }
-  }, [filas, columnas]);
+  }, [rows, cols, initialLayout]);
 
   // Contar cuántos asientos están activos actualmente
   const activeSeatsCount = seatMap.flat().filter(seat => seat === true).length;
-  const targetCapacity = parseInt(capacidadTotal) || 0;
+  const targetCapacity = parseInt(totalCapacity) || 0;
 
   // Validar si el diseño cumple con la capacidad y notificar al padre
   useEffect(() => {
@@ -37,7 +42,7 @@ export default function SeatGridDesigner({ filas, columnas, capacidadTotal, onVa
     setSeatMap(newMap);
   };
 
-  if (!filas || !columnas || filas <= 0 || columnas <= 0) {
+  if (!rows || !cols || rows <= 0 || cols <= 0) {
     return null; // No mostramos nada si no hay dimensiones válidas
   }
 
@@ -79,7 +84,7 @@ export default function SeatGridDesigner({ filas, columnas, capacidadTotal, onVa
         <div 
           className="grid gap-2" 
           style={{ 
-            gridTemplateColumns: `repeat(${columnas}, minmax(0, 1fr))`,
+            gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
             // Limitamos el ancho máximo de cada asientito para que no sea gigante
             maxWidth: '100%' 
           }}
