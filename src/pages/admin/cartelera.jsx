@@ -1,7 +1,5 @@
-
-
-import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 
 export default function CarteleraPage() {
   return (
@@ -30,5 +28,5 @@ export default function CarteleraPage() {
         </p>
       </div>
     </div>
-  )
+  );
 }
