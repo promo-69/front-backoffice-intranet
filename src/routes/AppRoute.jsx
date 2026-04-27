@@ -3,6 +3,7 @@ import Login from "../pages/auth/login";
 import Dashboard from "../pages/admin/dashboard";
 import DashboardCashier from "../pages/ticketOffice/dashboardCashier";
 import Cartelera from "@/pages/admin/cartelera";
+import Sucursales from "@/pages/admin/sucursales";
 import SellTickets from "../pages/ticketOffice/sellTickets";
 import PrivateRoute from "./PrivateRoute";
 import AuthLayout from "../layouts/AuthLayout";
@@ -62,7 +63,9 @@ function AppRoute() {
           path="/admin/sucursales"
           element={
             <PrivateRoute role="admin">
-              <AdminLayout></AdminLayout>
+              <AdminLayout>
+                <Sucursales />
+              </AdminLayout>
             </PrivateRoute>
           }
         />
