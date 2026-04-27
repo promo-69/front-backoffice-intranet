@@ -2,10 +2,15 @@ import { useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RegisterUserModal } from "@/components/admin/users/RegisterUserModal";
+import EmployeesTab from "./employeesTab";
+import ClientsTab from "./clientsTab";
 
 export default function Users() {
   const [activeTab, setActiveTab] = useState("employees");
   const [openModal, setOpenModal] = useState(false);
+
+  // ⭐ BUSCADOR GLOBAL PARA EMPLEADOS
+  const [search, setSearch] = useState("");
 
   return (
     <div className="space-y-6">
@@ -20,14 +25,28 @@ export default function Users() {
           </p>
         </div>
 
-        {/* BOTÓN QUE ABRE EL MODAL */}
-        <Button
-          onClick={() => setOpenModal(true)}
-          className="bg-brand-primary hover:bg-brand-primary/90 text-white font-montserrat font-bold px-6 rounded-cineflix transition-transform hover:scale-105 active:scale-95 shadow-md"
-        >
-          <Plus className="mr-2 h-5 w-5 text-brand-gold" />
-          Añadir empleado
-        </Button>
+        {/* BUSCADOR + BOTÓN */}
+        <div className="flex items-center gap-4">
+          <input
+            type="text"
+            placeholder="Buscar empleado..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="
+              w-64 px-3 py-2 rounded-cineflix border border-gray-300 
+              text-sm font-montserrat 
+              focus:outline-none focus:ring-2 focus:ring-brand-primary/40
+            "
+          />
+
+          <Button
+            onClick={() => setOpenModal(true)}
+            className="bg-brand-primary hover:bg-brand-primary/90 text-white font-montserrat font-bold px-6 rounded-cineflix transition-transform hover:scale-105 active:scale-95 shadow-md"
+          >
+            <Plus className="mr-2 h-5 w-5 text-brand-gold" />
+            Añadir empleado
+          </Button>
+        </div>
       </div>
 
       {/* Mini menú de pestañas */}
@@ -55,24 +74,11 @@ export default function Users() {
         </button>
       </div>
 
-      {/* Contenido según pestaña */}
-      {activeTab === "employees" && (
-        <div className="min-h-[400px] flex items-center justify-center border-2 border-dashed border-gray-200 rounded-cineflix">
-          <p className="text-gray-400 font-montserrat italic">
-            No hay empleados registrados actualmente.
-          </p>
-        </div>
-      )}
+      {/* Contenido */}
+      {activeTab === "employees" && <EmployeesTab search={search} />}
+      {activeTab === "clients" && <ClientsTab />}
 
-      {activeTab === "clients" && (
-        <div className="min-h-[400px] flex items-center justify-center border-2 border-dashed border-gray-200 rounded-cineflix">
-          <p className="text-gray-400 font-montserrat italic">
-            No hay clientes registrados actualmente.
-          </p>
-        </div>
-      )}
-
-      {/* ⭐ MODAL AQUÍ ⭐ */}
+      {/* MODAL */}
       <RegisterUserModal open={openModal} onClose={() => setOpenModal(false)} />
     </div>
   );
