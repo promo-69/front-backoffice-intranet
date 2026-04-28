@@ -14,7 +14,7 @@ const CinemaPage = () => {
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
-  const [deletedItemName, setDeletedItemName] = useState(""); // ✅ fix UX
+  const [deletedItemName, setDeletedItemName] = useState("");
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);

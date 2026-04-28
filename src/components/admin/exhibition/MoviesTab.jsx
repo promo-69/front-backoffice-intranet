@@ -1,4 +1,4 @@
-import { Pencil, Trash2, Clock, Film, Image as ImageIcon, Eye } from "lucide-react";
+import { Pencil, Trash2, Clock, Image as ImageIcon, Eye } from "lucide-react";
 import { CustomPagination } from "@/components/ui/CustomPagination";
 
 export function MoviesTab({ 
@@ -18,7 +18,6 @@ export function MoviesTab({
         <table className="w-full text-left text-xs">
           <thead>
             <tr className="text-gray-600 uppercase tracking-wider border-b border-border font-montserrat">
-              {/* Se eliminó la columna del check */}
               <th className="py-4 px-6 w-16 text-center">Póster</th>
               <th className="py-4 px-4">Película</th>
               <th className="py-4 px-4">Género</th>
@@ -32,7 +31,7 @@ export function MoviesTab({
             {data.map((row) => {
               const movie = row.original;
               const isSelected = String(selectedId) === String(movie.id);
-              const posterSrc = movie.poster || movie.imagenUrl;
+              const posterSrc = movie.poster || movie.imagenUrl || movie.poster_url;
 
               return (
                 <tr
@@ -50,7 +49,7 @@ export function MoviesTab({
                       {posterSrc ? (
                         <img 
                           src={posterSrc} 
-                          alt={movie.titulo} 
+                          alt={movie.titulo || movie.title} 
                           className="w-full h-full object-cover"
                           onError={(e) => { e.target.src = ""; }} 
                         />
@@ -63,7 +62,7 @@ export function MoviesTab({
                   {/* TÍTULO */}
                   <td className="py-4 px-4 font-bold text-slate-700">
                     <div className="flex flex-col gap-0.5">
-                       <span className="text-sm uppercase tracking-tight truncate max-w-[200px]">
+                      <span className="text-sm uppercase tracking-tight truncate max-w-[200px]">
                         {movie.titulo || movie.title}
                       </span>
                     </div>
@@ -78,14 +77,14 @@ export function MoviesTab({
                   <td className="py-4 px-4 text-center">
                     <div className="flex items-center justify-center gap-1.5 text-gray-500 font-medium">
                       <Clock className="w-3 h-3 text-brand-gold" />
-                      <span>{movie.duracion || "0"} min</span>
+                      <span>{movie.duracion || movie.duration_minutes || "0"} min</span>
                     </div>
                   </td>
 
                   {/* CLASIFICACIÓN */}
                   <td className="py-4 px-4 text-center">
                     <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-bold border border-slate-200">
-                      {movie.clasificacion || "S.C"}
+                      {movie.clasificacion || movie.age_classification || "S.C"}
                     </span>
                   </td>
 
@@ -103,10 +102,11 @@ export function MoviesTab({
                         <Eye className="w-4 h-4" />
                       </button>
 
+                      {/* BOTÓN EDITAR: Envía el objeto 'movie' completo al padre */}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          onEdit?.(movie);
+                          onEdit?.(movie); 
                         }}
                         className="text-brand-primary hover:scale-110 transition-transform"
                         title="Editar película"
@@ -117,7 +117,7 @@ export function MoviesTab({
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          onDelete?.(movie.id);
+                          onDelete?.(movie);
                         }}
                         className="text-red-500 hover:scale-110 transition-transform"
                         title="Eliminar película"

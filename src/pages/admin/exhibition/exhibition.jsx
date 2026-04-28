@@ -1,31 +1,27 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { 
   useReactTable, 
   getCoreRowModel, 
 } from "@tanstack/react-table";
-import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs" 
 import { MoviesTab } from "@/components/admin/exhibition/MoviesTab"
-import  SuccessModal from "@/components/ui/SuccessModal"
-import  DeleteConfirmModal from "@/components/ui/DialogConfirmModal"
+import SuccessModal from "@/components/ui/SuccessModal"
+import DeleteConfirmModal from "@/components/ui/DialogConfirmModal"
 import { ShowtimesTab } from "@/components/admin/exhibition/ShowtimesTab"
 import { RegisterMovieForm } from "@/components/forms/RegisterMovieForm"
 import { ColumnsMovies } from "@/components/admin/exhibition/ColumnsMovies";
 
-// Importación de imagen de prueba (asegúrate de que la ruta sea correcta)
 import poster1 from "@/assets/images/posters/the-drama-poster.jpg"
 
 export default function ExhibitionPage() {
   const [activeTab, setActiveTab] = useState("movies");
+  const [search, setSearch] = useState(""); // Estado para el buscador
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
-
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [movieToDelete, setMovieToDelete] = useState(null);
-  const [isDeleteSuccessOpen, setIsDeleteSuccessOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState({ title: "", message: "" });
-  const [selectedId, setSelectedId] = useState(null); // Para manejar la fila seleccionada
+  const [selectedId, setSelectedId] = useState(null);
 
   const [totalElements, setTotalElements] = useState(3); 
   const [{ pageIndex, pageSize }, setPagination] = useState({
@@ -44,48 +40,26 @@ export default function ExhibitionPage() {
       state: "En Cartelera"
     },
     {
-      id: 2,
-      titulo: "Velocidad Extrema",
-      poster: null, // Probará el fallback del icono
-      genero: "Acción",
-      clasificacion: "B",
-      duracion: 124,
-      state: "Próximamente"
-    },
-    {
-      id: 3,
-      titulo: "Aventura en la Selva",
-      poster: null, 
-      genero: "Animación / Familiar",
-      clasificacion: "A",
-      duracion: 95,
-      state: "En Cartelera"
+        id: 2,
+        titulo: "Velocidad Extrema",
+        poster: null,
+        genero: "Acción",
+        clasificacion: "B",
+        duracion: 124,
+        state: "Próximamente"
     }
   ]);
- 
-  // HANDLERS PARA ACCIONES
-  const handleView = (movie) => {
-    console.log("Visualizando detalle de:", movie.titulo);
-    // Aquí abrirías un modal de detalles o navegarías
-  };
 
-  const handleEdit = (movie) => {
-    console.log("Abriendo editor para:", movie.titulo);
-    // Aquí cargarías el formulario con los datos de 'movie'
-  };
-
+  const handleView = (movie) => console.log("Ver:", movie.titulo);
+  const handleEdit = (movie) => console.log("Editar:", movie.titulo);
   const handleDelete = (movie) => {
     setMovieToDelete(movie);
     setIsDeleteConfirmOpen(true);
   };
 
   const handleConfirmDelete = () => {
-    console.log("Eliminando:", movieToDelete.titulo);
-    
-    // Simulación de eliminación local
     setData(prev => prev.filter(m => m.id !== movieToDelete.id));
     setTotalElements(prev => prev - 1);
-    
     setIsDeleteConfirmOpen(false);
     setSuccessMessage({
       title: "¡Eliminado con Éxito!",
@@ -94,88 +68,101 @@ export default function ExhibitionPage() {
     setIsSuccessOpen(true); 
   };
 
-  // Definición de columnas (TanStack Table)
   const columns = ColumnsMovies(handleView, handleEdit, handleDelete);
 
   const table = useReactTable({
     data,
     columns,
     pageCount: Math.ceil(totalElements / pageSize),
-    state: {
-      pagination: { pageIndex, pageSize },
-    },
+    state: { pagination: { pageIndex, pageSize } },
     onPaginationChange: setPagination,
     manualPagination: true, 
     getCoreRowModel: getCoreRowModel(),
   });
- 
-  return (
-    <div className="flex flex-col w-full space-y-4">
-      <Tabs defaultValue="movies" onValueChange={setActiveTab} className="w-full flex flex-col">
-        
-        {/* ENCABEZADO DE TABS Y BOTÓN */}
-        <div className="flex flex-row justify-between items-end border-b border-slate-200 mb-6 gap-4">
-          <TabsList className="bg-transparent rounded-none border-b h-auto p-0 flex gap-8">
-            <TabsTrigger 
-              value="movies" 
-              className="relative h-12 rounded-none bg-transparent px-2 pb-3 pt-2 font-montserrat text-base font-semibold text-muted-foreground transition-all duration-200 border-b-4 border-transparent data-[state=active]:border-b-brand-gold data-[state=active]:text-brand-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-            >
-              Películas
-            </TabsTrigger>
-            <TabsTrigger 
-              value="functions" 
-              className="relative h-12 rounded-none bg-transparent px-2 pb-3 pt-2 font-montserrat text-base font-semibold text-muted-foreground transition-all duration-200 border-b-4 border-transparent data-[state=active]:border-b-brand-gold data-[state=active]:text-brand-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-            >
-              Funciones
-            </TabsTrigger>
-          </TabsList>
 
-          <div className="pb-3">
-            <Button onClick={() => setIsFormOpen(true)} className="bg-brand-primary hover:bg-brand-primary/90 text-white font-montserrat font-bold px-6 py-5 rounded-cineflix transition-all active:scale-95 shadow-md flex items-center">
-              <Plus className="mr-2 h-5 w-5 border-white" />
-              {activeTab === "movies" ? "Agregar Película" : "Agregar Función"}
-            </Button>
-          </div>
+  return (
+    <div className="space-y-6">
+      {/* BARRA DE ACCIONES SUPERIOR (IGUAL A USUARIOS) */}
+      <div className="flex justify-between items-center border-b border-gray-100 pb-4">
+        <div>
+          <h3 className="text-lg font-montserrat font-bold text-brand-primary">
+            {activeTab === "movies" ? "Cartelera de Películas" : "Gestión de Funciones"}
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            {activeTab === "movies" 
+              ? "Administra el catálogo de películas y estrenos" 
+              : "Asigna horarios y salas a las películas activas"}
+          </p>
         </div>
 
-        {/* CONTENIDO DE PELÍCULAS */}
-        <TabsContent value="movies" className="mt-0 outline-none">
-          <p className="text-sm text-slate-500 mb-4 italic">
-            Gestiona el catálogo de películas disponibles
-          </p>
-          <MoviesTab 
-            table={table} 
-            totalElements={totalElements}
-            onView={handleView}
-            onEdit={handleEdit}
-            onDelete={(id) => {
-              // Buscamos la película por ID para el modal de confirmación
-              const movie = data.find(m => m.id === id);
-              handleDelete(movie);
-            }}
-            onSelectMovie={setSelectedId}
-            selectedId={selectedId}
+        <div className="flex items-center gap-4">
+          <input
+            type="text"
+            placeholder={activeTab === "movies" ? "Buscar Película..." : "Buscar Función..."}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-64 px-3 py-2 rounded-cineflix border border-gray-300 text-sm font-montserrat focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
           />
-        </TabsContent>
 
-        {/* CONTENIDO DE FUNCIONES */}
-        <TabsContent value="functions" className="mt-0 outline-none">
-          <p className="text-sm text-slate-500 mb-4 italic">
-            Asigna horarios y salas a las películas activas
-          </p>
-          <ShowtimesTab />
-        </TabsContent>
-      </Tabs>
+          <button
+            onClick={() => setIsFormOpen(true)}
+            className="bg-brand-primary text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-[11px] font-black uppercase tracking-widest hover:brightness-110 hover:shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all duration-300 border-2 border-purple-400/30 font-montserrat"
+          >
+            <Plus className="w-4 h-4 text-brand-gold" strokeWidth={3} />
+            {activeTab === "movies" ? "Añadir Película" : "Añadir Función"}
+          </button>
+        </div>
+      </div>
+
+      {/* MINI MENÚ DE PESTAÑAS (IGUAL A USUARIOS) */}
+      <div className="flex gap-4 border-b pb-2">
+        <button
+          className={`text-xs font-montserrat uppercase tracking-wide pb-1 border-b-2 transition-colors ${
+            activeTab === "movies"
+              ? "font-bold text-brand-gold border-brand-gold"
+              : "text-muted-foreground border-transparent hover:text-brand-primary"
+          }`}
+          onClick={() => setActiveTab("movies")}
+        >
+          Películas
+        </button>
+
+        <button
+          className={`text-xs font-montserrat uppercase tracking-wide pb-1 border-b-2 transition-colors ${
+            activeTab === "functions"
+              ? "font-bold text-brand-gold border-brand-gold"
+              : "text-muted-foreground border-transparent hover:text-brand-primary"
+          }`}
+          onClick={() => setActiveTab("functions")}
+        >
+          Funciones
+        </button>
+      </div>
+
+      {/* CONTENIDO CONDICIONAL */}
+      {activeTab === "movies" && (
+        <MoviesTab 
+          table={table} 
+          totalElements={totalElements}
+          onView={handleView}
+          onEdit={handleEdit}
+          onDelete={(id) => handleDelete(data.find(m => m.id === id))}
+          onSelectMovie={setSelectedId}
+          selectedId={selectedId}
+          search={search} // Pasamos el buscador si el componente lo necesita
+        />
+      )}
+      
+      {activeTab === "functions" && (
+        <ShowtimesTab search={search} />
+      )}
 
       {/* MODALES */}
       <RegisterMovieForm 
         isOpen={isFormOpen} 
         onClose={() => setIsFormOpen(false)}
         onSuccess={() => {
-          setSuccessMessage({
-            title: "¡Registro Exitoso!",
-            message: "La película se ha añadido al catálogo."
-          });
+          setSuccessMessage({ title: "¡Registro Exitoso!", message: "La película se ha añadido al catálogo." });
           setIsSuccessOpen(true);
         }} 
       />
@@ -194,5 +181,5 @@ export default function ExhibitionPage() {
         message={successMessage.message} 
       />
     </div>
-  )
+  );
 }
