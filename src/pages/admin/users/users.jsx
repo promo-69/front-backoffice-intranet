@@ -1,17 +1,36 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { RegisterUserModal } from "@/components/admin/users/RegisterUserModal";
+import DeleteConfirmModal from "@/components/ui/DialogConfirmModal";
+import SuccessModal from "@/components/ui/SuccessModal";
 import EmployeesTab from "./employeesTab";
 import ClientsTab from "./clientsTab";
 
 export default function Users() {
   const [activeTab, setActiveTab] = useState("employees");
   const [openModal, setOpenModal] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
+  const [isSuccessOpen, setIsSuccessOpen] = useState(false); 
 
-  // ⭐ BUSCADOR GLOBAL PARA EMPLEADOS
+
   const [search, setSearch] = useState("");
+  
+  const [employees, setEmployees] = useState([
+    { id: 1, nombre: "Pedro Perez", correo: "pedro.perez@cineflix.com", cargo: "Operador", sucursal: "Sucursal Centro", activo: true },
+    { id: 2, nombre: "María Jiménez", correo: "maria.jimenez@cineflix.com", cargo: "Cajero", sucursal: "Sucursal Norte", activo: false },
+  ]);
 
+  const handleDeleteClick = (employee) => {
+    setItemToDelete(employee);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    setEmployees(prev => prev.filter(emp => emp.id !== itemToDelete.id));
+    setIsDeleteModalOpen(false);
+    setIsSuccessOpen(true);
+  };
   return (
     <div className="space-y-6">
       {/* Barra de acciones superior */}
@@ -86,8 +105,31 @@ export default function Users() {
       </div>
 
       {/* Contenido */}
-      {activeTab === "employees" && <EmployeesTab search={search} />}
+      {activeTab === "employees" && (
+        <EmployeesTab 
+          search={search} 
+          employees={employees} 
+          onDelete={handleDeleteClick} 
+        />
+      )}
       {activeTab === "clients" && <ClientsTab />}
+
+      <DeleteConfirmModal 
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        itemName={itemToDelete?.nombre}
+      />
+
+      <SuccessModal 
+        isOpen={isSuccessOpen} 
+        onClose={() => {
+          setIsSuccessOpen(false);
+          setItemToDelete(null);
+        }}
+        title="Empleado Eliminado"
+        message={`El acceso de ${itemToDelete?.nombre} ha sido revocado correctamente.`}
+      />
 
       {/* MODAL */}
       <RegisterUserModal open={openModal} onClose={() => setOpenModal(false)} />

@@ -1,24 +1,6 @@
 import { Pencil, Trash2 } from "lucide-react";
 
-export default function EmployeesTab({ search }) {
-  const employees = [
-    {
-      id: 1,
-      nombre: "Pedro Perez",
-      correo: "pedro.perez@cineflix.com",
-      cargo: "Operador",
-      sucursal: "Sucursal Centro",
-      activo: true,
-    },
-    {
-      id: 2,
-      nombre: "María Jiménez",
-      correo: "maria.jimenez@cineflix.com",
-      cargo: "Cajero",
-      sucursal: "Sucursal Norte",
-      activo: false,
-    },
-  ];
+export default function EmployeesTab({ search, employees, onDelete }) {
 
   const filtered = employees.filter((emp) => {
     const text = search.toLowerCase();
@@ -94,7 +76,7 @@ export default function EmployeesTab({ search }) {
                     </button>
 
                     <button 
-                      onClick={() => console.log("Eliminando:", emp.id)}
+                      onClick={() => onDelete(emp)}
                       className="text-red-500 hover:scale-110 transition-transform"
                     >
                       <Trash2 className="w-4 h-4" />
