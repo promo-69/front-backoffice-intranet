@@ -32,7 +32,7 @@ export default function Sidebar() {
         </a>
 
         <a
-          href="/admin/cartelera"
+          href="/admin/exhibition"
           className="flex items-center gap-3 hover:text-purple-400"
         >
           <AiOutlineVideoCamera /> Cartelera
