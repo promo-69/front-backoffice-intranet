@@ -3,13 +3,20 @@ import { Plus } from 'lucide-react';
 import CinemaSearch from '../../../components/admin/cinemas/SearchBar';
 import CinemaTable from '../../../components/admin/cinemas/CinemaTable';
 import RoomManager from "../../../components/admin/cinemas/RoomManager";
+import DeleteConfirmModal from "../../../components/ui/DialogConfirmModal";
+import SuccessModal from "../../../components/ui/SuccessModal";
 
 const CinemaPage = () => {
   const [selectedId, setSelectedId] = useState(null);
   const [isAddingRoom, setIsAddingRoom] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
+  const [isSuccessOpen, setIsSuccessOpen] = useState(false); 
 
-  const [branches] = useState([
+  
+
+  const [branches, setBranches] = useState([
     { id: 1, name: 'Sambil Barquisimeto', address: 'Av. Venezuela, C.C. Sambil', phone: '0251-1234567', opening_time: '10:00 AM', closing_time: '11:00 PM', status: 'Activo' },
     { id: 4, name: 'Metróss', address: 'Av. Florencio Jiménez', phone: '0251-7654321', opening_time: '11:00 AM', closing_time: '09:00 PM', status: 'Activo' },
     { id: 2, name: 'Metrópolis', address: 'Av. Florencio Jiménez', phone: '0251-7654321', opening_time: '11:00 AM', closing_time: '09:00 PM', status: 'Activo' },
@@ -23,6 +30,30 @@ const CinemaPage = () => {
   const selectedBranch = branches.find(
     (b) => Number(b.id) === Number(selectedId)
   );
+
+  const handleDeleteClick = (id) => {
+    const branch = branches.find(b => Number(b.id) === Number(id));
+    if(branch){
+      setItemToDelete(branch);
+      setIsDeleteModalOpen(true);
+    }
+    
+  };
+
+
+  const handleConfirmDelete = () => {
+  
+    const updatedBranches = branches.filter(b => b.id !== itemToDelete.id);
+    setBranches(updatedBranches);
+
+    if (selectedId === itemToDelete.id) {
+      setSelectedId(null);
+    }
+
+    setIsDeleteModalOpen(false);
+    setIsSuccessOpen(true);
+    setItemToDelete(null);
+  };
 
   return (
     <div className="space-y-6">
@@ -55,7 +86,21 @@ const CinemaPage = () => {
             setIsAddingRoom(false);
           }}
           onEdit={(branch) => console.log("Editando:", branch)}
-          onDelete={(id) => console.log("Eliminando ID:", id)}
+          onDelete={handleDeleteClick}
+        />
+
+        <DeleteConfirmModal 
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          onConfirm={handleConfirmDelete}
+          itemName={itemToDelete?.name} 
+        />
+
+        <SuccessModal 
+          isOpen={isSuccessOpen} 
+          onClose={() => setIsSuccessOpen(false)}
+          title="¡Sucursal Eliminada!"
+          message={`Se ha removido "${itemToDelete?.name}" exitosamente.`}
         />
       </div>
 
