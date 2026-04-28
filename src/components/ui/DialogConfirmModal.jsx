@@ -1,6 +1,6 @@
 import { AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./dialog"
 
 export default function DeleteConfirmModal({ isOpen, onClose, onConfirm, itemName }) {
   return (
