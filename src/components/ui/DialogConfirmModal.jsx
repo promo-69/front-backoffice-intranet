@@ -2,7 +2,7 @@ import { AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
-export function DeleteConfirmModal({ isOpen, onClose, onConfirm, itemName }) {
+export default function DeleteConfirmModal({ isOpen, onClose, onConfirm, itemName }) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[400px] p-8 text-center border-none shadow-2xl bg-white">

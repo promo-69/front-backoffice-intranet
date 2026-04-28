@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 
 const navItems = [
   { title: "Dashboard", url: "/admin/dashboard", icon: LayoutDashboard },
-  { title: "Cartelera", url: "/admin/cartelera", icon: Film },
+  { title: "Cartelera", url: "/admin/exhibition", icon: Film },
   { title: "Sucursales", url: "/admin/sucursales", icon: MapPin },
   { title: "Usuarios", url: "/admin/users", icon: Users },
   { title: "Transacciones", url: "/admin/transacciones", icon: Receipt },

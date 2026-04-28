@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 
-export function SuccessModal({ 
+export default function SuccessModal({ 
   isOpen, 
   onClose, 
   title = "¡Registro Exitoso!", 
