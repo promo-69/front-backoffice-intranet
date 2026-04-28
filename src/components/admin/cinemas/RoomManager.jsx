@@ -220,27 +220,6 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
               {editingRoomId ? "Actualizar Sala" : "Guardar Sala"}
             </Button>
           </div>
-
-          {/* MODAL DE CONFIRMACIÓN */}
-          <DeleteConfirmModal 
-            isOpen={isDeleteModalOpen}
-            onClose={() => {
-              setIsDeleteModalOpen(false);
-            }}
-            onConfirm={handleConfirmDeleteRoom}
-            itemName={roomToDelete?.name} 
-          />
-
-          {/* MODAL DE ÉXITO */}
-          <SuccessModal 
-            isOpen={isSuccessOpen} 
-            onClose={() => {
-              setIsSuccessOpen(false);
-              setRoomToDelete(null);
-            }}
-            title="¡Sala Eliminada!"
-            message={`La sala ha sido removida de la sucursal ${branch.name} exitosamente.`}
-          />
         </div>
       ) : (
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 border-gray-300">
@@ -269,11 +248,32 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => handleDeleteRoom(room)}
+                  onClick={() => handleDeleteRoom(room.id, room.name)}
                   className="h-8 w-8 text-white bg-red-500 hover:bg-red-600 rounded-lg"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
+
+                 {/* Modales */}
+                <DeleteConfirmModal 
+                  isOpen={isDeleteModalOpen}
+                  onClose={() => {
+                    setIsDeleteModalOpen(false);
+                  }}
+                  onConfirm={handleConfirmDeleteRoom}
+                  itemName={roomToDelete?.name} 
+                />
+
+                {/* MODAL DE ÉXITO */}
+                <SuccessModal 
+                  isOpen={isSuccessOpen} 
+                  onClose={() => {
+                    setIsSuccessOpen(false);
+                    setRoomToDelete(null);
+                  }}
+                  title="¡Sala Eliminada!"
+                  message={`La sala ha sido removida de la sucursal ${branch.name} exitosamente.`}
+                />
               </div>
             </div>
           ))}
