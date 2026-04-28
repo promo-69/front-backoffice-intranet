@@ -99,7 +99,6 @@ export default function BranchModal({ open, onClose, initialData }) {
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-md bg-white rounded-cineflix p-6 shadow-2xl border-none">
         
-        {/* ❌ Botón X agregado */}
         <button
           onClick={onClose}
           className="absolute top-3 right-3 text-gray-400 hover:text-brand-primary transition"
