@@ -18,7 +18,7 @@ export default function Users() {
       <div className="flex justify-between items-center border-b border-gray-100 pb-4">
         <div>
           <h3 className="text-lg font-montserrat font-bold text-brand-primary">
-            Gestion de personal
+            Gestión de personal
           </h3>
           <p className="text-xs text-muted-foreground">
             Administra el acceso de cajeros y operadores por sucursal
