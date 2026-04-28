@@ -7,29 +7,28 @@ export default {
   theme: {
     extend: {
       colors: {
-        // TUS COLORES SEMÁNTICOS (Para uso directo: text-brand-primary)
         brand: {
-          primary: "hsl(var(--primary))", 
-          gold: "hsl(var(--accent))",
+          primary: "hsl(var(--primary) / <alpha-value>)",
+          gold: "hsl(var(--accent) / <alpha-value>)",
         },
 
-        // INTEGRACIÓN FUNCIONAL PARA COMPONENTES SHADCN
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
+        border: "hsl(var(--border) / <alpha-value>)",
+        input: "hsl(var(--input) / <alpha-value>)",
+        ring: "hsl(var(--ring) / <alpha-value>)",
+        background: "hsl(var(--background) / <alpha-value>)",
+        foreground: "hsl(var(--foreground) / <alpha-value>)",
+
         primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
+          DEFAULT: "hsl(var(--primary) / <alpha-value>)",
+          foreground: "hsl(var(--primary-foreground) / <alpha-value>)",
         },
         secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
+          DEFAULT: "hsl(var(--secondary) / <alpha-value>)",
+          foreground: "hsl(var(--secondary-foreground) / <alpha-value>)",
         },
         accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
+          DEFAULT: "hsl(var(--accent) / <alpha-value>)",
+          foreground: "hsl(var(--accent-foreground) / <alpha-value>)",
         },
       },
 
@@ -40,12 +39,12 @@ export default {
       },
 
       borderRadius: {
-        'cineflix': 'var(--radius)',
+        cineflix: "var(--radius)",
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
-      }
+      },
     },
   },
   plugins: [animate],
-}
+};

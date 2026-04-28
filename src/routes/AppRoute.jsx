@@ -3,13 +3,14 @@ import Login from "../pages/auth/login";
 import Dashboard from "../pages/admin/dashboard";
 import DashboardCashier from "../pages/ticketOffice/dashboardCashier";
 import Cartelera from "@/pages/admin/cartelera";
+//import Sucursales from "@/pages/admin/sucursales";
 import SellTickets from "../pages/ticketOffice/sellTickets";
 import PrivateRoute from "./PrivateRoute";
 import AuthLayout from "../layouts/AuthLayout";
 import AdminLayout from "../layouts/AdminLayout";
 import CashierLayout from "../layouts/CashierLayout";
 import Users from "../pages/admin/users/users";
-
+import CinemasPage from "../pages/admin/cinemas/cinemas";
 
 function AppRoute() {
   return (
@@ -34,8 +35,6 @@ function AppRoute() {
           }
         />
 
-        {/* Rutas privadas */}
-        {/* Rutas privadas admin */}
         <Route
           path="/admin/dashboard"
           element={
@@ -58,15 +57,18 @@ function AppRoute() {
           }
         />
 
+
         <Route
           path="/admin/sucursales"
           element={
             <PrivateRoute role="admin">
               <AdminLayout>
+                <CinemasPage />
               </AdminLayout>
             </PrivateRoute>
           }
         />
+
 
         <Route
           path="/admin/users"

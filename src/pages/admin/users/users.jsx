@@ -29,7 +29,7 @@ export default function Users() {
         <div className="flex items-center gap-4">
           <input
             type="text"
-            placeholder="Buscar empleado..."
+            placeholder="Buscar Empleado..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="
@@ -39,13 +39,24 @@ export default function Users() {
             "
           />
 
-          <Button
+          <button
             onClick={() => setOpenModal(true)}
-            className="bg-brand-primary hover:bg-brand-primary/90 text-white font-montserrat font-bold px-6 rounded-cineflix transition-transform hover:scale-105 active:scale-95 shadow-md"
+            className="
+              bg-brand-primary text-white 
+              px-5 py-2.5
+              rounded-xl
+              flex items-center gap-2 
+              text-[11px] font-black uppercase tracking-widest
+              hover:brightness-110 hover:shadow-lg hover:-translate-y-0.5
+              active:scale-95
+              transition-all duration-300
+              border-2 border-purple-400/30
+              font-montserrat
+            "
           >
-            <Plus className="mr-2 h-5 w-5 text-brand-gold" />
+            <Plus className="w-4 h-4 text-brand-gold" strokeWidth={3} />
             Añadir empleado
-          </Button>
+          </button>
         </div>
       </div>
 
