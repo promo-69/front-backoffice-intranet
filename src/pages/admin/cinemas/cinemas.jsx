@@ -20,14 +20,12 @@ const CinemaPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [branchToEdit, setBranchToEdit] = useState(null);
 
-  // ✅ Estado correcto (único)
   const [branches, setBranches] = useState([
     { id: 1, name: "Sambil Barquisimeto", address: "Av. Venezuela, C.C. Sambil", phone: "0251-1234567", opening_time: "10:00 AM", closing_time: "11:00 PM", status: "Activo" },
     { id: 2, name: "Metrópolis", address: "Av. Florencio Jiménez", phone: "0251-7654321", opening_time: "11:00 AM", closing_time: "09:00 PM", status: "Activo" },
     { id: 3, name: "Vallenato", address: "Av. Florencio Jiménez", phone: "0251-7654321", opening_time: "11:00 AM", closing_time: "09:00 PM", status: "Activo" },
   ]);
 
-  // ---------------- MODAL ----------------
   const handleOpenAddModal = () => {
     setBranchToEdit(null);
     setIsModalOpen(true);
@@ -43,7 +41,6 @@ const CinemaPage = () => {
     setBranchToEdit(null);
   };
 
-  // ---------------- FILTRO ----------------
   const filteredBranches = branches.filter((b) =>
     b.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -52,7 +49,6 @@ const CinemaPage = () => {
     (b) => Number(b.id) === Number(selectedId)
   );
 
-  // ---------------- DELETE ----------------
   const handleDeleteClick = (id) => {
     const branch = branches.find((b) => Number(b.id) === Number(id));
     if (branch) {
@@ -66,7 +62,7 @@ const CinemaPage = () => {
       (b) => b.id !== itemToDelete.id
     );
 
-    setDeletedItemName(itemToDelete.name); // ✅ guardamos antes de borrar
+    setDeletedItemName(itemToDelete.name);
     setBranches(updatedBranches);
 
     if (selectedId === itemToDelete.id) {

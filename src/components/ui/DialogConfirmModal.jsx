@@ -13,13 +13,13 @@ export default function DeleteConfirmModal({ isOpen, onClose, onConfirm, itemNam
         </div>
 
         <DialogHeader>
-          <DialogTitle className="text-xl font-montserrat font-extrabold text-slate-900 uppercase">
+          <DialogTitle className="text-xl font-montserrat font-extrabold text-slate-900 uppercase text-center">
             ¿Confirmar Eliminación?
           </DialogTitle>
-          <DialogDescription className="text-sm text-slate-500 font-medium pt-2">
-            Estás a punto de eliminar <span className="font-bold text-slate-900">"{itemName}"</span>. 
-            Esta acción no se puede deshacer.
-          </DialogDescription>
+            <DialogDescription className="text-sm text-slate-500 font-medium pt-2 text-center w-full">
+              Estás a punto de eliminar <span className="font-bold text-slate-900">"{itemName}"</span>. 
+              Esta acción no se puede deshacer.
+            </DialogDescription>
         </DialogHeader>
 
         <div className="flex gap-3 mt-8">
