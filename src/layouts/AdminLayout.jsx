@@ -26,9 +26,9 @@ function AdminLayoutContent({ location, children }) {
   const getPageTitle = (pathname) => {
     const titles = {
       "/admin/dashboard": "Dashboard",
-      "/admin/exhibition": "Gestión de Cartelera",
-      "/admin/sucursales": "Administración de Sucursales",
-      "/admin/users": "Control de Usuarios",
+      "/admin/cartelera": "Gestión de Cartelera",
+      "/admin/sucursales": "Gestión de Sucursales y Salas",
+      "/admin/users": "Gestión de Usuarios",
       "/admin/transacciones": "Registro de Transacciones",
       "/admin/inventario": "Control de Inventario",
       "/admin/reports": "Reportes",

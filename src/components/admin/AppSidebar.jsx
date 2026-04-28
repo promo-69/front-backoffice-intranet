@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 
 const navItems = [
   { title: "Dashboard", url: "/admin/dashboard", icon: LayoutDashboard },
-  { title: "Cartelera", url: "/admin/exhibition", icon: Film },
+  { title: "Cartelera", url: "/admin/cartelera", icon: Film },
   { title: "Sucursales", url: "/admin/sucursales", icon: MapPin },
   { title: "Usuarios", url: "/admin/users", icon: Users },
   { title: "Transacciones", url: "/admin/transacciones", icon: Receipt },
@@ -29,7 +29,7 @@ export function AppSidebar({className, ...props }) {
   return (
     <Sidebar
       {...props}
-      className={cn("bg-brand-primary text-white border-r-0", className)}
+      className={cn("bg-[#231640] text-white border-r-0", className)}
     >
       <SidebarHeader className="px-6 pt-6 pb-2">
         <div className="w-full flex justify-center mb-4">
@@ -46,7 +46,7 @@ export function AppSidebar({className, ...props }) {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-gray-500 px-6 mb-1">
+          <SidebarGroupLabel className="text-gray-500 px-6 mb-2 font-bold">
             Menú Principal
           </SidebarGroupLabel>
           <SidebarGroupContent>
