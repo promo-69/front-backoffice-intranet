@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { InputForm } from "@/components/ui/inputForm";
 import { SelectForm } from "@/components/ui/SelectForm";
 
-// IMPORTANTE: Se añade "default" para que el import en CinemaPage funcione
 export default function BranchModal({ open, onClose, initialData }) {
   const isEdit = !!initialData;
 
@@ -23,6 +22,8 @@ export default function BranchModal({ open, onClose, initialData }) {
     closing_time: "",
     status: "Activo",
   });
+
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (initialData) {
@@ -37,77 +38,158 @@ export default function BranchModal({ open, onClose, initialData }) {
         status: "Activo",
       });
     }
+    setErrors({});
   }, [initialData, open]);
+
+  const validateField = (name, value) => {
+    let error = "";
+
+    if (name === "phone") {
+      const phoneRegex = /^[0-9\s-]+$/;
+      if (value && !phoneRegex.test(value)) {
+        error = "El teléfono solo debe contener números.";
+      }
+    }
+
+    if (name === "opening_time" || name === "closing_time") {
+      const timeRegex = /^(0?[1-9]|1[0-2]):[0-5][0-9]\s?(AM|PM|am|pm)$/;
+      if (value && !timeRegex.test(value)) {
+        error = "Formato inválido (Ej: 10:00 AM).";
+      }
+    }
+
+    return error;
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+
+    const fieldError = validateField(name, value);
+    setErrors((prev) => ({ ...prev, [name]: fieldError }));
+
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = () => {
-    // Aquí iría tu lógica de fetch/axios para guardar
+    const newErrors = {};
+    Object.keys(formData).forEach((key) => {
+      const error = validateField(key, formData[key]);
+      if (error) newErrors[key] = error;
+      if (!formData[key] && key !== "status")
+        newErrors[key] = "Este campo es obligatorio.";
+    });
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
     console.log("Datos a enviar:", formData);
     onClose();
   };
 
+  const ErrorMessage = ({ message }) =>
+    message ? (
+      <p className="text-[10px] text-red-500 mt-1 ml-1 font-medium">
+        {message}
+      </p>
+    ) : null;
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-md bg-white rounded-cineflix p-6 shadow-2xl border-none">
+        
+        {/* ❌ Botón X agregado */}
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 text-gray-400 hover:text-brand-primary transition"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-5 w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-brand-primary font-montserrat">
             {isEdit ? "Editar Sucursal" : "Nueva Sucursal"}
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
-            {isEdit 
-              ? "Modifique los detalles de la sucursal seleccionada." 
+            {isEdit
+              ? "Modifique los detalles de la sucursal seleccionada."
               : "Complete los datos para registrar una nueva sede en el sistema."}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 mt-4">
-          <InputForm 
-            label="Nombre de Sucursal" 
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            placeholder="Ej: Sambil Barquisimeto" 
-          />
+          <div>
+            <InputForm
+              label="Nombre de Sucursal"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              placeholder="Ej: Sambil Barquisimeto"
+            />
+            <ErrorMessage message={errors.name} />
+          </div>
 
-          <InputForm 
-            label="Dirección" 
-            name="address"
-            value={formData.address}
-            onChange={handleChange}
-            placeholder="Ej: Av. Venezuela..." 
-          />
+          <div>
+            <InputForm
+              label="Dirección"
+              name="address"
+              value={formData.address}
+              onChange={handleChange}
+              placeholder="Ej: Av. Venezuela..."
+            />
+            <ErrorMessage message={errors.address} />
+          </div>
 
-          <InputForm 
-            label="Teléfono" 
-            name="phone"
-            value={formData.phone}
-            onChange={handleChange}
-            placeholder="0251-XXXXXXX" 
-          />
+          <div>
+            <InputForm
+              label="Teléfono"
+              name="phone"
+              value={formData.phone}
+              onChange={handleChange}
+              placeholder="0251-XXXXXXX"
+            />
+            <ErrorMessage message={errors.phone} />
+          </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <InputForm 
-              label="Hora Apertura" 
-              name="opening_time"
-              value={formData.opening_time}
-              onChange={handleChange}
-              placeholder="10:00 AM" 
-            />
-            <InputForm 
-              label="Hora Cierre" 
-              name="closing_time"
-              value={formData.closing_time}
-              onChange={handleChange}
-              placeholder="11:00 PM" 
-            />
+            <div>
+              <InputForm
+                label="Hora Apertura"
+                name="opening_time"
+                value={formData.opening_time}
+                onChange={handleChange}
+                placeholder="10:00 AM"
+              />
+              <ErrorMessage message={errors.opening_time} />
+            </div>
+            <div>
+              <InputForm
+                label="Hora Cierre"
+                name="closing_time"
+                value={formData.closing_time}
+                onChange={handleChange}
+                placeholder="11:00 PM"
+              />
+              <ErrorMessage message={errors.closing_time} />
+            </div>
           </div>
 
           {isEdit && (
-            <SelectForm 
+            <SelectForm
               label="Estado de la Sucursal"
               name="status"
               value={formData.status}
@@ -124,7 +206,7 @@ export default function BranchModal({ open, onClose, initialData }) {
           <Button variant="outline" onClick={onClose} className="font-montserrat">
             Cancelar
           </Button>
-          <Button 
+          <Button
             onClick={handleSubmit}
             className="bg-brand-primary hover:bg-brand-primary/90 text-white font-montserrat font-bold px-6 rounded-cineflix"
           >
