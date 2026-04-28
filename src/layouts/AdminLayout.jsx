@@ -14,7 +14,9 @@ export default function AdminLayout({ children }) {
   return (
     <TooltipProvider>
       <SidebarProvider>
-        <AdminLayoutContent location={location} children={children} />
+        <AdminLayoutContent location={location}>
+          {children}
+        </AdminLayoutContent>
       </SidebarProvider>
     </TooltipProvider>
   );
@@ -27,8 +29,8 @@ function AdminLayoutContent({ location, children }) {
     const titles = {
       "/admin/dashboard": "Dashboard",
       "/admin/cartelera": "Gestión de Cartelera",
-      "/admin/sucursales": "Gestión de Sucursales y Salas",
-      "/admin/users": "Gestión de Usuarios",
+      "/admin/sucursales": "Administración de Sucursales",
+      "/admin/users": "Control de Usuarios",
       "/admin/transacciones": "Registro de Transacciones",
       "/admin/inventario": "Control de Inventario",
       "/admin/reports": "Reportes",
@@ -42,7 +44,7 @@ function AdminLayoutContent({ location, children }) {
     <>
       <AppSidebar className="z-20" />
 
-      <SidebarInset className="flex flex-col min-h-screen w-full overflow-y-auto transition-all duration-300">
+      <SidebarInset className="bg-surface-main flex flex-col min-h-screen w-full overflow-y-auto transition-all duration-300">
         <Navbar sectionTitle={currentTitle} />
 
         <main
@@ -57,9 +59,11 @@ function AdminLayoutContent({ location, children }) {
               <h1 className="text-h1-display text-brand-primary font-bebas tracking-wide uppercase">
                 {currentTitle}
               </h1>
+
+              <div className="h-1 w-20 bg-brand-gold mt-2 rounded-full" />
             </header>
 
-            <section>
+            <section className="bg-surface-container rounded-cineflix p-6 shadow-sm border border-border">
               {children}
             </section>
           </div>
