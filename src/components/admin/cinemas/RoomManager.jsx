@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { Presentation, Plus, Square, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import DeleteConfirmModal from "@/components/ui/DialogConfirmModal";
+import SuccessModal from "@/components/ui/SuccessModal";
 import SeatGridDesigner from "./SeatGridDesigner";
 
 export default function RoomManager({ branch, externalIsAdding, setExternalIsAdding }) {
@@ -8,6 +10,11 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
   const [editingRoomId, setEditingRoomId] = useState(null);
   const [isLayoutValid, setIsLayoutValid] = useState(false);
   const [roomLayout, setRoomLayout] = useState([]);
+
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isSuccessOpen, setIsSuccessOpen] = useState(false);
+  const [roomToDelete, setRoomToDelete] = useState(null);
+
 
   // Datos de ejemplo para las salas
   const [rooms, setRooms] = useState([
@@ -73,7 +80,7 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
     resetForm();
   };
 
-  const handleDeleteRoom = (id, name) => {
+  /*const handleDeleteRoom = (id, name) => {
     const confirmMessage = `¿Estás seguro de que deseas eliminar la ${name}?`;
     if (window.confirm(confirmMessage)) {
       setRooms(rooms.filter(room => room.id !== id));
@@ -81,6 +88,28 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
         resetForm();
       }
     }
+  };*/
+
+  const handleDeleteRoom = (id, name) => {
+    setRoomToDelete({ id, name });
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDeleteRoom = () => {
+    if (!roomToDelete) return;
+
+    // Filtrar la lista de salas
+    const updatedRooms = rooms.filter(r => r.id !== roomToDelete.id);
+    setRooms(updatedRooms);
+
+    // Cerrar confirmación y abrir éxito
+    setIsDeleteModalOpen(false);
+    setIsSuccessOpen(true);
+    
+    // Si estas editando la sala que se borro, reseteamos el form
+    if (editingRoomId === roomToDelete.id) {
+      resetForm();
+  }
   };
 
   const getIdentifier = (name) => {
@@ -115,7 +144,7 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
                 className={`border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 ${isDuplicateName ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
               />
               {isDuplicateName && (
-                <span className="text-xs text-red-600 font-medium mt-1">❌ Ya existe una sala con este nombre.</span>
+                <span className="text-xs text-red-600 font-medium mt-1"> Ya existe una sala con este nombre.</span>
               )}
             </div>
             <div className="flex flex-col gap-1">
@@ -173,6 +202,7 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
               setRoomLayout(layout);
             }}
           />
+ 
 
           <div className="flex justify-end gap-3 mt-8">
             <Button
@@ -223,6 +253,27 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
+
+                 {/* Modales */}
+                <DeleteConfirmModal 
+                  isOpen={isDeleteModalOpen}
+                  onClose={() => {
+                    setIsDeleteModalOpen(false);
+                  }}
+                  onConfirm={handleConfirmDeleteRoom}
+                  itemName={roomToDelete?.name} 
+                />
+
+                {/* MODAL DE ÉXITO */}
+                <SuccessModal 
+                  isOpen={isSuccessOpen} 
+                  onClose={() => {
+                    setIsSuccessOpen(false);
+                    setRoomToDelete(null);
+                  }}
+                  title="¡Sala Eliminada!"
+                  message={`La sala ha sido removida de la sucursal ${branch.name} exitosamente.`}
+                />
               </div>
             </div>
           ))}
