@@ -42,7 +42,7 @@ function AdminLayoutContent({ location, children }) {
     <>
       <AppSidebar className="z-20" />
 
-      <SidebarInset className="bg-surface-main flex flex-col min-h-screen w-full overflow-y-auto transition-all duration-300">
+      <SidebarInset className="flex flex-col min-h-screen w-full overflow-y-auto transition-all duration-300">
         <Navbar sectionTitle={currentTitle} />
 
         <main
@@ -57,10 +57,9 @@ function AdminLayoutContent({ location, children }) {
               <h1 className="text-h1-display text-brand-primary font-bebas tracking-wide uppercase">
                 {currentTitle}
               </h1>
-              <div className="h-1 w-20 bg-brand-gold mt-2 rounded-full" />
             </header>
 
-            <section className="bg-surface-container rounded-cineflix p-6 shadow-sm border border-border">
+            <section>
               {children}
             </section>
           </div>
