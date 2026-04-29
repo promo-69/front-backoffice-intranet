@@ -10,7 +10,7 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      // Esto mapea el símbolo @ directamente a tu carpeta src
+
       "@": path.resolve(__dirname, "./src"),
     },
   },
@@ -19,4 +19,9 @@ export default defineConfig({
     globals: true,
     setupFiles: "./src/setupTests.js",
   },
+  
+  build: {
+    outDir: 'dist',
+  },
+  assetsInclude: ['*/.png'],
 });
