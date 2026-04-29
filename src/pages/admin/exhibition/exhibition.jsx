@@ -5,8 +5,9 @@ import { MoviesTab } from "@/components/admin/exhibition/movies/MoviesTab"
 import SuccessModal from "@/components/ui/SuccessModal"
 import DeleteConfirmModal from "@/components/ui/DialogConfirmModal"
 import { ShowtimesTab } from "@/components/admin/exhibition/showtimes/ShowtimesTab"
+import { ShowtimeForm } from "@/components/admin/exhibition/showtimes/ShowtimeForm"
 import { RegisterMovieForm } from "@/components/forms/RegisterMovieForm"
-import MovieForm from "@/components/admin/exhibition/movies/MovieModal"
+import MovieForm from "@/components/admin/exhibition/movies/MovieForm"
 import { ColumnsMovies } from "@/components/admin/exhibition/movies/ColumnsMovies";
 import poster1 from "@/assets/images/posters/the-drama-poster.jpg"
 
@@ -20,7 +21,29 @@ export default function ExhibitionPage() {
   const [movieToDelete, setMovieToDelete] = useState(null);
   const [successMessage, setSuccessMessage] = useState({ title: "", message: "" });
   const [selectedId, setSelectedId] = useState(null);
-  const [movieToEdit, setMovieToEdit] = useState(null); 
+  const [movieToEdit, setMovieToEdit] = useState(null);
+  const [showtimes, setShowtimes] = useState([
+    {
+      id: 1,
+      movie_id: 1,
+      room_id: 101,
+      date: "2026-04-30",
+      start_time: "14:00",
+      end_time: "16:30",
+      price: "10.00",
+    },
+    {
+      id: 2,
+      movie_id: 2,
+      room_id: 102,
+      date: "2026-04-30",
+      start_time: "17:00",
+      end_time: "19:00",
+      price: "12.50",
+    },
+  ]); 
+  const [itemToEdit, setItemToEdit] = useState(null);
+  
 
   const [totalElements, setTotalElements] = useState(3); 
   const [{ pageIndex, pageSize }, setPagination] = useState({
@@ -49,43 +72,113 @@ export default function ExhibitionPage() {
     }
   ]);
 
+  const [rooms] = useState([ // Esto vendría de RoomManager o API
+    { id: 101, name: "Sala 1 - IMAX" },
+    { id: 102, name: "Sala 2 - VIP" }
+  ]);
+
   const handleView = (movie) => console.log("Ver:", movie.titulo);
   
   const handleOpenCreate = () => {
-    setMovieToEdit(null); 
+    if (activeTab === "movies") {
+      setMovieToEdit(null);
+    } else {
+      setItemToEdit(null);
+    }
     setIsFormOpen(true);
   };
 
-  const handleEdit = (movie) => {
-    setMovieToEdit(movie); 
+  const handleEdit = (item) => {
+    if (activeTab === "movies") {
+      setMovieToEdit(item);
+    } else {
+      setItemToEdit(item);
+    }
     setIsFormOpen(true);
   };
 
-  const handleDelete = (movie) => {
-    setMovieToDelete(movie);
-    setIsDeleteConfirmOpen(true);
+  const handleDelete = (item) => {
+    if (activeTab === "movies") {
+      setMovieToDelete(item);
+      setIsDeleteConfirmOpen(true);
+    } else {
+      handleDeleteMovieShowtime(item);
+    }
   };
 
-  const handleConfirmDelete = () => {
+  const handleMovieConfirmDelete = () => {
+    if (activeTab === "movies") {
+      setData((prev) => prev.filter((m) => m.id !== movieToDelete.id));
+      setTotalElements((prev) => prev - 1);
+      setIsDeleteConfirmOpen(false);
+      setSuccessMessage({
+        title: "¡Eliminado con Éxito!",
+        message: "La película ha sido removida del catálogo correctamente.",
+      });
+      setIsSuccessOpen(true);
+    }
+  };
+
+  const handleShowtimeConfirmDelete = () => {
+  if (activeTab === "movies") {
     setData(prev => prev.filter(m => m.id !== movieToDelete.id));
-    setTotalElements(prev => prev - 1);
-    setIsDeleteConfirmOpen(false);
-    setSuccessMessage({
-      title: "¡Eliminado con Éxito!",
-      message: "La película ha sido removida del catálogo correctamente."
-    });
-    setIsSuccessOpen(true); 
-  };
+  } else {
+    setShowtimes(prev => prev.filter(st => st.id !== movieToDelete.id));
+  }
+  setIsDeleteConfirmOpen(false);
+  setMovieToDelete(null);
+  
+  setSuccessMessage({ title: "Eliminado", message: "Operación realizada con éxito" });
+  setIsSuccessOpen(true);
+};
 
   const handleFormSuccess = (isEdit) => {
-    setSuccessMessage({
-      title: isEdit ? "¡Cambios Guardados!" : "¡Registro Exitoso!",
-      message: isEdit 
-        ? "La información de la película ha sido actualizada." 
-        : "La nueva película ha sido añadida al catálogo correctamente."
-    });
+    if (activeTab === "movies") {
+      setSuccessMessage({
+        title: isEdit ? "¡Cambios Guardados!" : "¡Registro Exitoso!",
+        message: isEdit
+          ? "La información de la película ha sido actualizada."
+          : "La nueva película ha sido añadida al catálogo correctamente.",
+      });
+    } else {
+      setSuccessMessage({
+        title: isEdit ? "¡Función Actualizada!" : "¡Función Programada!",
+        message: isEdit
+          ? "La información de la función ha sido actualizada."
+          : "La nueva función ha sido programada correctamente.",
+      });
+    }
     setIsSuccessOpen(true);
   };
+
+  const handleSaveShowtime = (newShowtime) => {
+    if (itemToEdit) {
+      setShowtimes(prev => prev.map(s => s.id === itemToEdit.id ? { ...newShowtime, id: s.id } : s));
+    } else {
+      setShowtimes(prev => [...prev, { ...newShowtime, id: Date.now() }]);
+    }
+    setIsFormOpen(false);
+    setItemToEdit(null);
+  };
+
+  const handleDeleteMovieShowtime = (st) => {
+    setShowtimes(prev => prev.filter(item => item.id !== st.id));
+  };
+  const handleDeleteShowtime = (showtime) => {
+  setMovieToDelete(showtime); // Usamos el mismo estado de 'movieToDelete' para el modal
+  setIsDeleteConfirmOpen(true);
+};
+
+  const enrichedShowtimes = showtimes.map(st => {
+    const movie = data.find(m => m.id === parseInt(st.movie_id));
+    const room = rooms.find(r => r.id === parseInt(st.room_id));
+
+    return {
+      ...st,
+      movie_title: movie?.titulo || "N/A",
+      room_name: room?.name || "N/A",
+    };
+  });
 
   const columns = ColumnsMovies(handleView, handleEdit, handleDelete);
 
@@ -133,7 +226,7 @@ export default function ExhibitionPage() {
         </div>
       </div>
 
-      {/* MINI MENÚ DE PESTAÑAS (IGUAL A USUARIOS) */}
+      {/* MINI MENÚ DE PESTAÑAS  */}
       <div className="flex gap-4 border-b pb-2">
         <button
           className={`text-xs font-montserrat uppercase tracking-wide pb-1 border-b-2 transition-colors ${
@@ -160,46 +253,56 @@ export default function ExhibitionPage() {
 
       {/* CONTENIDO CONDICIONAL */}
       {activeTab === "movies" && (
+        <>
         <MoviesTab 
           table={table} 
           totalElements={totalElements}
           onView={handleView}
           onEdit={handleEdit}
-          onDelete={(id) => handleDelete(data.find(m => m.id === id))}
+          onDelete={(id) => handleDelete(data.find((m) => m.id === id))}
           onSelectMovie={setSelectedId}
           selectedId={selectedId}
-          search={search} // Pasamos el buscador si el componente lo necesita
+          search={search}
         />
-      )}
-      
-      {activeTab === "functions" && (
-        <ShowtimesTab search={search} />
+
+        <MovieForm
+          open={isFormOpen}
+          onClose={() => setIsFormOpen(false)}
+          initialData={movieToEdit}
+          onSuccess={handleFormSuccess}
+        />
+        </>
       )}
 
-      {/* MODALES */}
-      {/** 
-       *  <RegisterMovieForm 
-        isOpen={isFormOpen} 
-        onClose={() => setIsFormOpen(false)}
-        onSuccess={() => {
-          setSuccessMessage({ title: "¡Registro Exitoso!", message: "La película se ha añadido al catálogo." });
-          setIsSuccessOpen(true);
-        }} 
-      />
-      */}
-  
-      <MovieForm 
-        open={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
-        initialData={movieToEdit} 
-        onSuccess={handleFormSuccess}
-      />
+      {activeTab === "functions" && (
+        <>
+          <ShowtimesTab
+            data={enrichedShowtimes}
+            onEdit={handleEdit}
+            onDelete={handleDeleteShowtime}
+            search={search}
+          />
+
+          <ShowtimeForm
+            open={isFormOpen}
+            onClose={() => {
+              setIsFormOpen(false);
+              setItemToEdit(null);
+            }}
+            initialData={itemToEdit}
+            movies={data} 
+            rooms={rooms}
+            existingShowtimes={showtimes}
+            onSave={handleSaveShowtime}
+          />
+        </>
+      )}
 
       <DeleteConfirmModal 
         isOpen={isDeleteConfirmOpen}
         onClose={() => setIsDeleteConfirmOpen(false)}
-        onConfirm={handleConfirmDelete}
-        itemName={movieToDelete?.titulo}
+        onConfirm={handleMovieConfirmDelete}
+        itemName={movieToDelete?.title}
       />
 
       <SuccessModal 

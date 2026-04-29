@@ -10,6 +10,7 @@ export function MoviesTab({
   onSelectMovie, 
   selectedId 
 }) {
+ 
   const data = table.getRowModel().rows;
 
   return (
