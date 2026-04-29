@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { InputForm } from "@/components/ui/inputForm";
 import { SelectForm } from "@/components/ui/SelectForm";
-import api from '../api/axios'; // Importación de la instancia de Axios
+import api from '../../../api/axios';
 
 export default function BranchModal({ open, onClose, initialData }) {
   const isEdit = !!initialData;

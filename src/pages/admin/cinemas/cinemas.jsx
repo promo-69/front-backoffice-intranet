@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
-import api from "../../../api/axios"; // Tu instancia de Axios
+import api from '../../../api/axios';
 import CinemaSearch from "../../../components/admin/cinemas/SearchBar";
 import CinemaTable from "../../../components/admin/cinemas/CinemaTable";
 import RoomManager from "../../../components/admin/cinemas/RoomManager";
