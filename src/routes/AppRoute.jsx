@@ -4,7 +4,6 @@ import Dashboard from "../pages/admin/dashboard";
 import DashboardCashier from "../pages/ticketOffice/dashboardCashier";
 import Exhibition from "@/pages/admin/exhibition/exhibition";
 import SellTickets from "../pages/ticketOffice/sellTickets";
-import PrivateRoute from "./PrivateRoute";
 import AuthLayout from "../layouts/AuthLayout";
 import AdminLayout from "../layouts/AdminLayout";
 import CashierLayout from "../layouts/CashierLayout";
@@ -15,44 +14,40 @@ function AppRoute() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Rutas Públicas */}
+        {/* Rutas Públicas de Autenticación */}
         <Route path="/" element={<AuthLayout><Login /></AuthLayout>} />
         <Route path="/login" element={<AuthLayout><Login /></AuthLayout>} />
 
-        {/* Rutas Admin */}
-        <Route path="/admin/dashboard" element={<PrivateRoute role="admin"><AdminLayout><Dashboard /></AdminLayout></PrivateRoute>} />
-        <Route path="/admin/exhibition" element={<PrivateRoute role="admin"><AdminLayout><Exhibition /></AdminLayout></PrivateRoute>} />
+        {/* Rutas Administrativas (Temporalmente Públicas) */}
+        <Route path="/admin/dashboard" element={<AdminLayout><Dashboard /></AdminLayout>} />
+        <Route path="/admin/exhibition" element={<AdminLayout><Exhibition /></AdminLayout>} />
         
-        {/* Aquí es donde usas CinemasPage para la ruta de sucursales */}
-        <Route path="/admin/sucursales" element={<PrivateRoute role="admin"><AdminLayout><CinemasPage /></AdminLayout></PrivateRoute>} />
+        {/* Ruta para la gestión de sucursales */}
+        <Route path="/admin/sucursales" element={<AdminLayout><CinemasPage /></AdminLayout>} />
         
-        <Route path="/admin/users" element={<PrivateRoute role="admin"><AdminLayout><Users /></AdminLayout></PrivateRoute>} />
+        <Route path="/admin/users" element={<AdminLayout><Users /></AdminLayout>} />
         
-        {/* Rutas en desarrollo (Admin) */}
-        <Route path="/admin/transacciones" element={<PrivateRoute role="admin"><AdminLayout><div className="p-4">Próximamente: Transacciones</div></AdminLayout></PrivateRoute>} />
-        <Route path="/admin/inventario" element={<PrivateRoute role="admin"><AdminLayout><div className="p-4">Próximamente: Inventario</div></AdminLayout></PrivateRoute>} />
-        <Route path="/admin/reports" element={<PrivateRoute role="admin"><AdminLayout><div className="p-4">Próximamente: Reportes</div></AdminLayout></PrivateRoute>} />
+        {/* Módulos en desarrollo */}
+        <Route path="/admin/transacciones" element={<AdminLayout><div className="p-4">Próximamente: Transacciones</div></AdminLayout>} />
+        <Route path="/admin/inventario" element={<AdminLayout><div className="p-4">Próximamente: Inventario</div></AdminLayout>} />
+        <Route path="/admin/reports" element={<AdminLayout><div className="p-4">Próximamente: Reportes</div></AdminLayout>} />
 
-        {/* Rutas Cajero - CORREGIDAS (Eliminé la duplicada) */}
+        {/* Rutas de Taquilla / Cajero (Temporalmente Públicas) */}
         <Route
           path="/ticketOffice/dashboard"
           element={
-            <PrivateRoute role="cashier">
-              <CashierLayout>
-                <DashboardCashier />
-              </CashierLayout>
-            </PrivateRoute>
+            <CashierLayout>
+              <DashboardCashier />
+            </CashierLayout>
           }
         />
 
         <Route
           path="/ticketOffice/sell"
           element={
-            <PrivateRoute role="cashier">
-              <CashierLayout>
-                <SellTickets />
-              </CashierLayout>
-            </PrivateRoute>
+            <CashierLayout>
+              <SellTickets />
+            </CashierLayout>
           }
         />
       </Routes>
