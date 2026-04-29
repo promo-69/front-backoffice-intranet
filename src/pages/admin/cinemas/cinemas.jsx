@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Plus } from "lucide-react";
+import { Plus } from "lucide-center";
 
 import api from '../../../api/axios';
 
@@ -11,6 +11,7 @@ import DeleteConfirmModal from "../../../components/ui/DialogConfirmModal";
 import SuccessModal from "../../../components/ui/SuccessModal";
 
 const CinemaPage = () => {
+  // 1. SOLUCIÓN AL FILTER: Siempre inicializamos con un array vacío []
   const [branches, setBranches] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [isAddingRoom, setIsAddingRoom] = useState(false);
@@ -28,10 +29,19 @@ const CinemaPage = () => {
   const fetchBranches = async () => {
     try {
       setLoading(true);
+      // 2. SOLUCIÓN AL 404: Asegúrate que el endpoint en Spring Boot sea exactamente '/cinemas'
       const response = await api.get('/cinemas');
-      setBranches(response.data);
+      
+      // Verificamos que la respuesta sea un array antes de setearlo
+      if (Array.isArray(response.data)) {
+        setBranches(response.data);
+      } else {
+        console.warn("La API no devolvió un array:", response.data);
+        setBranches([]); 
+      }
     } catch (error) {
       console.error("Error al cargar sucursales:", error);
+      setBranches([]); // Si hay error (como el 404), reseteamos a array vacío para que no explote el filter
     } finally {
       setLoading(false);
     }
@@ -57,7 +67,6 @@ const CinemaPage = () => {
     if (shouldRefresh === true) fetchBranches(); 
   };
 
-
   const handleConfirmDelete = async () => {
     try {
       await api.delete(`/cinemas/${itemToDelete.id}`);
@@ -67,7 +76,7 @@ const CinemaPage = () => {
       
       setIsDeleteModalOpen(false);
       setIsSuccessOpen(true);
-      fetchBranches(); // Recargamos la lista
+      fetchBranches(); 
     } catch (error) {
       console.error("No se pudo eliminar:", error);
       alert("Error al eliminar la sucursal.");
@@ -76,11 +85,14 @@ const CinemaPage = () => {
     }
   };
 
-  const filteredBranches = branches.filter((b) =>
-    b.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // 3. SOLUCIÓN AL FILTER (REFUERZO): Usamos validación de Array.isArray
+  const filteredBranches = Array.isArray(branches) 
+    ? branches.filter((b) => b.name?.toLowerCase().includes(searchTerm.toLowerCase()))
+    : [];
 
-  const selectedBranch = branches.find((b) => Number(b.id) === Number(selectedId));
+  const selectedBranch = Array.isArray(branches) 
+    ? branches.find((b) => Number(b.id) === Number(selectedId))
+    : null;
 
   const handleDeleteClick = (id) => {
     const branch = branches.find((b) => Number(b.id) === Number(id));
@@ -124,7 +136,6 @@ const CinemaPage = () => {
         message={`Se ha removido "${deletedItemName}" exitosamente.`} 
       />
 
-      {/* Sección de Salas */}
       <div className="w-full pt-8 mt-4 border-t-2 border-dashed border-slate-200">
         {selectedBranch ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
