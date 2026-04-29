@@ -14,7 +14,7 @@ import api from '../../../api/axios';
 
 export default function BranchModal({ open, onClose, initialData }) {
   const isEdit = !!initialData;
-  const [loading, setLoading] = useState(false); // Estado para controlar el envío
+  const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
