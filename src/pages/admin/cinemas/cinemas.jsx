@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
+
 import api from '../../../api/axios';
+
 import CinemaSearch from "../../../components/admin/cinemas/SearchBar";
 import CinemaTable from "../../../components/admin/cinemas/CinemaTable";
 import RoomManager from "../../../components/admin/cinemas/RoomManager";
@@ -23,7 +25,6 @@ const CinemaPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [branchToEdit, setBranchToEdit] = useState(null);
 
-  // 1. Cargar sucursales al montar el componente
   const fetchBranches = async () => {
     try {
       setLoading(true);
@@ -53,10 +54,10 @@ const CinemaPage = () => {
   const handleCloseModal = (shouldRefresh) => {
     setIsModalOpen(false);
     setBranchToEdit(null);
-    if (shouldRefresh === true) fetchBranches(); // Refrescar si hubo cambios
+    if (shouldRefresh === true) fetchBranches(); 
   };
 
-  // 2. Confirmar eliminación en el servidor
+
   const handleConfirmDelete = async () => {
     try {
       await api.delete(`/cinemas/${itemToDelete.id}`);

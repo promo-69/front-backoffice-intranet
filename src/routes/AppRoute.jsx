@@ -3,7 +3,6 @@ import Login from "../pages/auth/login";
 import Dashboard from "../pages/admin/dashboard";
 import DashboardCashier from "../pages/ticketOffice/dashboardCashier";
 import Exhibition from "@/pages/admin/exhibition/exhibition";
-//import Sucursales from "@/pages/admin/sucursales";
 import SellTickets from "../pages/ticketOffice/sellTickets";
 import PrivateRoute from "./PrivateRoute";
 import AuthLayout from "../layouts/AuthLayout";
@@ -16,7 +15,6 @@ function AppRoute() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Ruta pública con layout */}
         <Route
           path="/"
           element={
