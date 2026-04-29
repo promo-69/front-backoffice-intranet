@@ -116,3 +116,5 @@ const CinemaTable = ({
     </div>
   );
 };
+
+export default CinemaTable;
