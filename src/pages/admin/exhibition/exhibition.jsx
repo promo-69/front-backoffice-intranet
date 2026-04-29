@@ -1,27 +1,26 @@
 import { useState } from "react"
-import { 
-  useReactTable, 
-  getCoreRowModel, 
-} from "@tanstack/react-table";
+import { useReactTable, getCoreRowModel } from "@tanstack/react-table";
 import { Plus } from "lucide-react"
-import { MoviesTab } from "@/components/admin/exhibition/MoviesTab"
+import { MoviesTab } from "@/components/admin/exhibition/movies/MoviesTab"
 import SuccessModal from "@/components/ui/SuccessModal"
 import DeleteConfirmModal from "@/components/ui/DialogConfirmModal"
-import { ShowtimesTab } from "@/components/admin/exhibition/ShowtimesTab"
+import { ShowtimesTab } from "@/components/admin/exhibition/showtimes/ShowtimesTab"
 import { RegisterMovieForm } from "@/components/forms/RegisterMovieForm"
-import { ColumnsMovies } from "@/components/admin/exhibition/ColumnsMovies";
-
+import MovieForm from "@/components/admin/exhibition/movies/MovieModal"
+import { ColumnsMovies } from "@/components/admin/exhibition/movies/ColumnsMovies";
 import poster1 from "@/assets/images/posters/the-drama-poster.jpg"
+
 
 export default function ExhibitionPage() {
   const [activeTab, setActiveTab] = useState("movies");
-  const [search, setSearch] = useState(""); // Estado para el buscador
+  const [search, setSearch] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [movieToDelete, setMovieToDelete] = useState(null);
   const [successMessage, setSuccessMessage] = useState({ title: "", message: "" });
   const [selectedId, setSelectedId] = useState(null);
+  const [movieToEdit, setMovieToEdit] = useState(null); 
 
   const [totalElements, setTotalElements] = useState(3); 
   const [{ pageIndex, pageSize }, setPagination] = useState({
@@ -51,7 +50,17 @@ export default function ExhibitionPage() {
   ]);
 
   const handleView = (movie) => console.log("Ver:", movie.titulo);
-  const handleEdit = (movie) => console.log("Editar:", movie.titulo);
+  
+  const handleOpenCreate = () => {
+    setMovieToEdit(null); 
+    setIsFormOpen(true);
+  };
+
+  const handleEdit = (movie) => {
+    setMovieToEdit(movie); 
+    setIsFormOpen(true);
+  };
+
   const handleDelete = (movie) => {
     setMovieToDelete(movie);
     setIsDeleteConfirmOpen(true);
@@ -66,6 +75,16 @@ export default function ExhibitionPage() {
       message: "La película ha sido removida del catálogo correctamente."
     });
     setIsSuccessOpen(true); 
+  };
+
+  const handleFormSuccess = (isEdit) => {
+    setSuccessMessage({
+      title: isEdit ? "¡Cambios Guardados!" : "¡Registro Exitoso!",
+      message: isEdit 
+        ? "La información de la película ha sido actualizada." 
+        : "La nueva película ha sido añadida al catálogo correctamente."
+    });
+    setIsSuccessOpen(true);
   };
 
   const columns = ColumnsMovies(handleView, handleEdit, handleDelete);
@@ -105,7 +124,7 @@ export default function ExhibitionPage() {
           />
 
           <button
-            onClick={() => setIsFormOpen(true)}
+            onClick={handleOpenCreate}
             className="bg-brand-primary text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-[11px] font-black uppercase tracking-widest hover:brightness-110 hover:shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all duration-300 border-2 border-purple-400/30 font-montserrat"
           >
             <Plus className="w-4 h-4 text-brand-gold" strokeWidth={3} />
@@ -158,13 +177,22 @@ export default function ExhibitionPage() {
       )}
 
       {/* MODALES */}
-      <RegisterMovieForm 
+      {/** 
+       *  <RegisterMovieForm 
         isOpen={isFormOpen} 
         onClose={() => setIsFormOpen(false)}
         onSuccess={() => {
           setSuccessMessage({ title: "¡Registro Exitoso!", message: "La película se ha añadido al catálogo." });
           setIsSuccessOpen(true);
         }} 
+      />
+      */}
+  
+      <MovieForm 
+        open={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        initialData={movieToEdit} 
+        onSuccess={handleFormSuccess}
       />
 
       <DeleteConfirmModal 
