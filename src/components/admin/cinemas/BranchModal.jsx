@@ -22,7 +22,6 @@ export default function BranchModal({ open, onClose, initialData }) {
     phone: "",
     openingTime: "",
     closingTime: "",
-    status: "Activo",
   });
 
   const [errors, setErrors] = useState({});
@@ -37,7 +36,6 @@ export default function BranchModal({ open, onClose, initialData }) {
         phone: "",
         openingTime: "",
         closingTime: "",
-        status: "Activo",
       });
     }
     setErrors({});
@@ -188,19 +186,6 @@ export default function BranchModal({ open, onClose, initialData }) {
               <ErrorMessage message={errors.closingTime} />
             </div>
           </div>
-
-          {isEdit && (
-            <SelectForm
-              label="Estado de la Sucursal"
-              name="status"
-              value={formData.status}
-              onChange={handleChange}
-            >
-              <option value="Activo">Activo</option>
-              <option value="Inactivo">Inactivo</option>
-              <option value="Mantenimiento">Mantenimiento</option>
-            </SelectForm>
-          )}
         </div>
 
         <DialogFooter className="mt-6 flex justify-end gap-3">
