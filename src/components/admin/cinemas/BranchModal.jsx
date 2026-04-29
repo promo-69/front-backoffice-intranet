@@ -20,9 +20,8 @@ export default function BranchModal({ open, onClose, initialData }) {
     name: "",
     address: "",
     phone: "",
-    opening_time: "",
-    closing_time: "",
-    status: "Activo",
+    openingTime: "",
+    closingTime: "",
   });
 
   const [errors, setErrors] = useState({});
@@ -35,9 +34,8 @@ export default function BranchModal({ open, onClose, initialData }) {
         name: "",
         address: "",
         phone: "",
-        opening_time: "",
-        closing_time: "",
-        status: "Activo",
+        openingTime: "",
+        closingTime: "",
       });
     }
     setErrors({});
@@ -51,10 +49,12 @@ export default function BranchModal({ open, onClose, initialData }) {
         error = "El teléfono solo debe contener números.";
       }
     }
-    if (name === "opening_time" || name === "closing_time") {
-      const timeRegex = /^(0?[1-9]|1[0-2]):[0-5][0-9]\s?(AM|PM|am|pm)$/;
-      if (value && !timeRegex.test(value)) {
-        error = "Formato inválido (Ej: 10:00 AM).";
+
+    // NUEVA VALIDACIÓN: Formato 24h (HH:mm)
+    if (name === "openingTime" || name === "closingTime") {
+      const time24hRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+      if (value && !time24hRegex.test(value)) {
+        error = "Formato 24h inválido (Ej: 14:30 o 09:00).";
       }
     }
     return error;
@@ -84,18 +84,14 @@ export default function BranchModal({ open, onClose, initialData }) {
     setLoading(true);
     try {
       if (isEdit) {
-        // CONEXIÓN: Actualizar sucursal existente
         await api.put(`/cinemas/${initialData.id}`, formData);
       } else {
-        // CONEXIÓN: Crear nueva sucursal
         await api.post('/cinemas', formData);
       }
-      
-      // Notificamos éxito y refrescamos la tabla pasando 'true' a la página padre
       onClose(true); 
     } catch (error) {
       console.error("Error al procesar la sucursal:", error);
-      alert("No se pudo guardar la información. Por favor, intenta de nuevo.");
+      alert("No se pudo guardar la información.");
     } finally {
       setLoading(false);
     }
@@ -169,38 +165,27 @@ export default function BranchModal({ open, onClose, initialData }) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <InputForm
-                label="Hora Apertura"
-                name="opening_time"
-                value={formData.opening_time}
+                label="Hora Apertura (24h)"
+                name="openingTime"
+                type="text" // Puedes cambiar a type="time" para usar el selector nativo
+                value={formData.openingTime}
                 onChange={handleChange}
-                placeholder="10:00 AM"
+                placeholder="09:00"
               />
-              <ErrorMessage message={errors.opening_time} />
+              <ErrorMessage message={errors.openingTime} />
             </div>
             <div>
               <InputForm
-                label="Hora Cierre"
-                name="closing_time"
-                value={formData.closing_time}
+                label="Hora Cierre (24h)"
+                name="closingTime"
+                type="text" 
+                value={formData.closingTime}
                 onChange={handleChange}
-                placeholder="11:00 PM"
+                placeholder="22:30"
               />
-              <ErrorMessage message={errors.closing_time} />
+              <ErrorMessage message={errors.closingTime} />
             </div>
           </div>
-
-          {isEdit && (
-            <SelectForm
-              label="Estado de la Sucursal"
-              name="status"
-              value={formData.status}
-              onChange={handleChange}
-            >
-              <option value="Activo">Activo</option>
-              <option value="Inactivo">Inactivo</option>
-              <option value="Mantenimiento">Mantenimiento</option>
-            </SelectForm>
-          )}
         </div>
 
         <DialogFooter className="mt-6 flex justify-end gap-3">
