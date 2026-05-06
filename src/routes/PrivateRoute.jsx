@@ -7,7 +7,7 @@ function PrivateRoute({ children, role }) {
     return <Navigate to="/" />;
   }
 
-  if (role && user.role !== role) {
+  if (role && user.roleCode !== role) {
     return <Navigate to="/" />;
   }
 
