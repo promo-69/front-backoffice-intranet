@@ -227,7 +227,6 @@ const handleConfirmDelete = () => {
 
   return (
     <div className="space-y-6">
-      {/* BARRA DE ACCIONES SUPERIOR (IGUAL A USUARIOS) */}
       <div className="flex justify-between items-center border-b border-gray-100 pb-4">
         <div>
           <h3 className="text-lg font-montserrat font-bold text-brand-primary">
