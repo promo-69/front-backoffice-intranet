@@ -22,6 +22,43 @@ export default function ExhibitionPage() {
   const [successMessage, setSuccessMessage] = useState({ title: "", message: "" });
   const [selectedId, setSelectedId] = useState(null);
   const [movieToEdit, setMovieToEdit] = useState(null);
+  const [itemToDelete, setItemToDelete] = useState(null);
+  const [deleteType, setDeleteType] = useState(null); 
+
+
+const handleDeleteMovie = (movie) => {
+  setItemToDelete(movie);
+  setDeleteType('movie');
+  setIsDeleteConfirmOpen(true);
+};
+
+
+const handleDeleteShowtime = (showtime) => {
+  setItemToDelete(showtime);
+  setDeleteType('showtime');
+  setIsDeleteConfirmOpen(true);
+};
+
+const handleConfirmDelete = () => {
+  if (deleteType === 'movie') {
+    setData(prev => prev.filter(m => m.id !== itemToDelete.id));
+    setSuccessMessage({ 
+      title: "¡Película Eliminada!", 
+      message: `El título "${itemToDelete.title}" ha sido removido con éxito.` 
+    });
+  } else {
+    setShowtimes(prev => prev.filter(s => s.id !== itemToDelete.id));
+    setSuccessMessage({ 
+      title: "¡Función Eliminada!", 
+      message: "La programación ha sido cancelada correctamente." 
+    });
+  }
+
+  setIsDeleteConfirmOpen(false);
+  setIsSuccessOpen(true);
+  setItemToDelete(null);
+  setDeleteType(null);
+};
   const [showtimes, setShowtimes] = useState([
     {
       id: 1,
@@ -164,10 +201,6 @@ export default function ExhibitionPage() {
   const handleDeleteMovieShowtime = (st) => {
     setShowtimes(prev => prev.filter(item => item.id !== st.id));
   };
-  const handleDeleteShowtime = (showtime) => {
-  setMovieToDelete(showtime); // Usamos el mismo estado de 'movieToDelete' para el modal
-  setIsDeleteConfirmOpen(true);
-};
 
   const enrichedShowtimes = showtimes.map(st => {
     const movie = data.find(m => m.id === parseInt(st.movie_id));
