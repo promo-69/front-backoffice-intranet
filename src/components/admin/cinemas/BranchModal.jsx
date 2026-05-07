@@ -10,17 +10,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { InputForm } from "@/components/ui/inputForm";
 import { SelectForm } from "@/components/ui/SelectForm";
+import api from '../../../api/axios';
 
 export default function BranchModal({ open, onClose, initialData }) {
   const isEdit = !!initialData;
+  const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
     address: "",
     phone: "",
-    opening_time: "",
-    closing_time: "",
-    status: "Activo",
+    openingTime: "",
+    closingTime: "",
   });
 
   const [errors, setErrors] = useState({});
@@ -33,9 +34,8 @@ export default function BranchModal({ open, onClose, initialData }) {
         name: "",
         address: "",
         phone: "",
-        opening_time: "",
-        closing_time: "",
-        status: "Activo",
+        openingTime: "",
+        closingTime: "",
       });
     }
     setErrors({});
@@ -43,7 +43,6 @@ export default function BranchModal({ open, onClose, initialData }) {
 
   const validateField = (name, value) => {
     let error = "";
-
     if (name === "phone") {
       const phoneRegex = /^[0-9\s-]+$/;
       if (value && !phoneRegex.test(value)) {
@@ -51,26 +50,24 @@ export default function BranchModal({ open, onClose, initialData }) {
       }
     }
 
-    if (name === "opening_time" || name === "closing_time") {
-      const timeRegex = /^(0?[1-9]|1[0-2]):[0-5][0-9]\s?(AM|PM|am|pm)$/;
-      if (value && !timeRegex.test(value)) {
-        error = "Formato inválido (Ej: 10:00 AM).";
+    // NUEVA VALIDACIÓN: Formato 24h (HH:mm)
+    if (name === "openingTime" || name === "closingTime") {
+      const time24hRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+      if (value && !time24hRegex.test(value)) {
+        error = "Formato 24h inválido (Ej: 14:30 o 09:00).";
       }
     }
-
     return error;
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-
     const fieldError = validateField(name, value);
     setErrors((prev) => ({ ...prev, [name]: fieldError }));
-
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const newErrors = {};
     Object.keys(formData).forEach((key) => {
       const error = validateField(key, formData[key]);
@@ -84,38 +81,39 @@ export default function BranchModal({ open, onClose, initialData }) {
       return;
     }
 
-    console.log("Datos a enviar:", formData);
-    onClose();
+    setLoading(true);
+    try {
+      if (isEdit) {
+        await api.put(`/cinemas/${initialData.id}`, formData);
+      } else {
+        await api.post('/cinemas', formData);
+      }
+      onClose(true); 
+    } catch (error) {
+      console.error("Error al procesar la sucursal:", error);
+      alert("No se pudo guardar la información.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const ErrorMessage = ({ message }) =>
     message ? (
-      <p className="text-[10px] text-red-500 mt-1 ml-1 font-medium">
+      <p className="text-[10px] text-red-500 mt-1 ml-1 font-medium italic">
         {message}
       </p>
     ) : null;
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={() => onClose(false)}>
       <DialogContent className="max-w-md bg-white rounded-cineflix p-6 shadow-2xl border-none">
         
         <button
-          onClick={onClose}
+          onClick={() => onClose(false)}
           className="absolute top-3 right-3 text-gray-400 hover:text-brand-primary transition"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-5 w-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M6 18L18 6M6 6l12 12"
-            />
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
 
@@ -167,49 +165,39 @@ export default function BranchModal({ open, onClose, initialData }) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <InputForm
-                label="Hora Apertura"
-                name="opening_time"
-                value={formData.opening_time}
+                label="Hora Apertura (24h)"
+                name="openingTime"
+                type="text" // Puedes cambiar a type="time" para usar el selector nativo
+                value={formData.openingTime}
                 onChange={handleChange}
-                placeholder="10:00 AM"
+                placeholder="09:00"
               />
-              <ErrorMessage message={errors.opening_time} />
+              <ErrorMessage message={errors.openingTime} />
             </div>
             <div>
               <InputForm
-                label="Hora Cierre"
-                name="closing_time"
-                value={formData.closing_time}
+                label="Hora Cierre (24h)"
+                name="closingTime"
+                type="text" 
+                value={formData.closingTime}
                 onChange={handleChange}
-                placeholder="11:00 PM"
+                placeholder="22:30"
               />
-              <ErrorMessage message={errors.closing_time} />
+              <ErrorMessage message={errors.closingTime} />
             </div>
           </div>
-
-          {isEdit && (
-            <SelectForm
-              label="Estado de la Sucursal"
-              name="status"
-              value={formData.status}
-              onChange={handleChange}
-            >
-              <option value="Activo">Activo</option>
-              <option value="Inactivo">Inactivo</option>
-              <option value="Mantenimiento">Mantenimiento</option>
-            </SelectForm>
-          )}
         </div>
 
         <DialogFooter className="mt-6 flex justify-end gap-3">
-          <Button variant="outline" onClick={onClose} className="font-montserrat">
+          <Button variant="outline" onClick={() => onClose(false)} className="font-montserrat" disabled={loading}>
             Cancelar
           </Button>
           <Button
             onClick={handleSubmit}
+            disabled={loading}
             className="bg-brand-primary hover:bg-brand-primary/90 text-white font-montserrat font-bold px-6 rounded-cineflix"
           >
-            {isEdit ? "Guardar Cambios" : "Registrar Sucursal"}
+            {loading ? "Procesando..." : isEdit ? "Guardar Cambios" : "Registrar Sucursal"}
           </Button>
         </DialogFooter>
       </DialogContent>

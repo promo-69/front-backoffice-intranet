@@ -6,7 +6,6 @@ import SuccessModal from "@/components/ui/SuccessModal";
 import SeatGridDesigner from "./SeatGridDesigner";
 
 export default function RoomManager({ branch, externalIsAdding, setExternalIsAdding }) {
-  // Sincronizamos el estado interno con el externo del padre
   const [editingRoomId, setEditingRoomId] = useState(null);
   const [isLayoutValid, setIsLayoutValid] = useState(false);
   const [roomLayout, setRoomLayout] = useState([]);
@@ -16,14 +15,12 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
   const [roomToDelete, setRoomToDelete] = useState(null);
 
 
-  // Datos de ejemplo para las salas
   const [rooms, setRooms] = useState([
     { id: 1, name: "Sala 1 - IMAX", capacity: 200, status: "Activa", rows: 10, cols: 20 },
     { id: 2, name: "Sala 2 - VIP", capacity: 50, status: "Activa", rows: 5, cols: 10 },
     { id: 3, name: "Sala 3", capacity: 150, status: "Activa", rows: 10, cols: 15 },
   ]);
 
-  // Estado para el formulario de sala
   const [formData, setFormData] = useState({
     name: "",
     capacity: "",
