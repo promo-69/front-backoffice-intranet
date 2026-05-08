@@ -24,13 +24,6 @@ export function validateEmail(value) {
 // PASSWORD
 export function validatePassword(value) {
   if (!value) return "La contraseña es obligatoria";
-
-  const regex = /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[\W_])[a-zA-Z\d\W_]{8,20}$/;
-
-  if (!regex.test(value)) {
-    return "Debe tener 8-20 caracteres, incluir letra, número y símbolo";
-  }
-
   return true;
 }
 
