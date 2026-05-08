@@ -10,13 +10,15 @@ import CashierLayout from "../layouts/CashierLayout";
 import Users from "../pages/admin/users/users";
 import CinemasPage from "../pages/admin/cinemas/cinemas";
 import PrivateRoute from "./PrivateRoute";
-import { AuthProvider } from "../context/AuthContext";
+import GlobalLoader from "../components/ui/GlobalLoader";
+import { useLoading } from "../context/LoadingContext";
 
 function AppRoute() {
+  const { loading } = useLoading();
+
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
+    <BrowserRouter>
+      <Routes>
           {/* Rutas Públicas de Autenticación */}
           <Route
             path="/"
@@ -39,7 +41,7 @@ function AppRoute() {
           <Route
             path="/admin/dashboard"
             element={
-              <PrivateRoute role="admin">
+              <PrivateRoute role="ADMIN">
                 <AdminLayout>
                   <Dashboard />
                 </AdminLayout>
@@ -49,7 +51,7 @@ function AppRoute() {
           <Route
             path="/admin/exhibition"
             element={
-              <PrivateRoute role="admin">
+              <PrivateRoute role="ADMIN">
                 <AdminLayout>
                   <Exhibition />
                 </AdminLayout>
@@ -61,7 +63,7 @@ function AppRoute() {
           <Route
             path="/admin/sucursales"
             element={
-              <PrivateRoute role="admin">
+              <PrivateRoute role="ADMIN">
                 <AdminLayout>
                   <CinemasPage />
                 </AdminLayout>
@@ -72,7 +74,7 @@ function AppRoute() {
           <Route
             path="/admin/users"
             element={
-              <PrivateRoute role="admin">
+              <PrivateRoute role="ADMIN">
                 <AdminLayout>
                   <Users />
                 </AdminLayout>
@@ -84,7 +86,7 @@ function AppRoute() {
           <Route
             path="/admin/transacciones"
             element={
-              <PrivateRoute role="admin">
+              <PrivateRoute role="ADMIN">
                 <AdminLayout>
                   <div className="p-4">Próximamente: Transacciones</div>
                 </AdminLayout>
@@ -94,7 +96,7 @@ function AppRoute() {
           <Route
             path="/admin/inventario"
             element={
-              <PrivateRoute role="admin">
+              <PrivateRoute role="ADMIN">
                 <AdminLayout>
                   <div className="p-4">Próximamente: Inventario</div>
                 </AdminLayout>
@@ -104,7 +106,7 @@ function AppRoute() {
           <Route
             path="/admin/reports"
             element={
-              <PrivateRoute role="admin">
+              <PrivateRoute role="ADMIN">
                 <AdminLayout>
                   <div className="p-4">Próximamente: Reportes</div>
                 </AdminLayout>
@@ -116,7 +118,7 @@ function AppRoute() {
           <Route
             path="/ticketOffice/dashboard"
             element={
-              <PrivateRoute role="cashier">
+              <PrivateRoute role="CASHIER">
                 <CashierLayout>
                   <DashboardCashier />
                 </CashierLayout>
@@ -127,7 +129,7 @@ function AppRoute() {
           <Route
             path="/ticketOffice/sell"
             element={
-              <PrivateRoute role="cashier">
+              <PrivateRoute role="CASHIER">
                 <CashierLayout>
                   <SellTickets />
                 </CashierLayout>
@@ -135,8 +137,8 @@ function AppRoute() {
             }
           />
         </Routes>
+      {loading && <GlobalLoader />}
       </BrowserRouter>
-    </AuthProvider>
   );
 }
 

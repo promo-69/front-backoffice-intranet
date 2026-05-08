@@ -1,5 +1,6 @@
 import { createContext, useState } from "react";
 import { loginRequest } from "../services/auth.service";
+import { useLoading } from "./LoadingContext";
 
 export const AuthContext = createContext()
 
@@ -9,7 +10,10 @@ export function AuthProvider({ children }) {
     return saved ? JSON.parse(saved) : null;
   });
 
+  const { showLoader, hideLoader } = useLoading();
+
   const login = async (credentials) => {
+    showLoader();
     try {
       const data = await loginRequest(credentials);
 
@@ -36,6 +40,8 @@ export function AuthProvider({ children }) {
         success: false,
         message: error.response?.data?.message || "Error al iniciar sesión",
       };
+    } finally {
+      hideLoader();
     }
   };
 

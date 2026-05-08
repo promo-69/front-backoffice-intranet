@@ -14,17 +14,6 @@ export default defineConfig({
     },
   },
 
-  // PROXY PARA EVITAR CORS EN DESARROLLO
-  server: {
-    proxy: {
-      "/api": {
-        target: "https://backend-jog6.onrender.com",
-        changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path.replace(/^\/api/, "/api/v1/test"),
-      },
-    },
-  },
 
   test: {
     environment: "jsdom",

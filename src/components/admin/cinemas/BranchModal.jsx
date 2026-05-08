@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,37 +9,32 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { InputForm } from "@/components/ui/inputForm";
-import { SelectForm } from "@/components/ui/SelectForm";
+import { useLoading } from "../../../context/LoadingContext";
 import api from '../../../api/axios';
+
+function ErrorMessage({ message }) {
+  return message ? (
+    <p className="text-[10px] text-red-500 mt-1 ml-1 font-medium italic">
+      {message}
+    </p>
+  ) : null;
+}
+
+const emptyBranchForm = {
+  name: "",
+  address: "",
+  phone: "",
+  openingTime: "",
+  closingTime: "",
+};
 
 export default function BranchModal({ open, onClose, initialData }) {
   const isEdit = !!initialData;
-  const [loading, setLoading] = useState(false);
+  const { showLoader, hideLoader } = useLoading();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [formData, setFormData] = useState({
-    name: "",
-    address: "",
-    phone: "",
-    openingTime: "",
-    closingTime: "",
-  });
-
+  const [formData, setFormData] = useState(initialData ?? emptyBranchForm);
   const [errors, setErrors] = useState({});
-
-  useEffect(() => {
-    if (initialData) {
-      setFormData(initialData);
-    } else {
-      setFormData({
-        name: "",
-        address: "",
-        phone: "",
-        openingTime: "",
-        closingTime: "",
-      });
-    }
-    setErrors({});
-  }, [initialData, open]);
 
   const validateField = (name, value) => {
     let error = "";
@@ -81,28 +76,23 @@ export default function BranchModal({ open, onClose, initialData }) {
       return;
     }
 
-    setLoading(true);
+    setIsSubmitting(true);
+    showLoader();
     try {
       if (isEdit) {
         await api.put(`/cinemas/${initialData.id}`, formData);
       } else {
         await api.post('/cinemas', formData);
       }
-      onClose(true); 
+      onClose(true);
     } catch (error) {
       console.error("Error al procesar la sucursal:", error);
       alert("No se pudo guardar la información.");
     } finally {
-      setLoading(false);
+      hideLoader();
+      setIsSubmitting(false);
     }
   };
-
-  const ErrorMessage = ({ message }) =>
-    message ? (
-      <p className="text-[10px] text-red-500 mt-1 ml-1 font-medium italic">
-        {message}
-      </p>
-    ) : null;
 
   return (
     <Dialog open={open} onOpenChange={() => onClose(false)}>
@@ -189,15 +179,15 @@ export default function BranchModal({ open, onClose, initialData }) {
         </div>
 
         <DialogFooter className="mt-6 flex justify-end gap-3">
-          <Button variant="outline" onClick={() => onClose(false)} className="font-montserrat" disabled={loading}>
+          <Button variant="outline" onClick={() => onClose(false)} className="font-montserrat" disabled={isSubmitting}>
             Cancelar
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={loading}
+            disabled={isSubmitting}
             className="bg-brand-primary hover:bg-brand-primary/90 text-white font-montserrat font-bold px-6 rounded-cineflix"
           >
-            {loading ? "Procesando..." : isEdit ? "Guardar Cambios" : "Registrar Sucursal"}
+            {isSubmitting ? "Procesando..." : isEdit ? "Guardar Cambios" : "Registrar Sucursal"}
           </Button>
         </DialogFooter>
       </DialogContent>

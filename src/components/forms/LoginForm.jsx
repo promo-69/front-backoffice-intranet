@@ -9,6 +9,7 @@ import { AuthContext } from "../../context/AuthContext";
 export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const { login } = useContext(AuthContext);
 
@@ -16,22 +17,32 @@ export default function LoginForm() {
 
   const onSubmit = async (data) => {
     setError("");
+    setIsSubmitting(true);
 
-    const payload = { email: data.email.trim(), password: data.password };
-    const result = await login(payload);
+    try {
+      const payload = { email: data.email.trim(), password: data.password };
+      const result = await login(payload);
 
-    if (result.success) {
-      const role = result.user.roleCode;
+      if (result.success) {
+        const role = result.user.roleCode;
 
-      if (role === "ADMIN") {
-        navigate("/admin/dashboard");
-      } else if (role === "CASHIER") {
-        navigate("/ticketOffice/dashboard");
+        if (
+          role === "ADMIN" ||
+          role === "SUPER_ADMIN" ||
+          role === "CINEMA_MANAGER" ||
+          role === "USHER"
+        ) {
+          navigate("/admin/dashboard");
+        } else if (role === "CASHIER") {
+          navigate("/ticketOffice/dashboard");
+        } else {
+          setError("Rol de usuario no reconocido");
+        }
       } else {
-        setError("Rol de usuario no reconocido");
+        setError(result.message);
       }
-    } else {
-      setError(result.message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -82,12 +93,14 @@ export default function LoginForm() {
           variant="ghost"
           className="text-white hover:bg-white/10"
           onClick={() => window.history.back()}
+          disabled={isSubmitting}
         >
           Cancelar
         </Button>
         <Button
           type="submit"
           className="bg-brand-gold hover:bg-brand-gold/90 text-white font-bold px-8 rounded-cineflix"
+          disabled={isSubmitting}
         >
           Iniciar sesión
         </Button>
