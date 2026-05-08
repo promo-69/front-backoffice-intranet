@@ -1,4 +1,4 @@
-import { LayoutDashboard, Film, MapPin, Users, Receipt, Package, BarChart3, LogOut } from "lucide-react"
+import { LayoutDashboard, Film, MapPin, Users, Receipt, Package, BarChart3, LogOut, TicketIcon } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -15,17 +15,75 @@ import LogoCineflix from "@/assets/images/logotype/logoCiineflix.png"
 import { Link } from "react-router-dom"
 import { cn } from "@/lib/utils";
 
-const navItems = [
-  { title: "Dashboard", url: "/admin/dashboard", icon: LayoutDashboard },
-  { title: "Cartelera", url: "/admin/exhibition", icon: Film },
-  { title: "Sucursales", url: "/admin/sucursales", icon: MapPin },
-  { title: "Usuarios", url: "/admin/users", icon: Users },
-  { title: "Transacciones", url: "/admin/transacciones", icon: Receipt },
-  { title: "Inventario", url: "/admin/inventario", icon: Package },
-  { title: "Reportes", url: "/admin/reports", icon: BarChart3 },
-]
+import { useAuth } from "@/context/AuthContext";
+import { PERMISSIONS } from "@/lib/permissions";
 
-export function AppSidebar({className, ...props }) {
+// Cada item tiene un "id" que coincide con los permisos
+const navItems = [
+  {
+    id: "dashboard",
+    title: "Dashboard",
+    url: "/admin/dashboard",
+    icon: LayoutDashboard,
+  },
+  {
+    id: "exhibition",
+    title: "Cartelera",
+    url: "/admin/exhibition",
+    icon: Film,
+  },
+  {
+    id: "cinemas",
+    title: "Sucursales",
+    url: "/admin/sucursales",
+    icon: MapPin,
+  },
+  { id: "users",
+    title: "Usuarios",
+    url: "/admin/users",
+    icon: Users },
+  {
+    id: "transactions",
+    title: "Transacciones",
+    url: "/admin/transacciones",
+    icon: Receipt,
+  },
+  {
+    id: "inventory",
+    title: "Inventario",
+    url: "/admin/inventario",
+    icon: Package,
+  },
+  { id: "reports", 
+    title: "Reportes", 
+    url: "/admin/reports", 
+    icon: BarChart3 },
+  {
+    id: "dashboard_cashier",
+    title: "Dashboard Cajero",
+    url: "/ticketOffice/dashboard",
+    icon: LayoutDashboard,
+  },
+  {
+    id: "sell_tickets",
+    title: "Venta de Boletos",
+    url: "/ticketOffice/sell",
+    icon: TicketIcon,
+  },
+];
+
+export function AppSidebar({ className, ...props }) {
+  const { user } = useAuth();
+
+  // Si no hay usuario, no mostramos nada
+  if (!user) return null;
+
+  // Permisos del rol actual
+  const allowed = PERMISSIONS[user.roleCode] || [];
+
+  // Filtrar menú según permisos
+  const visibleMenu = navItems.filter((item) => allowed.includes(item.id));
+
   return (
     <Sidebar
       {...props}
@@ -51,7 +109,7 @@ export function AppSidebar({className, ...props }) {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) => (
+              {visibleMenu.map((item) => (
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton
                     asChild
