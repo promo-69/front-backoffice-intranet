@@ -87,7 +87,10 @@ export function AppSidebar({ className, ...props }) {
   return (
     <Sidebar
       {...props}
-      className={cn("bg-[#231640] text-white border-r-0", className)}
+      className={cn(
+        "bg-[#231640] text-white !border-r-0 !border-none",
+        className,
+      )}
     >
       <SidebarHeader className="px-6 pt-6 pb-2">
         <div className="w-full flex justify-center mb-4">

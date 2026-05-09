@@ -7,6 +7,7 @@ export const PERMISSIONS = {
     "transactions",
     "inventory",
     "reports",
+    "sell_tickets",
   ],
   CASHIER: [
     "dashboard_cashier",
