@@ -1,27 +1,51 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import { useForm } from "react-hook-form";
 import { AiFillEye, AiFillEyeInvisible } from "react-icons/ai";
 import { validateEmail, validatePassword } from "../../validators/authValidators";
 import { Button } from "@/components/ui/button"; // Importación corregida
 import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../../context/AuthContext";
 
 export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+  const { login } = useContext(AuthContext);
 
   const { register, handleSubmit, formState: { errors } } = useForm({ mode: "onBlur" });
 
-  const onSubmit = (data) => {
-    const payload = { email: data.email.trim(), password: data.password };
-    
-    if (payload.email === "admin@cine.com") {
-      localStorage.setItem("user", JSON.stringify({ role: "admin", name: "Jennifer" }));
-      navigate("/admin/dashboard");
-    } else {
-      localStorage.setItem("user", JSON.stringify({ role: "cashier", name: "Maria" }));
-      navigate("/ticketOffice/dashboard");
+  const onSubmit = async (data) => {
+    setError("");
+    setIsSubmitting(true);
+
+    try {
+      const payload = { email: data.email.trim(), password: data.password };
+      const result = await login(payload);
+
+      if (result.success) {
+        const role = result.user.roleCode;
+
+        if (
+          role === "ADMIN" ||
+          role === "SUPER_ADMIN" ||
+          role === "CINEMA_MANAGER" ||
+          role === "USHER"
+        ) {
+          navigate("/admin/dashboard");
+        } else if (role === "CASHIER") {
+          navigate("/ticketOffice/dashboard");
+        } else {
+          setError("Rol de usuario no reconocido");
+        }
+      } else {
+        setError(result.message);
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col items-center justify-center gap-6">
@@ -55,10 +79,12 @@ export default function LoginForm() {
           {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>}
         </div>
 
+        {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
+
         <a href="/forgot-password" size="sm" className="text-brand-gold text-sm opacity-80 hover:opacity-100">
           ¿Olvidaste tu contraseña?
         </a>
-      </div> {/* <-- El cierre que faltaba */}
+      </div>
 
       {/* Contenedor de Botones */}
       <div className="w-full flex items-center justify-center gap-3 pt-4">
@@ -67,12 +93,14 @@ export default function LoginForm() {
           variant="ghost"
           className="text-white hover:bg-white/10"
           onClick={() => window.history.back()}
+          disabled={isSubmitting}
         >
           Cancelar
         </Button>
         <Button
           type="submit"
           className="bg-brand-gold hover:bg-brand-gold/90 text-white font-bold px-8 rounded-cineflix"
+          disabled={isSubmitting}
         >
           Iniciar sesión
         </Button>

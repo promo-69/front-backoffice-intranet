@@ -9,13 +9,15 @@ import RoomManager from "../../../components/admin/cinemas/RoomManager";
 import EditCinema from "../../../components/admin/cinemas/BranchModal";
 import DeleteConfirmModal from "../../../components/ui/DialogConfirmModal";
 import SuccessModal from "../../../components/ui/SuccessModal";
+import { useLoading } from "../../../context/LoadingContext";
 
 const CinemaPage = () => {
+  const { showLoader, hideLoader } = useLoading();
+
   const [branches, setBranches] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [isAddingRoom, setIsAddingRoom] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [loading, setLoading] = useState(true);
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
@@ -27,22 +29,23 @@ const CinemaPage = () => {
 
   const fetchBranches = async () => {
     try {
-      setLoading(true);
+      showLoader();
 
-      const response = await api.get("/cinemas"); 
+      const response = await api.get("/cinemas");
       const data = response?.data;
 
       setBranches(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Error al cargar sucursales:", error);
-      setBranches([]); 
+      setBranches([]);
     } finally {
-      setLoading(false);
+      hideLoader();
     }
   };
 
   useEffect(() => {
     fetchBranches();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleOpenAddModal = () => {
@@ -63,6 +66,8 @@ const CinemaPage = () => {
 
   const handleConfirmDelete = async () => {
     try {
+      showLoader();
+
       await api.delete(`/cinemas/${itemToDelete.id}`);
       setDeletedItemName(itemToDelete.name);
 
@@ -76,15 +81,16 @@ const CinemaPage = () => {
       alert("Error al eliminar la sucursal.");
     } finally {
       setItemToDelete(null);
+      hideLoader();
     }
   };
 
   const filteredBranches = branches.filter((b) =>
-    b.name?.toLowerCase().includes(searchTerm.toLowerCase())
+    b.name?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   const selectedBranch = branches.find(
-    (b) => Number(b.id) === Number(selectedId)
+    (b) => Number(b.id) === Number(selectedId),
   );
 
   const handleDeleteClick = (id) => {
@@ -94,10 +100,6 @@ const CinemaPage = () => {
       setIsDeleteModalOpen(true);
     }
   };
-
-  if (loading && branches.length === 0) {
-    return <div className="p-10 text-center">Cargando sucursales...</div>;
-  }
 
   return (
     <div className="space-y-6">
@@ -118,6 +120,7 @@ const CinemaPage = () => {
         />
       </div>
 
+      {/* Tabla de sucursales */}
       <CinemaTable
         data={filteredBranches}
         selectedId={selectedId}
@@ -129,6 +132,7 @@ const CinemaPage = () => {
         onDelete={handleDeleteClick}
       />
 
+      {/* Modal de confirmación de eliminación */}
       <DeleteConfirmModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
@@ -136,6 +140,7 @@ const CinemaPage = () => {
         itemName={itemToDelete?.name}
       />
 
+      {/* Modal de éxito */}
       <SuccessModal
         isOpen={isSuccessOpen}
         onClose={() => setIsSuccessOpen(false)}
@@ -143,6 +148,7 @@ const CinemaPage = () => {
         message={`Se ha removido "${deletedItemName}" exitosamente.`}
       />
 
+      {/* Sección de salas */}
       <div className="w-full pt-8 mt-4 border-t-2 border-dashed border-slate-200">
         {selectedBranch ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -179,6 +185,7 @@ const CinemaPage = () => {
         )}
       </div>
 
+      {/* Modal de creación/edición de sucursal */}
       <EditCinema
         open={isModalOpen}
         onClose={handleCloseModal}
