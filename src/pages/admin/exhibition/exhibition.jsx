@@ -9,6 +9,9 @@ import { ShowtimeForm } from "@/components/admin/exhibition/showtimes/ShowtimeFo
 import { RegisterMovieForm } from "@/components/forms/RegisterMovieForm"
 import MovieForm from "@/components/admin/exhibition/movies/MovieForm"
 import { ColumnsMovies } from "@/components/admin/exhibition/movies/ColumnsMovies";
+import { useEffect } from "react";
+import { useLoading } from "@/context/LoadingContext";
+
 import poster1 from "@/assets/images/posters/the-drama-poster.jpg"
 
 
@@ -224,6 +227,22 @@ const handleConfirmDelete = () => {
     manualPagination: true, 
     getCoreRowModel: getCoreRowModel(),
   });
+
+  const { showLoader, hideLoader } = useLoading();
+  
+    useEffect(() => {
+      async function loadData() {
+        showLoader();
+        try {
+          // Aquí va fetch real
+          await new Promise((r) => setTimeout(r, 800));
+        } finally {
+          hideLoader();
+        }
+      }
+  
+      loadData();
+    }, []);
 
   return (
     <div className="space-y-6">
