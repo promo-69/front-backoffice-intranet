@@ -44,9 +44,10 @@ export default function Users() {
 
   return (
     <div className="space-y-6">
+      
       {/* Barra de acciones superior */}
-      <div className="flex justify-between items-center border-b border-gray-100 pb-4">
-        <div>
+      <div className="flex justify-between items-center bg-white p-6 rounded-cineflix border border-gray-100 shadow-sm">
+        <div >
           <h3 className="text-lg font-montserrat font-bold text-brand-primary">
             Gestion de personal
           </h3>
@@ -69,7 +70,7 @@ export default function Users() {
             onClick={() => setOpenModal(true)}
             className="bg-brand-primary text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-[11px] font-black uppercase tracking-widest hover:brightness-110 hover:shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all duration-300 border-2 border-purple-400/30 font-montserrat"
           >
-            <Plus className="w-4 h-4 text-brand-gold" strokeWidth={3} />
+            <Plus className="w-6 h-6 text-brand-gold" strokeWidth={3} />
             Añadir empleado
           </button>
         </div>

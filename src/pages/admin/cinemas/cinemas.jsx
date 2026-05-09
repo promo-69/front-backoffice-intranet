@@ -101,7 +101,7 @@ const CinemaPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center border-b border-gray-100 pb-4">
+      <div className="flex justify-between items-center bg-white p-6 rounded-cineflix border border-gray-100 shadow-sm">
         <div>
           <h3 className="text-lg font-montserrat font-bold text-brand-primary">
             Listado de Sucursales

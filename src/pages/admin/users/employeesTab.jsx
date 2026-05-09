@@ -71,3 +71,4 @@ export default function EmployeesTab({ search, employees, onDelete, onEdit }) {
     </div>
   );
 }
+

@@ -7,6 +7,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InputForm } from "@/components/ui/inputForm";
 import { SelectForm } from "@/components/ui/SelectForm";
@@ -112,9 +113,7 @@ export default function BranchModal({ open, onClose, initialData }) {
           onClick={() => onClose(false)}
           className="absolute top-3 right-3 text-gray-400 hover:text-brand-primary transition"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
+            <X className="h-5 w-5" />
         </button>
 
         <DialogHeader>

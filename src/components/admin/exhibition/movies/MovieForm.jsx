@@ -216,7 +216,7 @@ export default function MovieForm({ open, onClose, onSuccess, initialData }) {
             />
 
             <InputForm
-              label="URL Trailer (YouTube)"
+              label="URL Trailer"
               name="trailer_url"
               value={formData.trailer_url}
               onChange={handleChange}
