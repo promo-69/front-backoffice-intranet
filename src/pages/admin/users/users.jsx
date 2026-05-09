@@ -6,6 +6,8 @@ import DeleteConfirmModal from "@/components/ui/DialogConfirmModal";
 import SuccessModal from "@/components/ui/SuccessModal";
 import EmployeesTab from "./employeesTab";
 import ClientsTab from "./clientsTab";
+import { useLoading } from "@/context/LoadingContext";
+import { useEffect } from "react";
 
 export default function Users() {
   const [activeTab, setActiveTab] = useState("employees");
@@ -24,6 +26,22 @@ export default function Users() {
     { id: 1, nombre: "Pedro Perez", correo: "pedro.perez@cineflix.com", cargo: "Operador", sucursal: "Sucursal Centro", activo: true },
     { id: 2, nombre: "María Jiménez", correo: "maria.jimenez@cineflix.com", cargo: "Cajero", sucursal: "Sucursal Norte", activo: false },
   ]);
+
+  const { showLoader, hideLoader } = useLoading();
+
+  useEffect(() => {
+    async function loadData() {
+      showLoader();
+      try {
+        // Aquí va fetch real
+        await new Promise((r) => setTimeout(r, 800));
+      } finally {
+        hideLoader();
+      }
+    }
+
+    loadData();
+  }, []);
 
   // Handlers
   const handleEditClick = (employee) => {

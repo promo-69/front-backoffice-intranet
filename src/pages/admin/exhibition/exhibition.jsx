@@ -10,6 +10,8 @@ import DeleteConfirmModal from "@/components/ui/DialogConfirmModal"
 import { ShowtimesTab } from "@/components/admin/exhibition/ShowtimesTab"
 import { RegisterMovieForm } from "@/components/forms/RegisterMovieForm"
 import { ColumnsMovies } from "@/components/admin/exhibition/ColumnsMovies";
+import { useEffect } from "react";
+import { useLoading } from "@/context/LoadingContext";
 
 import poster1 from "@/assets/images/posters/the-drama-poster.jpg"
 
@@ -79,6 +81,22 @@ export default function ExhibitionPage() {
     manualPagination: true, 
     getCoreRowModel: getCoreRowModel(),
   });
+
+  const { showLoader, hideLoader } = useLoading();
+  
+    useEffect(() => {
+      async function loadData() {
+        showLoader();
+        try {
+          // Aquí va fetch real
+          await new Promise((r) => setTimeout(r, 800));
+        } finally {
+          hideLoader();
+        }
+      }
+  
+      loadData();
+    }, []);
 
   return (
     <div className="space-y-6">

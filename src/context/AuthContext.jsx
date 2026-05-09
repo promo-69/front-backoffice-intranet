@@ -1,4 +1,4 @@
-import { createContext, useState } from "react";
+import { createContext, useState, useContext } from "react";
 import { loginRequest } from "../services/auth.service";
 import { useLoading } from "./LoadingContext";
 
@@ -57,4 +57,9 @@ export function AuthProvider({ children }) {
       {children}
     </AuthContext.Provider>
   );
+}
+
+// ⭐ Hook necesario para Sidebar, PrivateRoute y layouts
+export function useAuth() {
+  return useContext(AuthContext);
 }
