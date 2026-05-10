@@ -13,10 +13,14 @@ import { SelectForm } from "@/components/ui/SelectForm";
 
 export function RegisterUserModal({ open, onClose }) {
   const [formData, setFormData] = useState({
-    fullName: "",
-    email: "",
-    role: "",
-    branch: "",
+  "documentNumber": "",
+  "firstName": "",
+  "lastName": "",
+  "jobPosition": "",
+  "cinema": "",
+  "startDate": "",
+  "salaryBase": "",
+  "status": ""
   });
 
   const [errors, setErrors] = useState({});
@@ -24,7 +28,7 @@ export function RegisterUserModal({ open, onClose }) {
   // Limpiar el formulario al cerrar/abrir
   useEffect(() => {
     if (!open) {
-      setFormData({ fullName: "", email: "", role: "", branch: "" });
+      setFormData({ documentNumber: "", firstName: "", lastName: "", jobPosition: "", cinema: "", startDate: "", salaryBase: "", status: "" });
       setErrors({});
     }
   }, [open]);
@@ -38,7 +42,7 @@ export function RegisterUserModal({ open, onClose }) {
     }
 
     // Validación específica para Nombre (Solo letras y espacios)
-    if (name === "fullName") {
+    if (name === "firstName") {
       const nameRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
       if (!nameRegex.test(value)) {
         error = "Solo se permiten letras en este campo.";
@@ -96,11 +100,22 @@ export function RegisterUserModal({ open, onClose }) {
           onClick={onClose}
           className="absolute top-3 right-3 text-gray-400 hover:text-brand-primary transition"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-5 w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M6 18L18 6M6 6l12 12"
+            />
           </svg>
         </button>
-        
+
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-brand-primary font-montserrat">
             Registrar Empleado
@@ -112,14 +127,36 @@ export function RegisterUserModal({ open, onClose }) {
 
         <div className="space-y-4 mt-4">
           <div>
-            <InputForm 
-              label="Nombre completo" 
-              name="fullName"
-              value={formData.fullName}
+            <InputForm
+              label="Cedula"
+              name="documentNumber"
+              value={formData.documentNumber}
               onChange={handleChange}
-              placeholder="Ej: María González" 
+              placeholder="Ej: 123456789"
             />
-            <ErrorMsg message={errors.fullName} />
+            <ErrorMsg message={errors.documentNumber} />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col">
+              <InputForm
+                label="Nombre"
+                name="firstName"
+                value={formData.firstName}
+                onChange={handleChange}
+                placeholder="Ej: María"
+              />
+              <ErrorMsg message={errors.firstName} />
+            </div>
+            <div className="flex flex-col">
+              <InputForm
+                label="Apellido"
+                name="lastName"
+                value={formData.lastName}
+                onChange={handleChange}
+                placeholder="Ej: Gonzalez"
+              />
+              <ErrorMsg message={errors.lastName} />
+            </div>
           </div>
 
           <div>
@@ -133,41 +170,72 @@ export function RegisterUserModal({ open, onClose }) {
             <ErrorMsg message={errors.email} />
           </div>
 
-          <div>
-            <SelectForm 
-              label="Rol" 
-              name="role" 
-              value={formData.role} 
-              onChange={handleChange}
-            >
-              <option value="">Seleccione un rol</option>
-              <option value="CAJERO">Cajero</option>
-              <option value="OPERADOR">Operador</option>
-              <option value="ADMIN">Administrador</option>
-            </SelectForm>
-            <ErrorMsg message={errors.role} />
-          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col">
+              <SelectForm
+                label="Cargo"
+                name="jobPosition"
+                value={formData.jobPosition}
+                onChange={handleChange}
+              >
+                <option value="">Seleccione...</option>
+                <option value="SUPER_ADMIN">Administrador</option>
+                <option value="CINEMA_MANAGER">Gerente</option>
+                <option value="CASHIER">Cajero</option>
+                <option value="USHER">Operador</option>
+              </SelectForm>
+              <ErrorMsg message={errors.jobPosition} />
+            </div>
 
-          <div>
-            <SelectForm 
-              label="Sucursal" 
-              name="branch" 
-              value={formData.branch} 
-              onChange={handleChange}
-            >
-              <option value="">Seleccione una sucursal</option>
-              <option value="SUCURSAL_1">Sucursal 1</option>
-              <option value="SUCURSAL_2">Sucursal 2</option>
-              <option value="SUCURSAL_3">Sucursal 3</option>
-            </SelectForm>
-            <ErrorMsg message={errors.branch} />
+            <div className="flex flex-col">
+              <SelectForm
+                label="Sucursal"
+                name="cinema"
+                value={formData.cinema}
+                onChange={handleChange}
+              >
+                <option value="">Seleccione...</option>
+                <option value="SUCURSAL_1">Sucursal 1</option>
+                <option value="SUCURSAL_2">Sucursal 2</option>
+                <option value="SUCURSAL_3">Sucursal 3</option>
+              </SelectForm>
+              <ErrorMsg message={errors.cinema} />
+            </div>
           </div>
-
-          <p className="text-[11px] text-gray-500 mt-2 text-center leading-relaxed">
-            Se enviarán las credenciales automáticamente al correo registrado.
-            El usuario deberá cambiar su contraseña en el primer inicio de
-            sesión.
-          </p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col">
+              <InputForm
+                label="Fecha de ingreso"
+                name="startDate"
+                type="date"
+                value={formData.startDate}
+                onChange={handleChange}
+                placeholder="Ej: María"
+              />
+              <ErrorMsg message={errors.startDate} />
+            </div>
+            <div className="flex flex-col">
+              <InputForm
+                label="Salario base"
+                name="salaryBase"
+                type="number"
+                value={formData.salaryBase}
+                onChange={handleChange}
+                placeholder="Ej: 50000"
+              />
+              <ErrorMsg message={errors.salaryBase} />
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-col mt-4">
+          <InputForm
+            label="Estatus"
+            name="status"
+            value={formData.status}
+            onChange={handleChange}
+            placeholder="Ej: Activo"
+          />
+          <ErrorMsg message={errors.status} />
         </div>
 
         <DialogFooter className="mt-6 flex justify-end gap-3">
@@ -187,7 +255,7 @@ export function RegisterUserModal({ open, onClose }) {
             Cancelar
           </Button>
 
-          <Button 
+          <Button
             onClick={handleSubmit}
             className="
               bg-brand-primary 
