@@ -1,72 +1,98 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
+
 import { RegisterUserModal } from "@/components/admin/users/RegisterUserModal";
 import { EditUserModal } from "@/components/admin/users/EditUserModal";
+
 import DeleteConfirmModal from "@/components/ui/DialogConfirmModal";
 import SuccessModal from "@/components/ui/SuccessModal";
+
 import EmployeesTab from "./employeesTab";
 import ClientsTab from "./clientsTab";
+
 import { useLoading } from "@/context/LoadingContext";
-import { useEffect } from "react";
+import api from "@/api/axios";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Users() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("employees");
+
+  // MODALES
   const [openModal, setOpenModal] = useState(false);
-  
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState(null);
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
-  const [isSuccessOpen, setIsSuccessOpen] = useState(false); 
 
+  const [isSuccessOpen, setIsSuccessOpen] = useState(false);
+
+  // BUSCADOR
   const [search, setSearch] = useState("");
-  
-  const [employees, setEmployees] = useState([
-    { id: 1, nombre: "Pedro Perez", correo: "pedro.perez@cineflix.com", cargo: "Operador", sucursal: "Sucursal Centro", activo: true },
-    { id: 2, nombre: "María Jiménez", correo: "maria.jimenez@cineflix.com", cargo: "Cajero", sucursal: "Sucursal Norte", activo: false },
-  ]);
+
+  // EMPLEADOS
+  const [employees, setEmployees] = useState([]);
 
   const { showLoader, hideLoader } = useLoading();
 
-  useEffect(() => {
-    async function loadData() {
-      showLoader();
-      try {
-        // Aquí va fetch real
-        await new Promise((r) => setTimeout(r, 800));
-      } finally {
-        hideLoader();
-      }
+  // ⭐ GET REAL DE EMPLEADOS
+  const fetchEmployees = async () => {
+    showLoader();
+    try {
+      const res = await api.get("/employees"); // GET real
+      setEmployees(res.data);
+    } catch (error) {
+      console.error("Error cargando empleados:", error);
+    } finally {
+      hideLoader();
     }
+  };
 
-    loadData();
-  }, []);
+  // ⭐ REFRESCAR TABLA DESPUÉS DE REGISTRAR
+  const refreshEmployees = () => fetchEmployees();
 
-  // Handlers
+  useEffect(() => {
+    if (user) {
+      fetchEmployees();
+    }
+  }, [user]);
+
+  /*useEffect(() => {
+    fetchEmployees();
+  }, []);*/
+
+  // ⭐ EDITAR
   const handleEditClick = (employee) => {
     setUserToEdit(employee);
     setIsEditModalOpen(true);
   };
 
+  // ⭐ ELIMINAR
   const handleDeleteClick = (employee) => {
     setItemToDelete(employee);
     setIsDeleteModalOpen(true);
   };
 
-  const handleConfirmDelete = () => {
-    setEmployees(prev => prev.filter(emp => emp.id !== itemToDelete.id));
-    setIsDeleteModalOpen(false);
-    setIsSuccessOpen(true);
+  const handleConfirmDelete = async () => {
+    try {
+      await api.delete(`/employees/${itemToDelete.id}`);
+      setEmployees((prev) => prev.filter((emp) => emp.id !== itemToDelete.id));
+      setIsSuccessOpen(true);
+    } catch (error) {
+      console.error("Error eliminando empleado:", error);
+    } finally {
+      setIsDeleteModalOpen(false);
+    }
   };
 
   return (
     <div className="space-y-6">
-      {/* Barra de acciones superior */}
+      {/* HEADER */}
       <div className="flex justify-between items-center border-b border-gray-100 pb-4">
         <div>
           <h3 className="text-lg font-montserrat font-bold text-brand-primary">
-            Gestion de personal
+            Gestión de personal
           </h3>
           <p className="text-xs text-muted-foreground">
             Administra el acceso de cajeros y operadores por sucursal
@@ -93,7 +119,7 @@ export default function Users() {
         </div>
       </div>
 
-      {/* Mini menú de pestañas */}
+      {/* TABS */}
       <div className="flex gap-4 border-b pb-2">
         <button
           className={`text-xs font-montserrat uppercase tracking-wide pb-1 border-b-2 transition-colors ${
@@ -118,43 +144,50 @@ export default function Users() {
         </button>
       </div>
 
-      {/* Contenido */}
+      {/* CONTENIDO */}
       {activeTab === "employees" && (
-        <EmployeesTab 
-          search={search} 
-          employees={employees} 
-          onDelete={handleDeleteClick} 
-          onEdit={handleEditClick} 
+        <EmployeesTab
+          search={search}
+          employees={employees}
+          onDelete={handleDeleteClick}
+          onEdit={handleEditClick}
         />
       )}
+
       {activeTab === "clients" && <ClientsTab />}
 
-      {/* MODALES DE ACCIÓN */}
-      <DeleteConfirmModal 
+      {/* MODAL ELIMINAR */}
+      <DeleteConfirmModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleConfirmDelete}
-        itemName={itemToDelete?.nombre}
+        itemName={itemToDelete?.firstName}
       />
 
-      <SuccessModal 
-        isOpen={isSuccessOpen} 
+      {/* MODAL ÉXITO */}
+      <SuccessModal
+        isOpen={isSuccessOpen}
         onClose={() => {
           setIsSuccessOpen(false);
           setItemToDelete(null);
         }}
         title="Empleado Eliminado"
-        message={`El acceso de ${itemToDelete?.nombre} ha sido revocado correctamente.`}
+        message={`El acceso de ${itemToDelete?.firstName} ha sido revocado correctamente.`}
       />
 
-      {/* MODALES DE FORMULARIO */}
-      <RegisterUserModal open={openModal} onClose={() => setOpenModal(false)} />
-      
-        <EditUserModal 
-          open={isEditModalOpen} 
-          onClose={() => setIsEditModalOpen(false)} 
-          user={userToEdit} 
-        />
+      {/* MODAL REGISTRO ⭐ AQUÍ VA */}
+      <RegisterUserModal
+        open={openModal}
+        onClose={() => setOpenModal(false)}
+        onSuccess={refreshEmployees} // ⭐ REFRESCA TABLA
+      />
+
+      {/* MODAL EDICIÓN */}
+      <EditUserModal
+        open={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        user={userToEdit}
+      />
     </div>
   );
 }
