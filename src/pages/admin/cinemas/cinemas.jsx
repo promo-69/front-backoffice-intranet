@@ -29,8 +29,6 @@ const CinemaPage = () => {
 
   const fetchBranches = async () => {
     try {
-      showLoader();
-
       const response = await api.get("/cinemas");
       const data = response?.data;
 
@@ -38,14 +36,17 @@ const CinemaPage = () => {
     } catch (error) {
       console.error("Error al cargar sucursales:", error);
       setBranches([]);
-    } finally {
-      hideLoader();
     }
   };
 
   useEffect(() => {
-    fetchBranches();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    async function load() {
+      showLoader();
+      await fetchBranches();
+      hideLoader();
+    }
+
+    load();
   }, []);
 
   const handleOpenAddModal = () => {
