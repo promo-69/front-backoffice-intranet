@@ -5,17 +5,15 @@ export const loginRequest = async (data) => {
   return response.data.data.user;
 };
 
-
-export const getMe = async () => {
+export const refreshSession = async () => {
   try {
-    const response = await api.post("/auth/refresh");
-    return response.data.data.user;
+    await api.post("/auth/refresh");
+    return true;
   } catch (error) {
-    console.error(
-      "Error en la sesión:",
-      error.response?.data?.message || error.message,
-    );
-    return null;
+    if (error.response?.status !== 401) {
+      console.error("Error inesperado:", error);
+    }
+    return false;
   }
 };
 
