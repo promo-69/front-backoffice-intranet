@@ -11,7 +11,7 @@ export const refreshSession = async () => {
     return true;
   } catch (error) {
     if (error.response?.status !== 401) {
-      console.error("Error inesperado:", error);
+      console.error("Error tecnico en el servidor:", error);
     }
     return false;
   }

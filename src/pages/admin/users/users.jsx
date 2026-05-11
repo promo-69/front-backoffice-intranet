@@ -41,7 +41,7 @@ export default function Users() {
     showLoader();
     try {
       const res = await api.get("/employees"); // GET real
-      setEmployees(res.data);
+      setEmployees(res.data.data);
     } catch (error) {
       console.error("Error cargando empleados:", error);
     } finally {
@@ -50,7 +50,12 @@ export default function Users() {
   };
 
   // ⭐ REFRESCAR TABLA DESPUÉS DE REGISTRAR
-  const refreshEmployees = () => fetchEmployees();
+  const refreshEmployees = async () => {
+    await fetchEmployees();
+    setSuccessTitle("Empleado Registrado");
+    setSuccessMessage("El empleado ha sido registrado exitosamente.");
+    setIsSuccessOpen(true); 
+  };
 
   useEffect(() => {
     if (user) {
@@ -58,9 +63,9 @@ export default function Users() {
     }
   }, [user]);
 
-  /*useEffect(() => {
-    fetchEmployees();
-  }, []);*/
+  const [successMessage, setSuccessMessage] = useState("");
+  const [successTitle, setSuccessTitle] = useState("");
+
 
   // ⭐ EDITAR
   const handleEditClick = (employee) => {
@@ -78,6 +83,10 @@ export default function Users() {
     try {
       await api.delete(`/employees/${itemToDelete.id}`);
       setEmployees((prev) => prev.filter((emp) => emp.id !== itemToDelete.id));
+      setSuccessTitle("Empleado Eliminado");
+      setSuccessMessage(
+        `El acceso de ${itemToDelete.firstName} ha sido revocado correctamente.`,
+      );
       setIsSuccessOpen(true);
     } catch (error) {
       console.error("Error eliminando empleado:", error);
@@ -171,8 +180,8 @@ export default function Users() {
           setIsSuccessOpen(false);
           setItemToDelete(null);
         }}
-        title="Empleado Eliminado"
-        message={`El acceso de ${itemToDelete?.firstName} ha sido revocado correctamente.`}
+        title={successTitle}
+        message={successMessage}
       />
 
       {/* MODAL REGISTRO ⭐ AQUÍ VA */}

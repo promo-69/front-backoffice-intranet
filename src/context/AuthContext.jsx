@@ -18,16 +18,26 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     async function initSession() {
+      // 1. Evitamos el 401 innecesario: si no hay usuario guardado,
+      // asumimos que no hay sesión y no disparamos el refresh.
+      if (!localStorage.getItem("user")) return;
+
       showLoader();
       try {
-        const ok = await refreshSession(); // renueva cookies
+        // 2. Intentamos renovar la sesión (el interceptor en axios.js ayudará aquí)
+        const ok = await refreshSession();
 
         if (ok) {
           const saved = localStorage.getItem("user");
           if (saved) setUser(JSON.parse(saved));
         } else {
+          // Si el refresh falla (401), limpiamos el estado
+          localStorage.removeItem("user");
           setUser(null);
         }
+      } catch (error) {
+        // Fallo de red o servidor caído
+        setUser(null);
       } finally {
         hideLoader();
       }
