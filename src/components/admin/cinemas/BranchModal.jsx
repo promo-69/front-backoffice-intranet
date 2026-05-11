@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -13,89 +13,70 @@ import { useLoading } from "../../../context/LoadingContext";
 import api from '../../../api/axios';
 
 function ErrorMessage({ message }) {
-  return message ? (
-    <p className="text-[10px] text-red-500 mt-1 ml-1 font-medium italic">
-      {message}
-    </p>
-  ) : null;
+  return message ? <p className="text-[10px] text-red-500 mt-1 ml-1 font-medium italic">{message}</p> : null;
 }
 
-const emptyBranchForm = {
-  name: "",
-  address: "",
-  phone: "",
-  openingTime: "",
-  closingTime: "",
-};
+const emptyBranchForm = { name: "", address: "", phone: "", openingTime: "", closingTime: "" };
 
 export default function BranchModal({ open, onClose, initialData }) {
   const isEdit = !!initialData;
   const { showLoader, hideLoader } = useLoading();
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const [formData, setFormData] = useState(initialData ?? emptyBranchForm);
+  const [formData, setFormData] = useState(emptyBranchForm);
   const [errors, setErrors] = useState({});
 
-  const validateField = (name, value) => {
-    let error = "";
-    if (name === "phone") {
-      const phoneRegex = /^[0-9\s-]+$/;
-      if (value && !phoneRegex.test(value)) {
-        error = "El teléfono solo debe contener números.";
+  useEffect(() => {
+    if (open) {
+      if (initialData) {
+        // SOLUCIÓN: Quitamos los segundos (:00) al cargar los datos
+        setFormData({
+          id: initialData.id,
+          name: initialData.name || "",
+          address: initialData.address || "",
+          phone: initialData.phone || "",
+          openingTime: (initialData.opening_time || initialData.openingTime || "").slice(0, 5),
+          closingTime: (initialData.closing_time || initialData.closingTime || "").slice(0, 5),
+        });
+      } else {
+        setFormData(emptyBranchForm);
       }
+      setErrors({});
     }
-
-    if (name === "openingTime" || name === "closingTime") {
-      const time24hRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
-      if (value && !time24hRegex.test(value)) {
-        error = "Formato 24h inválido (Ej: 14:30 o 09:00).";
-      }
-    }
-    return error;
-  };
+  }, [open, initialData]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    const fieldError = validateField(name, value);
-    setErrors((prev) => ({ ...prev, [name]: fieldError }));
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async () => {
-    const newErrors = {};
-    Object.keys(formData).forEach((key) => {
-      const error = validateField(key, formData[key]);
-      if (error) newErrors[key] = error;
-      if (!formData[key] && key !== "status")
-        newErrors[key] = "Este campo es obligatorio.";
-    });
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+    if (!formData.name || !formData.address) {
+      setErrors({ name: !formData.name ? "Obligatorio" : "", address: !formData.address ? "Obligatorio" : "" });
       return;
     }
 
     setIsSubmitting(true);
     showLoader();
+
     try {
+      // Mapeamos de vuelta a snake_case para que el backend lo entienda
+      const payload = {
+        name: formData.name,
+        address: formData.address,
+        phone: formData.phone,
+        opening_time: formData.openingTime,
+        closing_time: formData.closingTime,
+        status: 1 // O el status que manejes por defecto
+      };
+
       if (isEdit) {
-        await api.put(`/cinemas/${initialData.id}`, formData);
+        await api.put(`/cinemas/${initialData.id}`, payload);
       } else {
-        await api.post('/cinemas', formData);
+        await api.post('/cinemas', payload);
       }
-      
-      // Enviamos 'true' para que el padre sepa que debe refrescar la tabla
-      // y disparar el SuccessModal
-      onClose(true); 
-      
+      onClose(true);
     } catch (error) {
-      console.error("Error al procesar la sucursal:", error);
-      
-      // Capturamos el mensaje específico del backend (como el 409 Conflict)
-      const serverDetail = error.response?.data?.message || error.response?.data?.error;
-      const errorMessage = serverDetail || "No se pudo guardar la información.";
-      
-      alert(errorMessage);
+      alert(error.response?.data?.message || "Error al procesar");
     } finally {
       hideLoader();
       setIsSubmitting(false);
@@ -104,99 +85,35 @@ export default function BranchModal({ open, onClose, initialData }) {
 
   return (
     <Dialog open={open} onOpenChange={() => onClose(false)}>
-      <DialogContent className="max-w-md bg-white rounded-cineflix p-6 shadow-2xl border-none">
-        
-        <button
-          onClick={() => onClose(false)}
-          className="absolute top-3 right-3 text-gray-400 hover:text-brand-primary transition"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-
-        <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-brand-primary font-montserrat">
+      <DialogContent className="max-w-md bg-white rounded-cineflix p-6 border-none shadow-2xl">
+        <DialogHeader className="flex flex-col items-center text-center">
+          <DialogTitle className="text-xl font-bold text-brand-primary font-montserrat uppercase tracking-wider">
             {isEdit ? "Editar Sucursal" : "Nueva Sucursal"}
           </DialogTitle>
-          <DialogDescription className="text-xs text-muted-foreground">
-            {isEdit
-              ? "Modifique los detalles de la sucursal seleccionada."
-              : "Complete los datos para registrar una nueva sede en el sistema."}
+          <DialogDescription className="text-xs text-slate-500">
+            {isEdit ? "Modifica los datos de la sede seleccionada." : "Registra una nueva sede en el sistema Cineflix."}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 mt-4">
-          <div>
-            <InputForm
-              label="Nombre de Sucursal"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              placeholder="Ej: Sambil Barquisimeto"
-            />
-            <ErrorMessage message={errors.name} />
-          </div>
+        <div className="space-y-4 mt-6">
+          <InputForm label="Nombre" name="name" value={formData.name} onChange={handleChange} placeholder="Ej: Cine Plaza" />
+          <ErrorMessage message={errors.name} />
 
-          <div>
-            <InputForm
-              label="Dirección"
-              name="address"
-              value={formData.address}
-              onChange={handleChange}
-              placeholder="Ej: Av. Venezuela..."
-            />
-            <ErrorMessage message={errors.address} />
-          </div>
+          <InputForm label="Dirección" name="address" value={formData.address} onChange={handleChange} />
+          <ErrorMessage message={errors.address} />
 
-          {/* REINSTALADO: Campo de Teléfono */}
-          <div>
-            <InputForm
-              label="Teléfono"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              placeholder="0251-XXXXXXX"
-            />
-            <ErrorMessage message={errors.phone} />
-          </div>
+          <InputForm label="Teléfono" name="phone" value={formData.phone} onChange={handleChange} />
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <InputForm
-                label="Hora Apertura (24h)"
-                name="openingTime"
-                type="text"
-                value={formData.openingTime}
-                onChange={handleChange}
-                placeholder="09:00"
-              />
-              <ErrorMessage message={errors.openingTime} />
-            </div>
-            <div>
-              <InputForm
-                label="Hora Cierre (24h)"
-                name="closingTime"
-                type="text" 
-                value={formData.closingTime}
-                onChange={handleChange}
-                placeholder="22:30"
-              />
-              <ErrorMessage message={errors.closingTime} />
-            </div>
+            <InputForm label="Apertura (HH:mm)" name="openingTime" value={formData.openingTime} onChange={handleChange} placeholder="11:00" />
+            <InputForm label="Cierre (HH:mm)" name="closingTime" value={formData.closingTime} onChange={handleChange} placeholder="22:30" />
           </div>
         </div>
 
-        <DialogFooter className="mt-6 flex justify-end gap-3">
-          <Button variant="outline" onClick={() => onClose(false)} className="font-montserrat" disabled={isSubmitting}>
-            Cancelar
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="bg-brand-primary hover:bg-brand-primary/90 text-white font-montserrat font-bold px-6 rounded-cineflix"
-          >
-            {isSubmitting ? "Procesando..." : isEdit ? "Guardar Cambios" : "Registrar Sucursal"}
+        <DialogFooter className="mt-8 flex gap-3">
+          <Button variant="outline" onClick={() => onClose(false)} className="flex-1">Cancelar</Button>
+          <Button onClick={handleSubmit} disabled={isSubmitting} className="flex-1 bg-brand-primary text-white font-bold hover:bg-brand-primary/90 transition-all">
+            {isEdit ? "Actualizar" : "Registrar"}
           </Button>
         </DialogFooter>
       </DialogContent>

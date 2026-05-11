@@ -1,14 +1,24 @@
 import api from "../api/axios";
 
-// Obtener todas las sucursales
-export const getCinemas = async () => {
-  const response = await api.get("/cinemas");
-  // Aplicamos la lógica de limpieza aquí para que el componente reciba data pura
-  return Array.isArray(response.data) ? response.data : (response.data?.data || []);
+/**
+ * Obtener sucursales paginadas
+ * @param {number} page - El número de página a solicitar
+ */
+export const getCinemas = async (page = 1) => {
+  // Pasamos la página como parámetro en la URL (?page=X)
+  const response = await api.get(`/cinemas?page=${page}`);
+  
+  /**
+   * IMPORTANTE: Devolvemos response.data completo.
+   * Esto contiene: { success, message, data, metadata }
+   * La metadata es esencial para que el frontend sepa el total de páginas.
+   */
+  return response.data;
 };
 
 // Crear una sucursal
 export const createCinema = async (payload) => {
+  // El backend suele esperar snake_case (opening_time)
   const response = await api.post("/cinemas", payload);
   return response.data;
 };
