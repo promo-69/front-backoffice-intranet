@@ -28,7 +28,6 @@ export default function BranchModal({ open, onClose, initialData }) {
   useEffect(() => {
     if (open) {
       if (initialData) {
-        // SOLUCIÓN: Quitamos los segundos (:00) al cargar los datos
         setFormData({
           id: initialData.id,
           name: initialData.name || "",
@@ -47,11 +46,23 @@ export default function BranchModal({ open, onClose, initialData }) {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    // Limpiamos el error del campo cuando el usuario empieza a escribir
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: "" }));
+    }
   };
 
   const handleSubmit = async () => {
-    if (!formData.name || !formData.address) {
-      setErrors({ name: !formData.name ? "Obligatorio" : "", address: !formData.address ? "Obligatorio" : "" });
+    // NUEVA LÓGICA DE VALIDACIÓN: Todos los campos obligatorios
+    const newErrors = {};
+    if (!formData.name.trim()) newErrors.name = "El nombre es obligatorio";
+    if (!formData.address.trim()) newErrors.address = "La dirección es obligatoria";
+    if (!formData.phone.trim()) newErrors.phone = "El teléfono es obligatorio";
+    if (!formData.openingTime.trim()) newErrors.openingTime = "Hora de apertura requerida";
+    if (!formData.closingTime.trim()) newErrors.closingTime = "Hora de cierre requerida";
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
 
@@ -59,14 +70,13 @@ export default function BranchModal({ open, onClose, initialData }) {
     showLoader();
 
     try {
-      // Mapeamos de vuelta a snake_case para que el backend lo entienda
       const payload = {
         name: formData.name,
         address: formData.address,
         phone: formData.phone,
         opening_time: formData.openingTime,
         closing_time: formData.closingTime,
-        status: 1 // O el status que manejes por defecto
+        status: 1 
       };
 
       if (isEdit) {
@@ -96,17 +106,30 @@ export default function BranchModal({ open, onClose, initialData }) {
         </DialogHeader>
 
         <div className="space-y-4 mt-6">
-          <InputForm label="Nombre" name="name" value={formData.name} onChange={handleChange} placeholder="Ej: Cine Plaza" />
-          <ErrorMessage message={errors.name} />
+          <div>
+            <InputForm label="Nombre" name="name" value={formData.name} onChange={handleChange} placeholder="Ej: Cine Plaza" />
+            <ErrorMessage message={errors.name} />
+          </div>
 
-          <InputForm label="Dirección" name="address" value={formData.address} onChange={handleChange} />
-          <ErrorMessage message={errors.address} />
+          <div>
+            <InputForm label="Dirección" name="address" value={formData.address} onChange={handleChange} placeholder="Ej: Av. Principal 123" />
+            <ErrorMessage message={errors.address} />
+          </div>
 
-          <InputForm label="Teléfono" name="phone" value={formData.phone} onChange={handleChange} />
+          <div>
+            <InputForm label="Teléfono" name="phone" value={formData.phone} onChange={handleChange} placeholder="Ej: 0251 123 1234" />
+            <ErrorMessage message={errors.phone} />
+          </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <InputForm label="Apertura (HH:mm)" name="openingTime" value={formData.openingTime} onChange={handleChange} placeholder="11:00" />
-            <InputForm label="Cierre (HH:mm)" name="closingTime" value={formData.closingTime} onChange={handleChange} placeholder="22:30" />
+            <div>
+              <InputForm label="Apertura (HH:mm)" name="openingTime" value={formData.openingTime} onChange={handleChange} placeholder="11:00" />
+              <ErrorMessage message={errors.openingTime} />
+            </div>
+            <div>
+              <InputForm label="Cierre (HH:mm)" name="closingTime" value={formData.closingTime} onChange={handleChange} placeholder="22:30" />
+              <ErrorMessage message={errors.closingTime} />
+            </div>
           </div>
         </div>
 
