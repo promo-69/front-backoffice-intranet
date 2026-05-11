@@ -32,10 +32,7 @@ export default function EmployeesTab({ search, employees, onDelete, onEdit }) {
             {/* 2. Implementación del estado vacío solicitada */}
             {filtered.length === 0 ? (
               <tr>
-                <td
-                  colSpan="6"
-                  className="text-center py-10 text-gray-400 font-montserrat"
-                >
+                <td colSpan="6" className="text-center py-10 text-gray-400 font-montserrat">
                   No hay empleados disponibles
                 </td>
               </tr>
@@ -51,8 +48,12 @@ export default function EmployeesTab({ search, employees, onDelete, onEdit }) {
                   <td className="py-4 px-4 text-gray-500 font-medium">
                     {emp.email}
                   </td>
-                  <td className="py-4 px-4 text-gray-500">{emp.jobPosition}</td>
-                  <td className="py-4 px-4 text-gray-500">{emp.cinema}</td>
+                  <td className="py-4 px-4 text-gray-500">
+                    {emp.jobPosition}
+                  </td>
+                  <td className="py-4 px-4 text-gray-500">
+                    {emp.cinema}
+                  </td>
 
                   {/* ⭐ Estado */}
                   <td className="py-4 px-4 text-center">
@@ -76,7 +77,7 @@ export default function EmployeesTab({ search, employees, onDelete, onEdit }) {
                         className="text-brand-primary hover:scale-110 transition-transform"
                         title="Editar empleado"
                       >
-                        <Pencil className="w-4 h-4" />
+                        < Pencil className="w-4 h-4" />
                       </button>
 
                       {/* ELIMINAR */}

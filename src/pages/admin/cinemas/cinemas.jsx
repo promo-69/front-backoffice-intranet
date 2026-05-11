@@ -1,85 +1,110 @@
 import React, { useState, useEffect } from "react";
-import { Plus } from "lucide-react";
-
-import api from "../../../api/axios";
-
+import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { getCinemas, deleteCinema } from "../../../services/cinema.service";
 import CinemaSearch from "../../../components/admin/cinemas/SearchBar";
 import CinemaTable from "../../../components/admin/cinemas/CinemaTable";
 import RoomManager from "../../../components/admin/cinemas/RoomManager";
-import EditCinema from "../../../components/admin/cinemas/BranchModal";
+import BranchModal from "../../../components/admin/cinemas/BranchModal";
 import DeleteConfirmModal from "../../../components/ui/DialogConfirmModal";
 import SuccessModal from "../../../components/ui/SuccessModal";
 import { useLoading } from "../../../context/LoadingContext";
 
 const CinemaPage = () => {
   const { showLoader, hideLoader } = useLoading();
-
+  
+  // ESTADOS DE DATOS Y PAGINACIÓN
   const [branches, setBranches] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
-  const [isAddingRoom, setIsAddingRoom] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState({
+    total_pages: 1,
+    next_page: null,
+    prev_page: null,
+    total: 0
+  });
 
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState(null);
-  const [deletedItemName, setDeletedItemName] = useState("");
-  const [isSuccessOpen, setIsSuccessOpen] = useState(false);
-
+  // ESTADOS DE MODALES
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [branchToEdit, setBranchToEdit] = useState(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
+  const [isSuccessOpen, setIsSuccessOpen] = useState(false);
+  const [successConfig, setSuccessConfig] = useState({ title: "", message: "" });
+  
+  const [isAddingRoom, setIsAddingRoom] = useState(false);
 
-  const fetchBranches = async () => {
+  // FUNCIÓN PARA CARGAR SUCURSALES (Consumiendo la paginación de la API)
+  const fetchBranches = async (page = 1) => {
     try {
-      const response = await api.get("/cinemas");
-      const data = response?.data;
-
-      setBranches(Array.isArray(data) ? data : []);
+      showLoader();
+      const response = await getCinemas(page);
+      
+      // Ajuste según tu estructura JSON: { success, message, data: [], metadata: {} }
+      setBranches(response.data || []);
+      setPagination(response.metadata || { total_pages: 1 });
+      setCurrentPage(response.metadata?.current_page || page);
     } catch (error) {
       console.error("Error al cargar sucursales:", error);
       setBranches([]);
+    } finally {
+      hideLoader();
     }
   };
 
   useEffect(() => {
-    async function load() {
-      showLoader();
-      await fetchBranches();
-      hideLoader();
+    fetchBranches(currentPage);
+  }, [currentPage]);
+
+  // NAVEGACIÓN DE PÁGINAS
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= pagination.total_pages) {
+      setCurrentPage(newPage);
     }
-
-    load();
-  }, []);
-
-  const handleOpenAddModal = () => {
-    setBranchToEdit(null);
-    setIsModalOpen(true);
   };
 
+  // MANEJO DE EDICIÓN (Limpieza de horas)
   const handleOpenEditModal = (branch) => {
-    setBranchToEdit(branch);
+    const mappedData = {
+      ...branch,
+      // Quitamos los segundos (:00) para que el input tipo HH:mm no falle
+      openingTime: (branch.opening_time || "").slice(0, 5),
+      closingTime: (branch.closing_time || "").slice(0, 5),
+    };
+    setBranchToEdit(mappedData);
     setIsModalOpen(true);
   };
 
   const handleCloseModal = (shouldRefresh) => {
     setIsModalOpen(false);
+    if (shouldRefresh) {
+      fetchBranches(currentPage); // Refresca la página actual
+      setSuccessConfig({
+        title: branchToEdit ? "¡Cambios Guardados!" : "¡Registro Exitoso!",
+        message: branchToEdit 
+          ? "La información de la sucursal ha sido actualizada." 
+          : "La nueva sede ha sido incorporada al sistema."
+      });
+      setIsSuccessOpen(true);
+    }
     setBranchToEdit(null);
-    if (shouldRefresh) fetchBranches();
   };
 
   const handleConfirmDelete = async () => {
     try {
       showLoader();
-
-      await api.delete(`/cinemas/${itemToDelete.id}`);
-      setDeletedItemName(itemToDelete.name);
-
+      await deleteCinema(itemToDelete.id);
       if (selectedId === itemToDelete.id) setSelectedId(null);
-
+      
       setIsDeleteModalOpen(false);
+      setSuccessConfig({
+        title: "¡Sucursal Eliminada!",
+        message: `Se ha removido "${itemToDelete.name}" exitosamente.`
+      });
       setIsSuccessOpen(true);
-      fetchBranches();
+      fetchBranches(currentPage);
     } catch (error) {
-      console.error("No se pudo eliminar:", error);
-      alert("Error al eliminar la sucursal.");
+      console.error("Error al eliminar:", error);
     } finally {
       setItemToDelete(null);
       hideLoader();
@@ -87,54 +112,93 @@ const CinemaPage = () => {
   };
 
   const filteredBranches = branches.filter((b) =>
-    b.name?.toLowerCase().includes(searchTerm.toLowerCase()),
+    b.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const selectedBranch = branches.find(
-    (b) => Number(b.id) === Number(selectedId),
+    (b) => Number(b.id) === Number(selectedId)
   );
-
-  const handleDeleteClick = (id) => {
-    const branch = branches.find((b) => Number(b.id) === Number(id));
-    if (branch) {
-      setItemToDelete(branch);
-      setIsDeleteModalOpen(true);
-    }
-  };
 
   return (
     <div className="space-y-6">
-      {/* Encabezado y búsqueda */}
+      {/* HEADER Y BÚSQUEDA */}
       <div className="flex justify-between items-center border-b border-gray-100 pb-4">
         <div>
           <h3 className="text-lg font-montserrat font-bold text-brand-primary">
             Listado de Sucursales
           </h3>
           <p className="text-xs text-muted-foreground">
-            Administra y configura las sucursales.
+            Administra las sucursales de Cineflix. Puedes agregar, editar o eliminar sedes según sea necesario.
           </p>
         </div>
-
-        <CinemaSearch
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-          onAddClick={handleOpenAddModal}
+        <CinemaSearch 
+          searchTerm={searchTerm} 
+          setSearchTerm={setSearchTerm} 
+          onAddClick={() => { setBranchToEdit(null); setIsModalOpen(true); }} 
         />
       </div>
 
-      {/* Tabla de sucursales */}
+      {/* TABLA DE DATOS */}
       <CinemaTable
         data={filteredBranches}
         selectedId={selectedId}
-        onSelectBranch={(id) => {
-          setSelectedId(id);
-          setIsAddingRoom(false);
-        }}
+        onSelectBranch={(id) => { setSelectedId(id); setIsAddingRoom(false); }}
         onEdit={handleOpenEditModal}
-        onDelete={handleDeleteClick}
+        onDelete={(id) => {
+          const branch = branches.find(b => b.id === id);
+          setItemToDelete(branch);
+          setIsDeleteModalOpen(true);
+        }}
       />
 
-      {/* Modal de confirmación de eliminación */}
+      {/* CONTROLES DE PAGINACIÓN */}
+      <div className="flex items-center justify-between px-4 py-3 bg-white rounded-cineflix border border-border shadow-sm">
+        <span className="text-xs font-montserrat text-slate-500 font-medium">
+          Total: {pagination.total} sucursales
+        </span>
+        
+        <div className="flex gap-2 items-center">
+          <button
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={!pagination.prev_page}
+            className="p-1.5 rounded-lg border border-border hover:bg-slate-50 disabled:opacity-20 transition-all"
+          >
+            <ChevronLeft className="w-5 h-5 text-brand-primary" />
+          </button>
+
+          <div className="flex gap-1">
+            {[...Array(pagination.total_pages)].map((_, i) => (
+              <button
+                key={i + 1}
+                onClick={() => handlePageChange(i + 1)}
+                className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
+                  currentPage === i + 1
+                    ? "bg-brand-primary text-white shadow-md shadow-brand-primary/30"
+                    : "text-slate-400 hover:bg-slate-100"
+                }`}
+              >
+                {i + 1}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={!pagination.next_page}
+            className="p-1.5 rounded-lg border border-border hover:bg-slate-50 disabled:opacity-20 transition-all"
+          >
+            <ChevronRight className="w-5 h-5 text-brand-primary" />
+          </button>
+        </div>
+      </div>
+
+      {/* MODALES */}
+      <BranchModal
+        open={isModalOpen}
+        onClose={handleCloseModal}
+        initialData={branchToEdit}
+      />
+
       <DeleteConfirmModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
@@ -142,57 +206,44 @@ const CinemaPage = () => {
         itemName={itemToDelete?.name}
       />
 
-      {/* Modal de éxito */}
       <SuccessModal
         isOpen={isSuccessOpen}
         onClose={() => setIsSuccessOpen(false)}
-        title="¡Sucursal Eliminada!"
-        message={`Se ha removido "${deletedItemName}" exitosamente.`}
+        title={successConfig.title}
+        message={successConfig.message}
       />
 
-      {/* Sección de salas */}
+      {/* SECCIÓN DE SALAS (DETALLE) */}
       <div className="w-full pt-8 mt-4 border-t-2 border-dashed border-slate-200">
         {selectedBranch ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex justify-between items-center border-b border-gray-100 pb-4 mb-8">
               <h3 className="text-lg font-montserrat font-bold text-slate-800">
-                Salas en /{" "}
-                <span className="text-brand-primary">
-                  {selectedBranch.name}
-                </span>
+                Salas en / <span className="text-brand-primary">{selectedBranch.name}</span>
               </h3>
-
-              <button
-                onClick={() => setIsAddingRoom(true)}
-                className="bg-brand-primary text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-[11px] font-black uppercase tracking-widest hover:brightness-110 transition-all"
+              <button 
+                onClick={() => setIsAddingRoom(true)} 
+                className="bg-brand-primary text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-[11px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg shadow-brand-primary/20"
               >
                 <Plus className="w-4 h-4 text-brand-gold" strokeWidth={3} />
                 AGREGAR SALA
               </button>
             </div>
-
-            <RoomManager
-              branch={selectedBranch}
-              externalIsAdding={isAddingRoom}
-              setExternalIsAdding={setIsAddingRoom}
+            <RoomManager 
+              branch={selectedBranch} 
+              externalIsAdding={isAddingRoom} 
+              setExternalIsAdding={setIsAddingRoom} 
             />
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-20 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-300">
-            <Plus className="h-8 w-8 text-slate-300 mb-4" />
-            <p className="text-slate-400 font-bold text-center max-w-xs uppercase text-[10px] tracking-widest">
-              Selecciona una sucursal para ver sus salas.
+            <Plus className="h-8 w-8 text-slate-300 mb-4 opacity-50" />
+            <p className="text-slate-400 font-bold text-center max-w-xs uppercase text-[10px] tracking-widest leading-relaxed">
+              Selecciona una sucursal de la lista para gestionar sus salas disponibles.
             </p>
           </div>
         )}
       </div>
-
-      {/* Modal de creación/edición de sucursal */}
-      <EditCinema
-        open={isModalOpen}
-        onClose={handleCloseModal}
-        initialData={branchToEdit}
-      />
     </div>
   );
 };

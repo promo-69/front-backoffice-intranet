@@ -5,7 +5,7 @@ const api = axios.create({
   withCredentials: true,
   timeout: 5000,
   headers: {
-    "x-client-channel": "web",
+    "x-client-channel": "web", 
   },
 });
 
@@ -17,6 +17,7 @@ api.interceptors.response.use(
 
     // Si el error es 401 y la petición NO es al endpoint de refresh (para evitar bucles)
     if (error.response?.status === 401 && !originalRequest._retry) {
+      
       // Si ya falló el refresh una vez, no reintentes más (prevenir bucle infinito)
       if (originalRequest.url === "/auth/refresh") {
         return Promise.reject(error);
@@ -27,7 +28,7 @@ api.interceptors.response.use(
       try {
         // Intentamos renovar la sesión
         await api.post("/auth/refresh");
-
+        
         // Si el refresh fue exitoso, reintentamos la petición original con la nueva cookie
         return api(originalRequest);
       } catch (refreshError) {
@@ -39,7 +40,7 @@ api.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  },
+  }
 );
 
 export default api;
