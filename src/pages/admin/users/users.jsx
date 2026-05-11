@@ -40,7 +40,7 @@ export default function Users() {
   const fetchEmployees = async () => {
     showLoader();
     try {
-      const res = await api.get("/employees"); // GET real
+      const res = await api.get("/employees"); 
       setEmployees(res.data.data);
     } catch (error) {
       console.error("Error cargando empleados:", error);
