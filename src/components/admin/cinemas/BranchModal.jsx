@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react"; // Añadimos useEffect
 import {
   Dialog,
   DialogContent,
@@ -32,9 +32,17 @@ export default function BranchModal({ open, onClose, initialData }) {
   const isEdit = !!initialData;
   const { showLoader, hideLoader } = useLoading();
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const [formData, setFormData] = useState(initialData ?? emptyBranchForm);
+  const [formData, setFormData] = useState(emptyBranchForm);
   const [errors, setErrors] = useState({});
+
+  // --- EFECTO DE LIMPIEZA Y SINCRONIZACIÓN ---
+  useEffect(() => {
+    if (open) {
+      // Si hay datos iniciales, cargamos para editar, si no, reseteamos a vacío
+      setFormData(initialData ?? emptyBranchForm);
+      setErrors({}); // Limpiamos errores visuales de intentos anteriores
+    }
+  }, [open, initialData]);
 
   const validateField = (name, value) => {
     let error = "";
@@ -63,11 +71,17 @@ export default function BranchModal({ open, onClose, initialData }) {
 
   const handleSubmit = async () => {
     const newErrors = {};
-    Object.keys(formData).forEach((key) => {
-      const error = validateField(key, formData[key]);
-      if (error) newErrors[key] = error;
-      if (!formData[key] && key !== "status")
+
+    Object.keys(emptyBranchForm).forEach((key) => {
+      const value = formData[key]?.toString().trim(); 
+      
+      if (!value) {
         newErrors[key] = "Este campo es obligatorio.";
+      } else {
+
+        const fieldError = validateField(key, value);
+        if (fieldError) newErrors[key] = fieldError;
+      }
     });
 
     if (Object.keys(newErrors).length > 0) {
@@ -83,18 +97,11 @@ export default function BranchModal({ open, onClose, initialData }) {
       } else {
         await api.post('/cinemas', formData);
       }
-      
-      // Enviamos 'true' para que el padre sepa que debe refrescar la tabla
-      // y disparar el SuccessModal
       onClose(true); 
-      
     } catch (error) {
       console.error("Error al procesar la sucursal:", error);
-      
-      // Capturamos el mensaje específico del backend (como el 409 Conflict)
       const serverDetail = error.response?.data?.message || error.response?.data?.error;
       const errorMessage = serverDetail || "No se pudo guardar la información.";
-      
       alert(errorMessage);
     } finally {
       hideLoader();
@@ -103,7 +110,7 @@ export default function BranchModal({ open, onClose, initialData }) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={() => onClose(false)}>
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose(false)}>
       <DialogContent className="max-w-md bg-white rounded-cineflix p-6 shadow-2xl border-none">
         
         <button
@@ -149,7 +156,6 @@ export default function BranchModal({ open, onClose, initialData }) {
             <ErrorMessage message={errors.address} />
           </div>
 
-          {/* REINSTALADO: Campo de Teléfono */}
           <div>
             <InputForm
               label="Teléfono"
