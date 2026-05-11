@@ -1,12 +1,15 @@
 import { Pencil, Trash2 } from "lucide-react";
 
 export default function EmployeesTab({ search, employees, onDelete, onEdit }) {
-  const filtered = employees.filter((emp) => {
-    const text = search.toLowerCase();
+  // 1. Aseguramos que 'employees' sea siempre un arreglo para que no rompa el .filter
+  const safeEmployees = Array.isArray(employees) ? employees : [];
+
+  const filtered = safeEmployees.filter((emp) => {
+    const text = (search || "").toLowerCase();
     return (
-      emp.firstName.toLowerCase().includes(text) ||
-      emp.lastName.toLowerCase().includes(text) ||
-      emp.email.toLowerCase().includes(text)
+      emp.firstName?.toLowerCase().includes(text) ||
+      emp.lastName?.toLowerCase().includes(text) ||
+      emp.email?.toLowerCase().includes(text)
     );
   });
 
@@ -26,61 +29,70 @@ export default function EmployeesTab({ search, employees, onDelete, onEdit }) {
           </thead>
 
           <tbody className="divide-y divide-border">
-            {filtered.map((emp) => (
-              <tr
-                key={emp.id}
-                className="hover:bg-gray-50/50 transition-colors font-montserrat"
-              >
-                <td className="py-4 px-4 font-bold text-slate-700">
-                  {emp.firstName} {emp.lastName}
-                </td>
-                <td className="py-4 px-4 text-gray-500 font-medium">
-                  {emp.email}
-                </td>
-                <td className="py-4 px-4 text-gray-500">
-                  {emp.jobPosition || emp.jobPosition}
-                </td>
-                <td className="py-4 px-4 text-gray-500">
-                  {emp.cinema || emp.cinema}
-                </td>
-
-                {/* ⭐ Estado */}
-                <td className="py-4 px-4 text-center">
-                  <span
-                    className={`px-2 py-1 rounded-full text-[10px] font-bold ${
-                      emp.status === 1
-                        ? "bg-green-100 text-green-700"
-                        : "bg-red-100 text-red-700"
-                    }`}
-                  >
-                    {emp.status === 1 ? "ACTIVO" : "INACTIVO"}
-                  </span>
-                </td>
-
-                {/* ⭐ Acciones */}
-                <td className="py-4 px-4">
-                  <div className="flex justify-center gap-3">
-                    {/* EDITAR */}
-                    <button
-                      onClick={() => onEdit(emp)}
-                      className="text-brand-primary hover:scale-110 transition-transform"
-                      title="Editar empleado"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-
-                    {/* ELIMINAR */}
-                    <button
-                      onClick={() => onDelete(emp)}
-                      className="text-red-500 hover:scale-110 transition-transform"
-                      title="Eliminar empleado"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+            {/* 2. Implementación del estado vacío solicitada */}
+            {filtered.length === 0 ? (
+              <tr>
+                <td colSpan="6" className="text-center py-10 text-gray-400 font-montserrat">
+                  No hay empleados disponibles
                 </td>
               </tr>
-            ))}
+            ) : (
+              filtered.map((emp) => (
+                <tr
+                  key={emp.id}
+                  className="hover:bg-gray-50/50 transition-colors font-montserrat"
+                >
+                  <td className="py-4 px-4 font-bold text-slate-700">
+                    {emp.firstName} {emp.lastName}
+                  </td>
+                  <td className="py-4 px-4 text-gray-500 font-medium">
+                    {emp.email}
+                  </td>
+                  <td className="py-4 px-4 text-gray-500">
+                    {emp.jobPosition}
+                  </td>
+                  <td className="py-4 px-4 text-gray-500">
+                    {emp.cinema}
+                  </td>
+
+                  {/* ⭐ Estado */}
+                  <td className="py-4 px-4 text-center">
+                    <span
+                      className={`px-2 py-1 rounded-full text-[10px] font-bold ${
+                        emp.status === 1
+                          ? "bg-green-100 text-green-700"
+                          : "bg-red-100 text-red-700"
+                      }`}
+                    >
+                      {emp.status === 1 ? "ACTIVO" : "INACTIVO"}
+                    </span>
+                  </td>
+
+                  {/* ⭐ Acciones */}
+                  <td className="py-4 px-4">
+                    <div className="flex justify-center gap-3">
+                      {/* EDITAR */}
+                      <button
+                        onClick={() => onEdit(emp)}
+                        className="text-brand-primary hover:scale-110 transition-transform"
+                        title="Editar empleado"
+                      >
+                        < Pencil className="w-4 h-4" />
+                      </button>
+
+                      {/* ELIMINAR */}
+                      <button
+                        onClick={() => onDelete(emp)}
+                        className="text-red-500 hover:scale-110 transition-transform"
+                        title="Eliminar empleado"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

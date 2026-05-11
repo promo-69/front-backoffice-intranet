@@ -1,3 +1,5 @@
+import { Check, Clock, Pencil, Trash2 } from "lucide-react";
+
 const CinemaTable = ({
   data,
   onEdit,
@@ -5,7 +7,6 @@ const CinemaTable = ({
   onSelectBranch,
   selectedId,
 }) => {
-
   const safeData = Array.isArray(data) ? data : [];
 
   return (
@@ -25,7 +26,7 @@ const CinemaTable = ({
         <tbody className="divide-y divide-border">
           {safeData.length === 0 ? (
             <tr>
-              <td colSpan="6" className="text-center py-10 text-gray-400">
+              <td colSpan="6" className="text-center py-10 text-gray-400 font-montserrat">
                 No hay sucursales disponibles
               </td>
             </tr>
