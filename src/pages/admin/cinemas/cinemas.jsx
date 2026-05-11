@@ -124,11 +124,11 @@ const CinemaPage = () => {
       {/* HEADER Y BÚSQUEDA */}
       <div className="flex justify-between items-center border-b border-gray-100 pb-4">
         <div>
-          <h3 className="text-lg font-montserrat font-bold text-brand-primary uppercase tracking-tight">
+          <h3 className="text-lg font-montserrat font-bold text-brand-primary">
             Listado de Sucursales
           </h3>
-          <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">
-            Gestión de Sedes y Horarios
+          <p className="text-xs text-muted-foreground">
+            Administra las sucursales de Cineflix. Puedes agregar, editar o eliminar sedes según sea necesario.
           </p>
         </div>
         <CinemaSearch 
