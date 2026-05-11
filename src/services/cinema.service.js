@@ -1,10 +1,12 @@
-import api from "../api/axios";
+import api from "@/api/axios";
 
 // Obtener todas las sucursales
-export const getCinemas = async () => {
-  const response = await api.get("/cinemas");
-  // Aplicamos la lógica de limpieza aquí para que el componente reciba data pura
-  return Array.isArray(response.data) ? response.data : (response.data?.data || []);
+export const getCinemas = async (page = 1) => {
+  // CAMBIO AQUÍ: Usamos 'api' en lugar de 'axios'
+  const response = await api.get('/cinemas', {
+    params: { page }
+  });
+  return response.data;
 };
 
 // Crear una sucursal
