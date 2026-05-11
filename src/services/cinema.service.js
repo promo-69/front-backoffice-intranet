@@ -11,6 +11,7 @@ export const getCinemas = async (page = 1) => {
 
 // Crear una sucursal
 export const createCinema = async (payload) => {
+  // El backend suele esperar snake_case (opening_time)
   const response = await api.post("/cinemas", payload);
   return response.data;
 };
