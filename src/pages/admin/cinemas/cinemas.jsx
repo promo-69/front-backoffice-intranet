@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
 
-import api from "../../../api/axios";
+import { getCinemas, deleteCinema } from "../../../services/cinema.service";
 
 import CinemaSearch from "../../../components/admin/cinemas/SearchBar";
 import CinemaTable from "../../../components/admin/cinemas/CinemaTable";
@@ -29,13 +29,11 @@ const CinemaPage = () => {
 
   const fetchBranches = async () => {
     try {
-      const response = await api.get("/cinemas");
-      const data = response?.data;
-
-      setBranches(Array.isArray(data) ? data : []);
+      const data = await getCinemas();
+      setBranches(data);
     } catch (error) {
       console.error("Error al cargar sucursales:", error);
-      setBranches([]);
+      setBranches([]); // Seguridad: evita que el .filter posterior falle
     }
   };
 
@@ -45,7 +43,6 @@ const CinemaPage = () => {
       await fetchBranches();
       hideLoader();
     }
-
     load();
   }, []);
 
@@ -68,30 +65,30 @@ const CinemaPage = () => {
   const handleConfirmDelete = async () => {
     try {
       showLoader();
-
-      await api.delete(`/cinemas/${itemToDelete.id}`);
+      // Usamos el servicio de eliminación
+      await deleteCinema(itemToDelete.id);
+      
       setDeletedItemName(itemToDelete.name);
-
       if (selectedId === itemToDelete.id) setSelectedId(null);
-
+      
       setIsDeleteModalOpen(false);
       setIsSuccessOpen(true);
       fetchBranches();
     } catch (error) {
       console.error("No se pudo eliminar:", error);
-      alert("Error al eliminar la sucursal.");
     } finally {
       setItemToDelete(null);
       hideLoader();
     }
   };
 
-  const filteredBranches = branches.filter((b) =>
-    b.name?.toLowerCase().includes(searchTerm.toLowerCase()),
+  // Filtrado ultra-seguro
+  const filteredBranches = (Array.isArray(branches) ? branches : []).filter((b) =>
+    b.name?.toLowerCase().includes((searchTerm || "").toLowerCase())
   );
 
-  const selectedBranch = branches.find(
-    (b) => Number(b.id) === Number(selectedId),
+  const selectedBranch = (Array.isArray(branches) ? branches : []).find(
+    (b) => Number(b.id) === Number(selectedId)
   );
 
   const handleDeleteClick = (id) => {
@@ -150,16 +147,13 @@ const CinemaPage = () => {
         message={`Se ha removido "${deletedItemName}" exitosamente.`}
       />
 
-      {/* Sección de salas */}
+      {/* Sección de salas dinámica */}
       <div className="w-full pt-8 mt-4 border-t-2 border-dashed border-slate-200">
         {selectedBranch ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex justify-between items-center border-b border-gray-100 pb-4 mb-8">
               <h3 className="text-lg font-montserrat font-bold text-slate-800">
-                Salas en /{" "}
-                <span className="text-brand-primary">
-                  {selectedBranch.name}
-                </span>
+                Salas en / <span className="text-brand-primary">{selectedBranch.name}</span>
               </h3>
 
               <button
@@ -187,7 +181,7 @@ const CinemaPage = () => {
         )}
       </div>
 
-      {/* Modal de creación/edición de sucursal */}
+      {/* Modal de creación/edición */}
       <EditCinema
         open={isModalOpen}
         onClose={handleCloseModal}
