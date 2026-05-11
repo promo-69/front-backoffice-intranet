@@ -100,10 +100,19 @@ export default function BranchModal({ open, onClose, initialData }) {
       onClose(true); 
     } catch (error) {
       console.error("Error al procesar la sucursal:", error);
-      const serverDetail = error.response?.data?.message || error.response?.data?.error;
-      const errorMessage = serverDetail || "No se pudo guardar la información.";
-      alert(errorMessage);
-    } finally {
+
+      if (error.response?.status === 409) {
+        setErrors((prev) => ({
+          ...prev,
+          name: "Ya existe una sucursal con este nombre."
+        }));
+      } else {
+        setErrors((prev) => ({
+          ...prev,
+          general: "Error de conexión. Intente más tarde."
+        }));
+      }
+    }finally {
       hideLoader();
       setIsSubmitting(false);
     }
