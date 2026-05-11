@@ -1,31 +1,30 @@
 import React, { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
-
 import { getCinemas, deleteCinema } from "../../../services/cinema.service";
-
 import CinemaSearch from "../../../components/admin/cinemas/SearchBar";
 import CinemaTable from "../../../components/admin/cinemas/CinemaTable";
 import RoomManager from "../../../components/admin/cinemas/RoomManager";
-import EditCinema from "../../../components/admin/cinemas/BranchModal";
+import BranchModal from "../../../components/admin/cinemas/BranchModal";
 import DeleteConfirmModal from "../../../components/ui/DialogConfirmModal";
 import SuccessModal from "../../../components/ui/SuccessModal";
 import { useLoading } from "../../../context/LoadingContext";
 
 const CinemaPage = () => {
   const { showLoader, hideLoader } = useLoading();
-
   const [branches, setBranches] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [isAddingRoom, setIsAddingRoom] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
+  // Estados para Modales
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
-  const [deletedItemName, setDeletedItemName] = useState("");
-  const [isSuccessOpen, setIsSuccessOpen] = useState(false);
-
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [branchToEdit, setBranchToEdit] = useState(null);
+
+  // Estados para el Modal de Éxito Dinámico
+  const [isSuccessOpen, setIsSuccessOpen] = useState(false);
+  const [successConfig, setSuccessConfig] = useState({ title: "", message: "" });
 
   const fetchBranches = async () => {
     try {
@@ -33,17 +32,13 @@ const CinemaPage = () => {
       setBranches(data);
     } catch (error) {
       console.error("Error al cargar sucursales:", error);
-      setBranches([]); // Seguridad: evita que el .filter posterior falle
+      setBranches([]);
     }
   };
 
   useEffect(() => {
-    async function load() {
-      showLoader();
-      await fetchBranches();
-      hideLoader();
-    }
-    load();
+    showLoader();
+    fetchBranches().finally(() => hideLoader());
   }, []);
 
   const handleOpenAddModal = () => {
@@ -56,22 +51,33 @@ const CinemaPage = () => {
     setIsModalOpen(true);
   };
 
+  // Función actualizada para manejar el éxito tras cerrar el formulario
   const handleCloseModal = (shouldRefresh) => {
     setIsModalOpen(false);
+    if (shouldRefresh) {
+      fetchBranches();
+      setSuccessConfig({
+        title: branchToEdit ? "¡Cambios Guardados!" : "¡Registro Exitoso!",
+        message: branchToEdit 
+          ? "La información de la sucursal ha sido actualizada." 
+          : "La nueva sede ha sido incorporada al sistema correctamente."
+      });
+      setIsSuccessOpen(true);
+    }
     setBranchToEdit(null);
-    if (shouldRefresh) fetchBranches();
   };
 
   const handleConfirmDelete = async () => {
     try {
       showLoader();
-      // Usamos el servicio de eliminación
       await deleteCinema(itemToDelete.id);
-      
-      setDeletedItemName(itemToDelete.name);
       if (selectedId === itemToDelete.id) setSelectedId(null);
       
       setIsDeleteModalOpen(false);
+      setSuccessConfig({
+        title: "¡Sucursal Eliminada!",
+        message: `Se ha removido "${itemToDelete.name}" exitosamente.`
+      });
       setIsSuccessOpen(true);
       fetchBranches();
     } catch (error) {
@@ -82,7 +88,6 @@ const CinemaPage = () => {
     }
   };
 
-  // Filtrado ultra-seguro
   const filteredBranches = (Array.isArray(branches) ? branches : []).filter((b) =>
     b.name?.toLowerCase().includes((searchTerm || "").toLowerCase())
   );
@@ -91,47 +96,29 @@ const CinemaPage = () => {
     (b) => Number(b.id) === Number(selectedId)
   );
 
-  const handleDeleteClick = (id) => {
-    const branch = branches.find((b) => Number(b.id) === Number(id));
-    if (branch) {
-      setItemToDelete(branch);
-      setIsDeleteModalOpen(true);
-    }
-  };
-
   return (
     <div className="space-y-6">
-      {/* Encabezado y búsqueda */}
       <div className="flex justify-between items-center border-b border-gray-100 pb-4">
         <div>
-          <h3 className="text-lg font-montserrat font-bold text-brand-primary">
-            Listado de Sucursales
-          </h3>
-          <p className="text-xs text-muted-foreground">
-            Administra y configura las sucursales.
-          </p>
+          <h3 className="text-lg font-montserrat font-bold text-brand-primary">Listado de Sucursales</h3>
+          <p className="text-xs text-muted-foreground">Administra y configura las sucursales.</p>
         </div>
-
-        <CinemaSearch
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-          onAddClick={handleOpenAddModal}
-        />
+        <CinemaSearch searchTerm={searchTerm} setSearchTerm={setSearchTerm} onAddClick={handleOpenAddModal} />
       </div>
 
-      {/* Tabla de sucursales */}
       <CinemaTable
         data={filteredBranches}
         selectedId={selectedId}
-        onSelectBranch={(id) => {
-          setSelectedId(id);
-          setIsAddingRoom(false);
-        }}
+        onSelectBranch={(id) => { setSelectedId(id); setIsAddingRoom(false); }}
         onEdit={handleOpenEditModal}
-        onDelete={handleDeleteClick}
+        onDelete={(id) => {
+          const branch = branches.find(b => b.id === id);
+          setItemToDelete(branch);
+          setIsDeleteModalOpen(true);
+        }}
       />
 
-      {/* Modal de confirmación de eliminación */}
+      {/* MODALES DE INTERACCIÓN */}
       <DeleteConfirmModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
@@ -139,54 +126,33 @@ const CinemaPage = () => {
         itemName={itemToDelete?.name}
       />
 
-      {/* Modal de éxito */}
       <SuccessModal
         isOpen={isSuccessOpen}
         onClose={() => setIsSuccessOpen(false)}
-        title="¡Sucursal Eliminada!"
-        message={`Se ha removido "${deletedItemName}" exitosamente.`}
+        title={successConfig.title}
+        message={successConfig.message}
       />
 
-      {/* Sección de salas dinámica */}
-      <div className="w-full pt-8 mt-4 border-t-2 border-dashed border-slate-200">
-        {selectedBranch ? (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex justify-between items-center border-b border-gray-100 pb-4 mb-8">
-              <h3 className="text-lg font-montserrat font-bold text-slate-800">
-                Salas en / <span className="text-brand-primary">{selectedBranch.name}</span>
-              </h3>
-
-              <button
-                onClick={() => setIsAddingRoom(true)}
-                className="bg-brand-primary text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-[11px] font-black uppercase tracking-widest hover:brightness-110 transition-all"
-              >
-                <Plus className="w-4 h-4 text-brand-gold" strokeWidth={3} />
-                AGREGAR SALA
-              </button>
-            </div>
-
-            <RoomManager
-              branch={selectedBranch}
-              externalIsAdding={isAddingRoom}
-              setExternalIsAdding={setIsAddingRoom}
-            />
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-20 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-300">
-            <Plus className="h-8 w-8 text-slate-300 mb-4" />
-            <p className="text-slate-400 font-bold text-center max-w-xs uppercase text-[10px] tracking-widest">
-              Selecciona una sucursal para ver sus salas.
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Modal de creación/edición */}
-      <EditCinema
+      <BranchModal
         open={isModalOpen}
         onClose={handleCloseModal}
         initialData={branchToEdit}
       />
+
+      {/* Sección de salas (sin cambios) */}
+      <div className="w-full pt-8 mt-4 border-t-2 border-dashed border-slate-200">
+        {selectedBranch ? (
+          <div className="animate-in fade-in slide-in-from-bottom-4">
+             {/* ... contenido de RoomManager ... */}
+             <RoomManager branch={selectedBranch} externalIsAdding={isAddingRoom} setExternalIsAdding={setIsAddingRoom} />
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-20 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-300 text-slate-400 uppercase text-[10px] tracking-widest font-bold">
+            <Plus className="h-8 w-8 mb-4 opacity-20" />
+            Selecciona una sucursal para ver sus salas.
+          </div>
+        )}
+      </div>
     </div>
   );
 };

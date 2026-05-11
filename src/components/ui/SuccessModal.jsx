@@ -18,6 +18,7 @@ export default function SuccessModal({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[450px] p-10 flex flex-col items-center text-center border-none shadow-2xl bg-white">
+        
         <div className="mb-6 relative">
           {/* Efecto de pulso en el fondo */}
           <div className="absolute inset-0 bg-brand-primary/10 rounded-full scale-150 animate-pulse" />
@@ -28,7 +29,8 @@ export default function SuccessModal({
           </div>
         </div>
 
-        <DialogHeader className="space-y-2">
+        {/* Añadimos 'items-center' y 'text-center' para forzar el centrado total */}
+        <DialogHeader className="flex flex-col items-center text-center space-y-2">
           <DialogTitle className="text-2xl font-montserrat font-extrabold text-slate-900 uppercase tracking-tight">
             {title}
           </DialogTitle>

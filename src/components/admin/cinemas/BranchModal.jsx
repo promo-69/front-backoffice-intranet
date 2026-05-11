@@ -45,7 +45,6 @@ export default function BranchModal({ open, onClose, initialData }) {
       }
     }
 
-    // NUEVA VALIDACIÓN: Formato 24h (HH:mm)
     if (name === "openingTime" || name === "closingTime") {
       const time24hRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
       if (value && !time24hRegex.test(value)) {
@@ -84,10 +83,19 @@ export default function BranchModal({ open, onClose, initialData }) {
       } else {
         await api.post('/cinemas', formData);
       }
-      onClose(true);
+      
+      // Enviamos 'true' para que el padre sepa que debe refrescar la tabla
+      // y disparar el SuccessModal
+      onClose(true); 
+      
     } catch (error) {
       console.error("Error al procesar la sucursal:", error);
-      alert("No se pudo guardar la información.");
+      
+      // Capturamos el mensaje específico del backend (como el 409 Conflict)
+      const serverDetail = error.response?.data?.message || error.response?.data?.error;
+      const errorMessage = serverDetail || "No se pudo guardar la información.";
+      
+      alert(errorMessage);
     } finally {
       hideLoader();
       setIsSubmitting(false);
@@ -141,6 +149,7 @@ export default function BranchModal({ open, onClose, initialData }) {
             <ErrorMessage message={errors.address} />
           </div>
 
+          {/* REINSTALADO: Campo de Teléfono */}
           <div>
             <InputForm
               label="Teléfono"
@@ -157,7 +166,7 @@ export default function BranchModal({ open, onClose, initialData }) {
               <InputForm
                 label="Hora Apertura (24h)"
                 name="openingTime"
-                type="text" // Puedes cambiar a type="time" para usar el selector nativo
+                type="text"
                 value={formData.openingTime}
                 onChange={handleChange}
                 placeholder="09:00"
