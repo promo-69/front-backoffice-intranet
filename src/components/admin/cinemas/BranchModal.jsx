@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"; // Añadimos useEffect
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -16,7 +16,13 @@ function ErrorMessage({ message }) {
   return message ? <p className="text-[10px] text-red-500 mt-1 ml-1 font-medium italic">{message}</p> : null;
 }
 
-const emptyBranchForm = { name: "", address: "", phone: "", openingTime: "", closingTime: "" };
+const emptyBranchForm = { 
+  name: "", 
+  address: "", 
+  phone: "", 
+  openingTime: "", 
+  closingTime: "" 
+};
 
 export default function BranchModal({ open, onClose, initialData }) {
   const isEdit = !!initialData;
@@ -25,14 +31,29 @@ export default function BranchModal({ open, onClose, initialData }) {
   const [formData, setFormData] = useState(emptyBranchForm);
   const [errors, setErrors] = useState({});
 
-  // --- EFECTO DE LIMPIEZA Y SINCRONIZACIÓN ---
   useEffect(() => {
     if (open) {
-      // Si hay datos iniciales, cargamos para editar, si no, reseteamos a vacío
-      setFormData(initialData ?? emptyBranchForm);
-      setErrors({}); // Limpiamos errores visuales de intentos anteriores
+      if (initialData) {
+        // Mapeo desde la base de datos al estado del formulario
+        setFormData({
+          name: initialData.name || "",
+          address: initialData.address || "",
+          phone: initialData.phone || "",
+          openingTime: initialData.openingTime || initialData.opening_time || "", 
+          closingTime: initialData.closingTime || initialData.closing_time || "", 
+        });
+      } else {
+        setFormData(emptyBranchForm);
+      }
+      setErrors({});
     }
   }, [open, initialData]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setErrors((prev) => ({ ...prev, [name]: null, general: null }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
   const validateField = (name, value) => {
     let error = "";
@@ -41,30 +62,24 @@ export default function BranchModal({ open, onClose, initialData }) {
       if (value && !phoneRegex.test(value)) {
         error = "El teléfono solo debe contener números.";
       }
-      setErrors({});
     }
-  }, [open, initialData]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    // Limpiamos el error del campo cuando el usuario empieza a escribir
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: "" }));
+    if (name === "openingTime" || name === "closingTime") {
+      const time24hRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+      if (value && !time24hRegex.test(value)) {
+        error = "Formato 24h inválido (Ej: 14:30).";
+      }
     }
+    return error;
   };
-
+  
   const handleSubmit = async () => {
-    // NUEVA LÓGICA DE VALIDACIÓN: Todos los campos obligatorios
     const newErrors = {};
-
     Object.keys(emptyBranchForm).forEach((key) => {
       const value = formData[key]?.toString().trim(); 
-      
       if (!value) {
         newErrors[key] = "Este campo es obligatorio.";
       } else {
-
         const fieldError = validateField(key, value);
         if (fieldError) newErrors[key] = fieldError;
       }
@@ -79,25 +94,35 @@ export default function BranchModal({ open, onClose, initialData }) {
     showLoader();
 
     try {
+      // El servidor espera camelCase según el error 400 detectado
       const payload = {
-        name: formData.name,
-        address: formData.address,
-        phone: formData.phone,
-        opening_time: formData.openingTime,
-        closing_time: formData.closingTime,
+        name: formData.name.trim(),
+        address: formData.address.trim(),
+        phone: formData.phone.trim(),
+        openingTime: formData.openingTime, 
+        closingTime: formData.closingTime, 
         status: 1 
       };
+      
+      console.log("Enviando a DB:", payload);
 
       if (isEdit) {
         await api.put(`/cinemas/${initialData.id}`, payload);
       } else {
         await api.post('/cinemas', payload);
       }
-      onClose(true); 
+      onClose(true);
     } catch (error) {
-      console.error("Error al procesar la sucursal:", error);
+      const status = error.response?.status;
+      const serverData = error.response?.data;
 
-      if (error.response?.status === 409) {
+      if (status === 400) {
+        console.log("Detalles del error 400:", serverData); //
+        setErrors((prev) => ({
+          ...prev,
+          general: "Datos inválidos. Revisa el formato de los campos."
+        }));
+      } else if (status === 409) {
         setErrors((prev) => ({
           ...prev,
           name: "Ya existe una sucursal con este nombre."
@@ -105,10 +130,10 @@ export default function BranchModal({ open, onClose, initialData }) {
       } else {
         setErrors((prev) => ({
           ...prev,
-          general: "Error de conexión. Intente más tarde."
+          general: "Error al guardar. Intente de nuevo."
         }));
       }
-    }finally {
+    } finally {
       hideLoader();
       setIsSubmitting(false);
     }
@@ -117,22 +142,12 @@ export default function BranchModal({ open, onClose, initialData }) {
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose(false)}>
       <DialogContent className="max-w-md bg-white rounded-cineflix p-6 shadow-2xl border-none">
-        
-        <button
-          onClick={() => onClose(false)}
-          className="absolute top-3 right-3 text-gray-400 hover:text-brand-primary transition"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-brand-primary font-montserrat">
+          <DialogTitle className="text-xl font-bold text-brand-primary">
             {isEdit ? "Editar Sucursal" : "Nueva Sucursal"}
           </DialogTitle>
           <DialogDescription className="text-xs text-slate-500">
-            {isEdit ? "Modifica los datos de la sede seleccionada." : "Registra una nueva sede en el sistema Cineflix."}
+            {isEdit ? "Modifica los datos de la sede seleccionada." : "Registra una nueva sede."}
           </DialogDescription>
         </DialogHeader>
 
@@ -162,11 +177,20 @@ export default function BranchModal({ open, onClose, initialData }) {
               <ErrorMessage message={errors.closingTime} />
             </div>
           </div>
+          {errors.general && (
+            <p className="text-red-500 text-xs text-center font-bold mt-2">
+              {errors.general}
+            </p>
+          )}
         </div>
 
         <DialogFooter className="mt-8 flex gap-3">
           <Button variant="outline" onClick={() => onClose(false)} className="flex-1">Cancelar</Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting} className="flex-1 bg-brand-primary text-white font-bold hover:bg-brand-primary/90 transition-all">
+          <Button 
+            onClick={handleSubmit} 
+            disabled={isSubmitting} 
+            className="flex-1 bg-brand-primary text-white font-bold hover:bg-brand-primary/90"
+          >
             {isEdit ? "Actualizar" : "Registrar"}
           </Button>
         </DialogFooter>
