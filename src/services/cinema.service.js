@@ -1,18 +1,11 @@
-import api from "../api/axios";
+import api from "@/api/axios";
 
-/**
- * Obtener sucursales paginadas
- * @param {number} page - El número de página a solicitar
- */
+// Obtener todas las sucursales
 export const getCinemas = async (page = 1) => {
-  // Pasamos la página como parámetro en la URL (?page=X)
-  const response = await api.get(`/cinemas?page=${page}`);
-  
-  /**
-   * IMPORTANTE: Devolvemos response.data completo.
-   * Esto contiene: { success, message, data, metadata }
-   * La metadata es esencial para que el frontend sepa el total de páginas.
-   */
+  // CAMBIO AQUÍ: Usamos 'api' en lugar de 'axios'
+  const response = await api.get('/cinemas', {
+    params: { page }
+  });
   return response.data;
 };
 

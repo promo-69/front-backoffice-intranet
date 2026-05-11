@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import api from "@/api/axios";
+
+import { Plus, ChevronLeft, ChevronRight } from "lucide-react"; // Importamos iconos para los botones
 import { getCinemas, deleteCinema } from "../../../services/cinema.service";
 import CinemaSearch from "../../../components/admin/cinemas/SearchBar";
 import CinemaTable from "../../../components/admin/cinemas/CinemaTable";
@@ -16,13 +18,17 @@ const CinemaPage = () => {
   const [branches, setBranches] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pagination, setPagination] = useState({
+  
+  // ESTADOS DE PAGINACIÓN
+  const [metadata, setMetadata] = useState({
+    total: 0,
+    per_page: 10,
+    current_page: 1,
     total_pages: 1,
     next_page: null,
-    prev_page: null,
-    total: 0
+    prev_page: null
   });
+  const [currentPage, setCurrentPage] = useState(1);
 
   // ESTADOS DE MODALES
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -34,16 +40,12 @@ const CinemaPage = () => {
   
   const [isAddingRoom, setIsAddingRoom] = useState(false);
 
-  // FUNCIÓN PARA CARGAR SUCURSALES (Consumiendo la paginación de la API)
   const fetchBranches = async (page = 1) => {
     try {
-      showLoader();
-      const response = await getCinemas(page);
-      
-      // Ajuste según tu estructura JSON: { success, message, data: [], metadata: {} }
-      setBranches(response.data || []);
-      setPagination(response.metadata || { total_pages: 1 });
-      setCurrentPage(response.metadata?.current_page || page);
+      showLoader(); // Mostramos loader mientras esperamos los 10s o lo que tarde
+      const data = await getCinemas(page);
+      setBranches(data.data);
+      setMetadata(data.metadata);
     } catch (error) {
       console.error("Error al cargar sucursales:", error);
       setBranches([]);
@@ -52,6 +54,7 @@ const CinemaPage = () => {
     }
   };
 
+  // Efecto que reacciona al cambio de página
   useEffect(() => {
     fetchBranches(currentPage);
   }, [currentPage]);
@@ -78,7 +81,7 @@ const CinemaPage = () => {
   const handleCloseModal = (shouldRefresh) => {
     setIsModalOpen(false);
     if (shouldRefresh) {
-      fetchBranches(currentPage); // Refresca la página actual
+      fetchBranches(currentPage); // Refrescamos la página actual
       setSuccessConfig({
         title: branchToEdit ? "¡Cambios Guardados!" : "¡Registro Exitoso!",
         message: branchToEdit 
@@ -152,53 +155,60 @@ const CinemaPage = () => {
       />
 
       {/* CONTROLES DE PAGINACIÓN */}
-      <div className="flex items-center justify-between px-4 py-3 bg-white rounded-cineflix border border-border shadow-sm">
-        <span className="text-xs font-montserrat text-slate-500 font-medium">
-          Total: {pagination.total} sucursales
-        </span>
-        
-        <div className="flex gap-2 items-center">
+      <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6 rounded-b-xl shadow-sm">
+        <div className="flex justify-between flex-1 sm:hidden">
           <button
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={!pagination.prev_page}
-            className="p-1.5 rounded-lg border border-border hover:bg-slate-50 disabled:opacity-20 transition-all"
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            disabled={!metadata.prev_page}
+            className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
           >
-            <ChevronLeft className="w-5 h-5 text-brand-primary" />
+            Anterior
           </button>
-
-          <div className="flex gap-1">
-            {[...Array(pagination.total_pages)].map((_, i) => (
-              <button
-                key={i + 1}
-                onClick={() => handlePageChange(i + 1)}
-                className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
-                  currentPage === i + 1
-                    ? "bg-brand-primary text-white shadow-md shadow-brand-primary/30"
-                    : "text-slate-400 hover:bg-slate-100"
-                }`}
-              >
-                {i + 1}
-              </button>
-            ))}
+          <button
+            onClick={() => setCurrentPage(prev => prev + 1)}
+            disabled={!metadata.next_page}
+            className="relative ml-3 inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+          >
+            Siguiente
+          </button>
+        </div>
+        <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm text-gray-700">
+              Mostrando <span className="font-medium">{(currentPage - 1) * metadata.per_page + 1}</span> a{" "}
+              <span className="font-medium">
+                {Math.min(currentPage * metadata.per_page, metadata.total)}
+              </span>{" "}
+              de <span className="font-medium">{metadata.total}</span> resultados
+            </p>
           </div>
+          <div>
+            <nav className="inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+              <button
+                onClick={() => setCurrentPage(metadata.prev_page)}
+                disabled={!metadata.prev_page}
+                className="relative inline-flex items-center px-2 py-2 text-gray-400 rounded-l-md border border-gray-300 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+              
+              <div className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-brand-primary border border-gray-300 bg-white">
+                Página {metadata.current_page} de {metadata.total_pages}
+              </div>
 
-          <button
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={!pagination.next_page}
-            className="p-1.5 rounded-lg border border-border hover:bg-slate-50 disabled:opacity-20 transition-all"
-          >
-            <ChevronRight className="w-5 h-5 text-brand-primary" />
-          </button>
+              <button
+                onClick={() => setCurrentPage(metadata.next_page)}
+                disabled={!metadata.next_page}
+                className="relative inline-flex items-center px-2 py-2 text-gray-400 rounded-r-md border border-gray-300 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            </nav>
+          </div>
         </div>
       </div>
 
-      {/* MODALES */}
-      <BranchModal
-        open={isModalOpen}
-        onClose={handleCloseModal}
-        initialData={branchToEdit}
-      />
-
+      {/* MODALES DE INTERACCIÓN */}
       <DeleteConfirmModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
@@ -213,27 +223,17 @@ const CinemaPage = () => {
         message={successConfig.message}
       />
 
-      {/* SECCIÓN DE SALAS (DETALLE) */}
+      <BranchModal
+        open={isModalOpen}
+        onClose={handleCloseModal}
+        initialData={branchToEdit}
+      />
+
+      {/* Sección de salas */}
       <div className="w-full pt-8 mt-4 border-t-2 border-dashed border-slate-200">
         {selectedBranch ? (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex justify-between items-center border-b border-gray-100 pb-4 mb-8">
-              <h3 className="text-lg font-montserrat font-bold text-slate-800">
-                Salas en / <span className="text-brand-primary">{selectedBranch.name}</span>
-              </h3>
-              <button 
-                onClick={() => setIsAddingRoom(true)} 
-                className="bg-brand-primary text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-[11px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg shadow-brand-primary/20"
-              >
-                <Plus className="w-4 h-4 text-brand-gold" strokeWidth={3} />
-                AGREGAR SALA
-              </button>
-            </div>
-            <RoomManager 
-              branch={selectedBranch} 
-              externalIsAdding={isAddingRoom} 
-              setExternalIsAdding={setIsAddingRoom} 
-            />
+          <div className="animate-in fade-in slide-in-from-bottom-4">
+             <RoomManager branch={selectedBranch} externalIsAdding={isAddingRoom} setExternalIsAdding={setIsAddingRoom} />
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-20 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-300">
