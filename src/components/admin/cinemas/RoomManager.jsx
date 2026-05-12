@@ -69,31 +69,33 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
   };
 
   const handleSaveRoom = async () => {
-    const formattedSeats = [];
-    roomLayout.forEach((row, rowIndex) => {
-      row.forEach((seatState, colIndex) => {
-        if (seatState !== 'empty') {
-          formattedSeats.push({
-            row_identifier: String.fromCharCode(65 + rowIndex),
-            column_number: colIndex + 1,
-            seat_condition: seatState === 'maintenance' ? 2 : 1,
-            seat_category: 1
-          });
-        }
-      });
+  const formattedSeats = [];
+  roomLayout.forEach((row, rowIndex) => {
+    row.forEach((seat, colIndex) => {
+      if (seat.type !== 'empty') {
+        formattedSeats.push({
+          row_identifier: String.fromCharCode(65 + rowIndex),
+          column_number: colIndex + 1,
+          seat_category: seat.category, 
+          seat_condition: seat.condition
+        });
+      }
     });
+  });
+
 
     const payload = {
-      cinema: branch.id,
+      cinema: branch.id, // El ID de la sucursal seleccionada
       name: formData.name,
       grid_rows: parseInt(formData.rows),
       grid_columns: parseInt(formData.cols),
       projection_type: formData.projectionType,
-      seats: formattedSeats,
+      seats: formattedSeats, // El array de sillas que acabamos de construir
     };
 
     try {
       showLoader();
+      // Aquí realizas la petición al backend
       if (editingRoomId) {
         await api.put(`/rooms/${editingRoomId}`, payload);
       } else {
@@ -102,7 +104,7 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
       resetForm();
       fetchRooms();
     } catch (error) {
-      console.error("Error al guardar:", error);
+      console.error("Error al guardar la sala:", error);
     } finally {
       hideLoader();
     }
