@@ -7,7 +7,7 @@ import { EditUserModal } from "@/components/admin/users/EditUserModal";
 import DeleteConfirmModal from "@/components/ui/DialogConfirmModal";
 import SuccessModal from "@/components/ui/SuccessModal";
 
-import UsersTab from "./UsersTab";
+import UsersTab from "./usersTab";
 
 import { useLoading } from "@/context/LoadingContext";
 import { getUsers, deleteUser } from "@/services/users.service";
