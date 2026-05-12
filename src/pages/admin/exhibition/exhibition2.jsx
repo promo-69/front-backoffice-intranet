@@ -5,7 +5,7 @@ import { ShowtimesTab } from "@/components/admin/exhibition/showtimes/ShowtimesT
 import { ShowtimeForm } from "@/components/admin/exhibition/showtimes/ShowtimeForm2"
 import SuccessModal from "@/components/ui/SuccessModal"
 import DeleteConfirmModal from "@/components/ui/DialogConfirmModal"
-import MovieForm from "@/components/admin/exhibition/movies/MovieForm2"
+import MovieForm from "@/components/admin/exhibition/movies/MovieForm"
 import { TabsCustom } from "@/components/ui/TabsCustom";
 import { Plus } from "lucide-react";
 import { useLoading } from "@/context/LoadingContext";
