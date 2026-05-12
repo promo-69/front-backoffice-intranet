@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "../pages/auth/login";
 import Dashboard from "../pages/admin/dashboard";
 import DashboardCashier from "../pages/ticketOffice/dashboardCashier";
-import Exhibition from "@/pages/admin/exhibition/exhibition";
+import Exhibition from "@/pages/admin/exhibition/exhibition2";
 import SellTickets from "../pages/ticketOffice/sellTickets";
 import AuthLayout from "../layouts/AuthLayout";
 import AdminLayout from "../layouts/AdminLayout";
