@@ -19,12 +19,14 @@ export default function UsersTab({ users, onEdit, onEditEmployee, onDelete }) {
           {users.map((u) => (
             <tr key={u.id} className="border-b hover:bg-gray-50 transition">
               <td className="py-4 px-18 font-bold text-slate-700">
-                {u._People.first_name} {u._People.last_name}
+                {u._People?.first_name || ""} {u._People?.last_name || ""}
               </td>
               <td className="py-4 px-4">{u.email}</td>
               {/*rol cruzado*/}
               <td className="py-4 px-4">{u.roleName}</td>
-              <td className="py-4 px-7">{u.employeeData?.employee_code || "Sin cargo"}</td>
+              <td className="py-4 px-7">
+                {u.employeeData?.employee_code || "Sin cargo"}
+              </td>
               <td>{u.status === 1 ? "Activo" : "Inactivo"}</td>
 
               {/* ⭐ ACCIONES */}

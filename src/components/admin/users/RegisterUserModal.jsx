@@ -391,11 +391,15 @@ export function RegisterUserModal({ open, onClose }) {
               >
                 <option value="">Seleccione...</option>
 
-                {roles.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name}
-                  </option>
-                ))}
+                {roles.length > 0 ? (
+                  roles.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name}
+                    </option>
+                  ))
+                ) : (
+                  <option disabled>Cargando roles...</option>
+                )}
               </SelectForm>
 
               <ErrorMsg message={errorsUser.roleId} />
