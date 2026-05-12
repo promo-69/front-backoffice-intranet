@@ -1,4 +1,4 @@
-import Badge from "../../../components/ui/Badge"
+import Badge from "../../../ui/Badge"
 import { ImageOff, Edit, Eye, Trash } from "lucide-react"
 
 export const ColumnsMovies = (onView, onEdit, onDelete) => [

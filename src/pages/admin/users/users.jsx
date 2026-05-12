@@ -84,11 +84,12 @@ export default function Users() {
 
   return (
     <div className="space-y-6">
-      {/* HEADER */}
-      <div className="flex justify-between items-center border-b pb-4">
-        <div>
-          <h3 className="text-lg font-bold text-brand-primary">
-            Gestión de Usuarios
+      
+      {/* Barra de acciones superior */}
+      <div className="flex justify-between items-center bg-white p-6 rounded-cineflix border border-gray-100 shadow-sm">
+        <div >
+          <h3 className="text-lg font-montserrat font-bold text-brand-primary">
+            Gestión de personal
           </h3>
           <p className="text-xs text-muted-foreground">
             Administra el acceso de empleados al sistema
