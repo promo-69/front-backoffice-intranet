@@ -38,11 +38,21 @@ export default function Users() {
     try {
       showLoader();
 
-      const usersRaw = await getUsers(); // ⭐ siempre array
+      const usersRaw = await getUsers();
 
       const usersWithEmployeeData = await Promise.all(
         usersRaw.map(async (u) => {
-          const employee = await getEmployeeById(u.employee);
+          let employee = null;
+
+          try {
+            if (u.employee) {
+              employee = await getEmployeeById(u.employee);
+            }
+          } catch (e) {
+            console.error("Error obteniendo empleado:", e);
+            employee = null;
+          }
+
           return { ...u, employeeData: employee };
         }),
       );

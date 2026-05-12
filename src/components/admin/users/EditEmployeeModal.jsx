@@ -22,13 +22,14 @@ export default function EditEmployeeModal({ open, onClose, employee }) {
   useEffect(() => {
     if (employee) {
       setForm({
-        jobPosition: employee.jobPosition,
-        cinema: employee.cinema,
-        salaryBase: employee.salaryBase,
-        startDate: employee.startDate,
+        jobPosition: employee.jobPosition || "",
+        cinema: employee.cinema || "",
+        salaryBase: employee.salaryBase || "",
+        startDate: employee.startDate || "",
       });
     }
   }, [employee]);
+
 
   const handleSubmit = async () => {
     try {
