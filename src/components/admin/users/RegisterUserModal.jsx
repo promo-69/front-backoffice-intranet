@@ -13,6 +13,8 @@ import { SelectForm } from "@/components/ui/SelectForm";
 
 import { createEmployee } from "@/services/employees.service";
 import { createUser, getRoles } from "@/services/users.service";
+import { AiFillEye, AiFillEyeInvisible } from "react-icons/ai";
+
 
 
 export function RegisterUserModal({ open, onClose }) {
@@ -109,6 +111,8 @@ export function RegisterUserModal({ open, onClose }) {
 
     return "";
   };
+
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleEmpChange = (e) => {
     const { name, value } = e.target;
@@ -357,33 +361,42 @@ export function RegisterUserModal({ open, onClose }) {
               <ErrorMsg message={errorsUser.email} />
             </div>
 
-            <div>
+            <div className="relative">
               <InputForm
                 label="Contraseña"
                 name="password"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 value={userData.password}
                 onChange={handleUserChange}
                 placeholder="Mínimo 8 caracteres"
               />
+
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-9 -translate-y-1/2 text-gray-600 text-xl opacity-80 hover:opacity-100"
+              >
+                {showPassword ? <AiFillEyeInvisible /> : <AiFillEye />}
+              </button>
+
               <ErrorMsg message={errorsUser.password} />
             </div>
 
             <div>
-                <SelectForm
-                  label="Rol"
-                  name="roleId"
-                  value={userData.roleId}
-                  onChange={handleUserChange}
-                >
-                  <option value="">Seleccione...</option>
+              <SelectForm
+                label="Rol"
+                name="roleId"
+                value={userData.roleId}
+                onChange={handleUserChange}
+              >
+                <option value="">Seleccione...</option>
 
-  {roles.map((r) => (
-    <option key={r.id} value={r.id}>
-      {r.name}
-    </option>
-  ))}
-</SelectForm>
+                {roles.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name}
+                  </option>
+                ))}
+              </SelectForm>
 
               <ErrorMsg message={errorsUser.roleId} />
             </div>
