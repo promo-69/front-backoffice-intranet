@@ -1,3 +1,5 @@
+import { Pencil, Trash2 } from "lucide-react";
+
 export default function UsersTab({ search, users, onDelete, onEdit }) {
   const safeUsers = Array.isArray(users) ? users : [];
 
@@ -60,17 +62,26 @@ export default function UsersTab({ search, users, onDelete, onEdit }) {
                 </td>
 
                 {/* ACCIONES */}
-                <td className="py-4 px-4 text-center">
-                  <button
-                    onClick={() => onEdit(u)}
-                    className="text-brand-primary mr-3"
-                  >
-                    Editar
-                  </button>
+                <td className="py-4 px-4">
+                  <div className="flex justify-center gap-3">
+                    {/* EDITAR */}
+                    <button
+                      onClick={() => onEdit(u)}
+                      className="text-brand-primary hover:scale-110 transition-transform"
+                      title="Editar usuario"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
 
-                  <button onClick={() => onDelete(u)} className="text-red-500">
-                    Eliminar
-                  </button>
+                    {/* ELIMINAR */}
+                    <button
+                      onClick={() => onDelete(u)}
+                      className="text-red-500 hover:scale-110 transition-transform"
+                      title="Eliminar usuario"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))

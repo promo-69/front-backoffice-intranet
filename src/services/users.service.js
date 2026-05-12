@@ -17,11 +17,20 @@ export const createAdminUser = async (payload) => {
 };
 
 export const updateUser = async (id, payload) => {
-  const response = await api.put(`/users/${id}`, payload);
+  const response = await api.patch(`/users/security`, {
+    user: id,
+    ...payload,
+  });
   return response.data;
 };
+
 
 export const deleteUser = async (id) => {
   const response = await api.delete(`/users/${id}`);
   return response.data;
+};
+
+export const getRoles = async () => {
+  const response = await api.get("/users/roles");
+  return response.data.data; // porque backend envía { message, data }
 };
