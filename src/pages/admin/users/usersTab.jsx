@@ -22,8 +22,9 @@ export default function UsersTab({ users, onEdit, onEditEmployee, onDelete }) {
                 {u._People.first_name} {u._People.last_name}
               </td>
               <td className="py-4 px-4">{u.email}</td>
-              <td className="py-4 px-4">{u.roleCode}</td>
-              <td className="py-4 px-7">{u.employeeData?.employee_Code || "Sin cargo"}</td>
+              {/*rol cruzado*/}
+              <td className="py-4 px-4">{u.roleName}</td>
+              <td className="py-4 px-7">{u.employeeData?.employee_code || "Sin cargo"}</td>
               <td>{u.status === 1 ? "Activo" : "Inactivo"}</td>
 
               {/* ⭐ ACCIONES */}

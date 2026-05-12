@@ -54,9 +54,10 @@ export default function EditEmployeeModal({ open, onClose, employee }) {
             value={form.jobPosition}
             onChange={(e) => setForm({ ...form, jobPosition: e.target.value })}
           >
-            <option value="1">Gerente</option>
-            <option value="2">Cajero</option>
-            <option value="3">Acomodador</option>
+            <option value="1">Administrador</option>
+            <option value="2">Gerente</option>
+            <option value="3">Cajero</option>
+            <option value="4">Acomodador</option>
           </SelectForm>
 
           <SelectForm

@@ -11,7 +11,7 @@ import SuccessModal from "@/components/ui/SuccessModal";
 import UsersTab from "@/pages/admin/users/usersTab";
 
 import { useLoading } from "@/context/LoadingContext";
-import { getUsers, deleteUser } from "@/services/users.service";
+import { getUsers, deleteUser, getRoles } from "@/services/users.service";
 import { getEmployeeById } from "@/services/employees.service";
 
 export default function Users() {
@@ -35,37 +35,47 @@ export default function Users() {
   const [successMessage, setSuccessMessage] = useState("");
 
   const fetchUsers = async () => {
-    try {
-      showLoader();
+  try {
+    showLoader();
 
-      const usersRaw = await getUsers();
+    // 1. Obtener usuarios
+    const usersRaw = await getUsers();
 
-      const usersWithEmployeeData = await Promise.all(
-        usersRaw.map(async (u) => {
-          let employee = null;
+    // 2. Obtener roles
+    const roles = await getRoles();
 
-          try {
-            if (u.employee) {
-              employee = await getEmployeeById(u.employee);
-            }
-          } catch (e) {
-            console.error("Error obteniendo empleado:", e);
-            employee = null;
+    // 3. Cruzar usuarios con roles
+    const usersWithEmployeeData = await Promise.all(
+      usersRaw.map(async (u) => {
+        let employee = null;
+
+        try {
+          if (u.employee) {
+            employee = await getEmployeeById(u.employee);
           }
+        } catch {
+          employee = null;
+        }
 
-          return { ...u, employeeData: employee };
-        }),
-      );
+        // Buscar el rol por ID
+        const roleObj = roles.find((r) => r.id === u.role);
 
-      setUsers(usersWithEmployeeData);
-    } catch (error) {
-      console.error("Error cargando usuarios:", error);
-      setUsers([]);
-    } finally {
-      hideLoader();
-    }
-  };
+        return {
+          ...u,
+          employeeData: employee,
+          roleName: roleObj?.name || "Sin rol",
+        };
+      })
+    );
 
+    setUsers(usersWithEmployeeData);
+  } catch (error) {
+    console.error("Error cargando usuarios:", error);
+    setUsers([]);
+  } finally {
+    hideLoader();
+  }
+};
 
   useEffect(() => {
     fetchUsers();
