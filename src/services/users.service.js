@@ -1,36 +1,35 @@
-import api from "@/api/axios";
+import api from "../api/axios";
+
+
+export const createUser = async (payload) => {
+  const res = await api.post("/users/admin", payload);
+  return res.data;
+};
+
 
 export const getUsers = async () => {
-  const response = await api.get("/users");
-  return response.data;
+  const res = await api.get("/users");
+  return res.data?.data || [];
 };
 
-/*
-export const createUser = async (payload) => {
-  const response = await api.post("/users", payload);
-  return response.data;
-};*/
-
-export const createAdminUser = async (payload) => {
-  const response = await api.post("/users/admin", payload);
-  return response.data;
-};
-
-export const updateUser = async (id, payload) => {
-  const response = await api.patch(`/users/security`, {
+export const updateUserEmail = async (id, email) => {
+  return api.patch("/users/security", {
     user: id,
-    ...payload,
+    email,
+    currentPassword: "dummy"
   });
-  return response.data;
 };
 
-
-export const deleteUser = async (id) => {
-  const response = await api.delete(`/users/${id}`);
-  return response.data;
+export const updateUserStatus = async (id, status) => {
+  return api.patch(`/users/${id}/status`, { status });
 };
 
 export const getRoles = async () => {
-  const response = await api.get("/users/roles");
-  return response.data.data; // porque backend envía { message, data }
+  const res = await api.get("/users/roles");
+  return res.data?.data || []; // devuelve [{id, code, name, ...}]
+};
+
+export const deleteUser = async (id) => {
+  const res = await api.delete(`/users/${id}`);
+  return res.data;
 };

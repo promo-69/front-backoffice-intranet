@@ -2,15 +2,17 @@ import { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
 
 import { RegisterUserModal } from "@/components/admin/users/RegisterUserModal";
-import { EditUserModal } from "@/components/admin/users/EditUserModal";
+import  EditUserModal from "@/components/admin/users/EditUserModal";
+import EditEmployeeModal from "@/components/admin/users/EditEmployeeModal";
 
 import DeleteConfirmModal from "@/components/ui/DialogConfirmModal";
 import SuccessModal from "@/components/ui/SuccessModal";
 
-import UsersTab from "./usersTab";
+import UsersTab from "@/pages/admin/users/usersTab";
 
 import { useLoading } from "@/context/LoadingContext";
 import { getUsers, deleteUser } from "@/services/users.service";
+import { getEmployeeById } from "@/services/employees.service";
 
 export default function Users() {
   const { showLoader, hideLoader } = useLoading();
@@ -20,7 +22,10 @@ export default function Users() {
 
   const [openModal, setOpenModal] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isEditEmployeeOpen, setIsEditEmployeeOpen] = useState(false);
+
   const [userToEdit, setUserToEdit] = useState(null);
+  const [employeeToEdit, setEmployeeToEdit] = useState(null);
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
@@ -32,8 +37,17 @@ export default function Users() {
   const fetchUsers = async () => {
     try {
       showLoader();
-      const data = await getUsers();
-      setUsers(data.data);
+
+      const usersRaw = await getUsers(); // ⭐ siempre array
+
+      const usersWithEmployeeData = await Promise.all(
+        usersRaw.map(async (u) => {
+          const employee = await getEmployeeById(u.employee);
+          return { ...u, employeeData: employee };
+        }),
+      );
+
+      setUsers(usersWithEmployeeData);
     } catch (error) {
       console.error("Error cargando usuarios:", error);
       setUsers([]);
@@ -41,6 +55,7 @@ export default function Users() {
       hideLoader();
     }
   };
+
 
   useEffect(() => {
     fetchUsers();
@@ -56,6 +71,11 @@ export default function Users() {
   const handleEditClick = (user) => {
     setUserToEdit(user);
     setIsEditModalOpen(true);
+  };
+
+  const handleEditEmployeeClick = (employee) => {
+    setEmployeeToEdit(employee);
+    setIsEditEmployeeOpen(true);
   };
 
   const handleDeleteClick = (user) => {
@@ -84,10 +104,9 @@ export default function Users() {
 
   return (
     <div className="space-y-6">
-      
-      {/* Barra de acciones superior */}
+      {/* Barra superior */}
       <div className="flex justify-between items-center bg-white p-6 rounded-cineflix border border-gray-100 shadow-sm">
-        <div >
+        <div>
           <h3 className="text-lg font-montserrat font-bold text-brand-primary">
             Gestión de personal
           </h3>
@@ -108,10 +127,12 @@ export default function Users() {
       <UsersTab
         search={search}
         users={users}
-        onDelete={handleDeleteClick}
         onEdit={handleEditClick}
+        onEditEmployee={handleEditEmployeeClick}
+        onDelete={handleDeleteClick}
       />
 
+      {/* Modales */}
       <DeleteConfirmModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
@@ -141,6 +162,15 @@ export default function Users() {
           if (shouldRefresh) fetchUsers();
         }}
         user={userToEdit}
+      />
+
+      <EditEmployeeModal
+        open={isEditEmployeeOpen}
+        onClose={(shouldRefresh) => {
+          setIsEditEmployeeOpen(false);
+          if (shouldRefresh) fetchUsers();
+        }}
+        employee={employeeToEdit}
       />
     </div>
   );

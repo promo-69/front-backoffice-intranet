@@ -5,60 +5,35 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog";
+} from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/button";
 import { InputForm } from "@/components/ui/inputForm";
 import { SelectForm } from "@/components/ui/SelectForm";
+import { updateUserEmail, updateUserStatus } from "@/services/users.service";
 
-import { updateUser, getRoles } from "@/services/users.service";
+export default function EditUserModal({ open, onClose, user }) {
 
-export function EditUserModal({ open, onClose, user }) {
-  const [roles, setRoles] = useState([]);
   const [form, setForm] = useState({
     email: "",
-    role: "",
     status: 1,
   });
 
-  // Cargar roles desde backend
-  useEffect(() => {
-    const fetchRoles = async () => {
-      try {
-        const data = await getRoles();
-        setRoles(data);
-      } catch (error) {
-        console.error("Error cargando roles:", error);
-      }
-    };
-
-    fetchRoles();
-  }, []);
-
-  // Cargar datos del usuario
   useEffect(() => {
     if (user) {
       setForm({
         email: user.email || "",
-        role: user.role ? String(user.role) : "",
-        status: user.status,
+        status: user.status ?? 1,
       });
     }
   }, [user]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-  };
+  
+  if (!user) return null;
 
   const handleSubmit = async () => {
     try {
-      const payload = {
-        email: form.email,
-        role: Number(form.role),
-        status: Number(form.status),
-      };
-
-      await updateUser(user.id, payload);
+      await updateUserEmail(user.id, form.email);
+      await updateUserStatus(user.id, form.status);
       onClose(true);
     } catch (error) {
       console.error("Error actualizando usuario:", error);
@@ -67,69 +42,41 @@ export function EditUserModal({ open, onClose, user }) {
 
   return (
     <Dialog open={open} onOpenChange={() => onClose(false)}>
-      <DialogContent className="max-w-md bg-white rounded-xl p-6">
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle className="text-lg font-bold text-brand-primary">
-            Editar Usuario
-          </DialogTitle>
+          <DialogTitle>Editar Usuario</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 mt-4">
           <InputForm
-            label="Nombre"
-            value={user?._People?.first_name || ""}
-            disabled
-          />
-
-          <InputForm
-            label="Apellido"
-            value={user?._People?.last_name || ""}
-            disabled
-          />
-
-          <InputForm
             label="Correo"
             name="email"
             value={form.email}
-            onChange={handleChange}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
 
-          <SelectForm
-            label="Rol"
-            name="role"
-            value={form.role}
-            onChange={handleChange}
-          >
-            <option value="">Seleccione...</option>
-            {roles.map((r) => (
-              <option key={r.id} value={String(r.id)}>
-                {r.code}
-              </option>
-            ))}
-          </SelectForm>
+          <InputForm
+            label="Rol del Sistema"
+            value={user?.roleCode || "—"}
+            disabled
+          />
 
           <SelectForm
             label="Estado"
             name="status"
             value={form.status}
-            onChange={handleChange}
+            onChange={(e) => setForm({ ...form, status: e.target.value })}
           >
             <option value="1">Activo</option>
             <option value="0">Inactivo</option>
           </SelectForm>
         </div>
 
-        <DialogFooter className="mt-6 flex justify-end gap-3">
+        <DialogFooter>
           <Button variant="outline" onClick={() => onClose(false)}>
             Cancelar
           </Button>
-
-          <Button
-            className="bg-brand-primary text-white"
-            onClick={handleSubmit}
-          >
-            Guardar Cambios
-          </Button>
+          <Button onClick={handleSubmit}>Guardar Cambios</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

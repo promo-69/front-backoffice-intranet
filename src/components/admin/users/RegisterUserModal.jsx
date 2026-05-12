@@ -12,7 +12,8 @@ import { InputForm } from "@/components/ui/inputForm";
 import { SelectForm } from "@/components/ui/SelectForm";
 
 import { createEmployee } from "@/services/employees.service";
-import { createAdminUser } from "@/services/users.service";
+import { createUser, getRoles } from "@/services/users.service";
+
 
 export function RegisterUserModal({ open, onClose }) {
   const [step, setStep] = useState(1);
@@ -37,6 +38,8 @@ export function RegisterUserModal({ open, onClose }) {
   const [errorsEmp, setErrorsEmp] = useState({});
   const [errorsUser, setErrorsUser] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [roles, setRoles] = useState([]);
+
 
   useEffect(() => {
     if (!open) {
@@ -60,6 +63,18 @@ export function RegisterUserModal({ open, onClose }) {
       setErrorsUser({});
       setIsSubmitting(false);
     }
+
+    // ⭐ Cargar roles dinámicamente
+    const fetchRoles = async () => {
+      try {
+        const data = await getRoles();
+        setRoles(data);
+      } catch (error) {
+        console.error("Error cargando roles:", error);
+      }
+    };
+
+    fetchRoles();
   }, [open]);
 
   const validateEmpField = (name, value) => {
@@ -179,7 +194,7 @@ export function RegisterUserModal({ open, onClose }) {
       };
 
       
-      await createAdminUser(payloadUser);
+      await createUser(payloadUser);
        
 
       onClose(true);
@@ -355,18 +370,21 @@ export function RegisterUserModal({ open, onClose }) {
             </div>
 
             <div>
-              <SelectForm
-                label="Rol"
-                name="roleId"
-                value={userData.roleId}
-                onChange={handleUserChange}
-              >
-                <option value="">Seleccione...</option>
-                <option value="1">Administrador</option>
-                <option value="2">Gerente</option>
-                <option value="3">Cajero</option>
-                <option value="4">Operador</option>
-              </SelectForm>
+                <SelectForm
+                  label="Rol"
+                  name="roleId"
+                  value={userData.roleId}
+                  onChange={handleUserChange}
+                >
+                  <option value="">Seleccione...</option>
+
+  {roles.map((r) => (
+    <option key={r.id} value={r.id}>
+      {r.name}
+    </option>
+  ))}
+</SelectForm>
+
               <ErrorMsg message={errorsUser.roleId} />
             </div>
           </div>

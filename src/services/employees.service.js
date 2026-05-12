@@ -1,11 +1,16 @@
-import api from "@/api/axios";
+import api from "../api/axios";
 
 export const createEmployee = async (payload) => {
-  const response = await api.post("/employees", payload);
-  return response.data;
+  const res = await api.post("/employees", payload);
+  return res.data;
+};
+
+
+export const getEmployeeById = async (id) => {
+  const res = await api.get(`/employees/${id}`);
+  return res.data.data;
 };
 
 export const updateEmployeePosition = async (id, payload) => {
-  const response = await api.put(`/employees/${id}/positions`, payload);
-  return response.data;
+  return api.put(`/employees/${id}/positions`, payload);
 };
