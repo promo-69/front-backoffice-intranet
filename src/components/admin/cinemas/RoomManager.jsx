@@ -167,7 +167,7 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-brand-primary outline-none font-montserrat"
-                placeholder="Ej: Sala IMAX"
+                placeholder="Ej: Sala 1"
               />
             </div>
             <div className="flex flex-col gap-1">
@@ -187,8 +187,9 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
 
           <SeatGridDesigner
             key={editingRoomId || "new"}
-            rows={formData.rows}
-            cols={formData.cols}
+            // --- CAMBIO AQUÍ: Pasamos los props que el hijo espera ---
+            externalFormData={formData} 
+            setExternalFormData={setFormData}
             initialLayout={roomLayout}
             onValidationChange={(isValid, layout) => {
               setIsLayoutValid(isValid);

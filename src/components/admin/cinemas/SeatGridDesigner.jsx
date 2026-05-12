@@ -1,39 +1,45 @@
 import { useState, useEffect } from 'react';
-import { MonitorPlay, Wrench, Grid3X3 } from 'lucide-react';
+import { Wrench, Grid3X3 } from 'lucide-react';
 
 export default function SeatGridDesigner({ onValidationChange, initialLayout, externalFormData, setExternalFormData }) {
-  // Estado para la matriz visual
+  // 1. Guardrail de seguridad: Si no hay datos externos, no renderizamos para evitar errores de lectura
+  if (!externalFormData) return null;
+
   const [seatMap, setSeatMap] = useState([]);
 
-  // Sincronizar dimensiones y reconstruir la cuadrícula
+  // 2. Sincronizar dimensiones y reconstruir la cuadrícula (Optimizado)
   useEffect(() => {
     const numRows = parseInt(externalFormData.rows) || 0;
     const numCols = parseInt(externalFormData.cols) || 0;
     
     if (numRows > 0 && numCols > 0) {
-      // Si estamos editando y tenemos un layout previo, intentar reconstruirlo
-      if (initialLayout && initialLayout.length > 0) {
-        // Aquí podrías implementar lógica para mapear de lista plana a matriz si fuera necesario
+      // Si estamos editando y el layout inicial coincide con las dimensiones actuales, lo usamos
+      if (initialLayout && initialLayout.length === numRows && initialLayout[0]?.length === numCols) {
         setSeatMap(initialLayout);
       } else {
-        // Inicialización por defecto: todos activos
+        // Si las dimensiones cambiaron o es nuevo, creamos un mapa limpio
         const newMap = Array(numRows).fill().map(() => Array(numCols).fill('active'));
         setSeatMap(newMap);
       }
     } else {
       setSeatMap([]);
     }
-  }, [externalFormData.rows, externalFormData.cols, initialLayout]);
+    // Quitamos initialLayout de las dependencias para evitar que resetee el mapa mientras el usuario edita
+  }, [externalFormData.rows, externalFormData.cols]);
 
-  // Cálculos de capacidad
-  const activeSeatsCount = seatMap.flat().filter(seat => seat === 'active').length;
-  const maintenanceSeatsCount = seatMap.flat().filter(seat => seat === 'maintenance').length;
-
-  // Notificar al padre cada vez que cambie el mapa
+  // 3. Notificar al padre sobre cambios (Sin bucles infinitos)
   useEffect(() => {
+    if (seatMap.length === 0) return;
+    
+    const activeSeatsCount = seatMap.flat().filter(seat => seat === 'active').length;
     const isValid = activeSeatsCount > 0;
+    
+    // Solo disparamos la validación si el mapa tiene contenido real
     onValidationChange(isValid, seatMap);
-  }, [seatMap, activeSeatsCount]);
+  }, [seatMap]);
+
+  // Cálculos de capacidad para la UI local
+  const activeSeatsCount = seatMap.flat().filter(seat => seat === 'active').length;
 
   const toggleSeat = (rowIndex, colIndex) => {
     const newMap = [...seatMap];
@@ -61,7 +67,6 @@ export default function SeatGridDesigner({ onValidationChange, initialLayout, ex
           <p className="text-xs text-gray-500">Define el tamaño de la cuadrícula y haz clic para alternar estados.</p>
         </div>
 
-        {/* Inputs de Dimensiones integrados */}
         <div className="flex gap-3">
           <div className="flex flex-col gap-1">
             <span className="text-[10px] font-bold text-gray-400 uppercase">Filas</span>
@@ -71,7 +76,7 @@ export default function SeatGridDesigner({ onValidationChange, initialLayout, ex
               max="20"
               value={externalFormData.rows}
               onChange={(e) => setExternalFormData({...externalFormData, rows: e.target.value})}
-              className="w-16 border border-gray-200 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-brand-primary outline-none"
+              className="w-16 border border-gray-200 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-brand-primary outline-none font-montserrat"
             />
           </div>
           <div className="flex flex-col gap-1">
@@ -82,11 +87,10 @@ export default function SeatGridDesigner({ onValidationChange, initialLayout, ex
               max="20"
               value={externalFormData.cols}
               onChange={(e) => setExternalFormData({...externalFormData, cols: e.target.value})}
-              className="w-16 border border-gray-200 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-brand-primary outline-none"
+              className="w-16 border border-gray-200 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-brand-primary outline-none font-montserrat"
             />
           </div>
           
-          {/* Contador de capacidad real */}
           <div className="bg-brand-primary/5 border border-brand-primary/20 px-4 py-1 rounded flex flex-col items-center justify-center">
              <span className="text-[10px] font-bold text-brand-primary uppercase">Capacidad Real</span>
              <span className="text-lg font-black text-brand-primary leading-tight">{activeSeatsCount}</span>
@@ -94,17 +98,19 @@ export default function SeatGridDesigner({ onValidationChange, initialLayout, ex
         </div>
       </div>
 
-      {/* Pantalla */}
       <div className="w-full max-w-md mx-auto mb-10 flex flex-col items-center">
         <div className="w-full h-2 bg-gradient-to-t from-gray-300 to-gray-100 rounded-full shadow-sm mb-2" />
         <span className="text-[10px] font-bold text-gray-400 tracking-[0.3em] uppercase">Pantalla Central</span>
       </div>
 
-      {/* Cuadrícula */}
-      <div className="flex justify-center overflow-x-auto pb-6 custom-scrollbar">
+      {/* Área de la Cuadrícula con Scroll Horizontal para muchas columnas */}
+      <div className="flex justify-start md:justify-center overflow-x-auto pb-6 custom-scrollbar">
         <div 
-          className="grid gap-2 p-4 bg-slate-50/50 rounded-xl border border-slate-100" 
-          style={{ gridTemplateColumns: `repeat(${externalFormData.cols || 0}, minmax(0, 1fr))` }}
+          className="grid gap-2 p-4 bg-slate-50/50 rounded-xl border border-slate-100 h-fit" 
+          style={{ 
+            gridTemplateColumns: `repeat(${parseInt(externalFormData.cols) || 1}, minmax(36px, 1fr))`,
+            width: 'max-content' // Crucial para que no se amontonen las sillas
+          }}
         >
           {seatMap.map((row, rowIndex) => (
             row.map((seatState, colIndex) => {
@@ -136,7 +142,6 @@ export default function SeatGridDesigner({ onValidationChange, initialLayout, ex
         </div>
       </div>
       
-      {/* Leyenda */}
       <div className="flex justify-center flex-wrap gap-6 mt-4 py-4 bg-gray-50/50 rounded-lg">
         <LegendItem color="bg-brand-primary" label="Disponible" />
         <LegendItem color="bg-orange-500" label="Mantenimiento" icon={<Wrench className="w-2 h-2 text-white" />} />
@@ -150,7 +155,7 @@ function LegendItem({ color, label, icon }) {
   return (
     <div className="flex items-center gap-2">
       <div className={`w-4 h-4 rounded-sm flex items-center justify-center ${color}`}>{icon}</div>
-      <span className="text-[11px] font-medium text-gray-600">{label}</span>
+      <span className="text-[11px] font-medium text-gray-600 font-montserrat">{label}</span>
     </div>
   );
 }
