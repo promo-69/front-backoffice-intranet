@@ -68,7 +68,6 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
     setExternalIsAdding(true);
   };
 
-  // --- FUNCIÓN PARA GUARDAR ---
   const handleSaveRoom = async () => {
     const formattedSeats = [];
     roomLayout.forEach((row, rowIndex) => {
@@ -109,19 +108,15 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
     }
   };
 
-  // --- FUNCIÓN PARA ELIMINAR (CORREGIDA: Ahora fuera de handleSaveRoom) ---
   const handleConfirmDeleteRoom = async () => {
     if (!roomToDelete) return;
-
     try {
       showLoader();
       await deleteRoom(roomToDelete.id);
-      
       setIsDeleteModalOpen(false);
       setRoomToDelete(null);
       setIsSuccessOpen(true);
-      
-      fetchRooms(); // Refresca la lista
+      fetchRooms();
     } catch (error) {
       console.error("Error al eliminar la sala:", error);
     } finally {
@@ -132,6 +127,28 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
   return (
     <div className="bg-white p-6 rounded-cineflix border border-gray-100 shadow-sm min-h-[400px]">
       
+      {/* NUEVO HEADER DE GESTIÓN DE SALAS */}
+      {!externalIsAdding && (
+        <div className="flex justify-between items-center border-b border-gray-100 pb-6 mb-6">
+          <div>
+            <h3 className="text-lg font-montserrat font-bold text-brand-primary">
+              Salas de {branch?.name || "Sucursal"}
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Administra la configuración de asientos y tipos de proyección por sala
+            </p>
+          </div>
+
+          <button
+            onClick={() => setExternalIsAdding(true)}
+            className="bg-brand-primary text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-[11px] font-black uppercase tracking-widest hover:brightness-110 hover:shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all duration-300 border-2 border-purple-400/30 font-montserrat"
+          >
+            <Plus className="w-4 h-4 text-brand-gold" strokeWidth={3} />
+            Añadir Sala
+          </button>
+        </div>
+      )}
+
       {externalIsAdding ? (
         <div className="bg-gray-50 p-6 rounded-cineflix border border-gray-200 shadow-inner">
           <div className="flex items-center gap-2 mb-6 border-b border-gray-200 pb-3">
@@ -141,6 +158,7 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
             </h3>
           </div>
 
+          {/* Formulario de Sala */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium text-gray-700">Nombre de la sala</label>
@@ -148,7 +166,7 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-brand-primary outline-none"
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-brand-primary outline-none font-montserrat"
                 placeholder="Ej: Sala IMAX"
               />
             </div>
@@ -157,7 +175,7 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
               <select
                 value={formData.projectionType}
                 onChange={(e) => setFormData({ ...formData, projectionType: e.target.value })}
-                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-brand-primary outline-none bg-white"
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-brand-primary outline-none bg-white font-montserrat"
               >
                 <option value="2D">Estandar (2D)</option>
                 <option value="3D">3D</option>
@@ -183,7 +201,7 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
             <Button
               onClick={handleSaveRoom}
               disabled={!isLayoutValid || !formData.name}
-              className={`text-white ${!isLayoutValid ? "bg-gray-400" : "bg-brand-primary hover:bg-brand-primary/90"}`}
+              className={`text-white font-bold font-montserrat ${!isLayoutValid ? "bg-gray-400" : "bg-brand-primary hover:bg-brand-primary/90"}`}
             >
               {editingRoomId ? "Actualizar Sala" : "Guardar Sala"}
             </Button>
@@ -200,19 +218,19 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
                       <Video className="h-5 w-5" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-sm text-brand-primary">{room.name}</h4>
+                      <h4 className="font-bold text-sm text-brand-primary font-montserrat">{room.name}</h4>
                       <div className="flex gap-2 mt-1">
-                        <span className="text-[9px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-bold uppercase tracking-wider">
-                          Capacidad: --
+                        <span className="text-[9px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-bold uppercase tracking-wider font-montserrat">
+                          Capacidad: {room.total_capacity || "--"}
                         </span>
-                        <span className="text-[9px] bg-brand-primary/10 text-brand-primary px-2 py-0.5 rounded font-bold uppercase tracking-wider">
+                        <span className="text-[9px] bg-brand-primary/10 text-brand-primary px-2 py-0.5 rounded font-bold uppercase tracking-wider font-montserrat">
                           {room.projection_type || "2D"}
                         </span>
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button size="sm" variant="ghost" onClick={() => handleEditRoom(room)} className="text-blue-600 hover:bg-blue-50">Editar</Button>
+                    <Button size="sm" variant="ghost" onClick={() => handleEditRoom(room)} className="text-blue-600 hover:bg-blue-50 font-montserrat">Editar</Button>
                     <Button size="icon" variant="ghost" onClick={() => { setRoomToDelete({id: room.id, name: room.name}); setIsDeleteModalOpen(true); }} className="text-red-500 hover:bg-red-50"><Trash2 className="h-4 w-4" /></Button>
                   </div>
                 </div>
@@ -224,36 +242,18 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
                 <Presentation className="h-10 w-10 text-slate-300" />
               </div>
               <h4 className="text-slate-500 font-bold font-montserrat uppercase text-[11px] tracking-[0.2em]">
-                No hay salas asignadas en esta sucursal
+                No hay salas asignadas
               </h4>
-              <p className="text-slate-400 text-[10px] mt-2 max-w-[200px] text-center leading-relaxed">
-                Parece que esta sede aún no tiene espacios configurados. Comienza agregando una nueva sala.
+              <p className="text-slate-400 text-[10px] mt-2 max-w-[200px] text-center leading-relaxed font-montserrat">
+                Parece que esta sede aún no tiene espacios configurados.
               </p>
-              <Button 
-                onClick={() => setExternalIsAdding(true)}
-                variant="outline" 
-                className="mt-6 border-brand-primary text-brand-primary hover:bg-brand-primary hover:text-white text-xs font-bold"
-              >
-                <Plus className="h-3 w-3 mr-2" /> Agregar Primera Sala
-              </Button>
             </div>
           )}
         </>
       )}
 
-      {/* Modales de Confirmación y Éxito */}
-      <DeleteConfirmModal 
-        isOpen={isDeleteModalOpen} 
-        onClose={() => setIsDeleteModalOpen(false)} 
-        onConfirm={handleConfirmDeleteRoom} 
-        itemName={roomToDelete?.name} 
-      />
-      <SuccessModal 
-        isOpen={isSuccessOpen} 
-        onClose={() => setIsSuccessOpen(false)} 
-        title="¡Éxito!" 
-        message="Operación realizada correctamente." 
-      />
+      <DeleteConfirmModal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} onConfirm={handleConfirmDeleteRoom} itemName={roomToDelete?.name} />
+      <SuccessModal isOpen={isSuccessOpen} onClose={() => setIsSuccessOpen(false)} title="¡Éxito!" message="Operación realizada correctamente." />
     </div>
   );
 }
