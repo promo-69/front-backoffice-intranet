@@ -2,19 +2,19 @@ import { Pencil, Trash2, Film, Clock, Calendar } from "lucide-react";
 
 export function MoviesTab({ data, onEdit, onDelete }) {
   return (
-    <div className="overflow-x-auto rounded-cineflix border border-cineflix shadow-sm">
+    <div className="overflow-x-auto bg-surface-container rounded-cineflix border border-border shadow-sm">
       <table className="w-full text-left text-xs">
         <thead>
-          <tr className="text-gray-400 uppercase border-b border-gray-50 font-montserrat">
-            <th className="py-4 px-6 text-center">Póster</th>
+          <tr className="text-gray-600 uppercase tracking-wider border-b border-border font-montserrat">
+            <th className="py-4 px-6">Póster</th>
             <th className="py-4 px-4">Información</th>
             <th className="py-4 px-4">Géneros</th>
-            <th className="py-4 px-4 text-center">Clasificación</th>
-            <th className="py-4 px-4 text-center">Estado</th>
-            <th className="py-4 px-6 text-center">Acciones</th>
+            <th className="py-4 px-4">Clasificación</th>
+            <th className="py-4 px-4">Estado</th>
+            <th className="py-4 px-6">Acciones</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-50">
+        <tbody className="divide-y divide-border">
           {data.length > 0 ? (
             data.map((movie) => (
               <tr key={movie.id} className="hover:bg-gray-50/40 transition-colors group">
@@ -75,7 +75,7 @@ export function MoviesTab({ data, onEdit, onDelete }) {
               </tr>
             ))
           ) : (
-            <tr><td colSpan="6" className="py-12 text-center text-gray-400 italic">No hay registros.</td></tr>
+            <tr><td colSpan="6" className="text-center py-10 text-gray-400 font-montserrat">No hay peliculas disponibles</td></tr>
           )}
         </tbody>
       </table>
