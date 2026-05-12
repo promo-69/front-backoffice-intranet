@@ -32,28 +32,39 @@ export default function SeatGridDesigner({ onValidationChange, initialLayout, ex
     onValidationChange(activeSeatsCount > 0, seatMap);
   }, [seatMap]);
 
-  const handleSeatClick = (rowIndex, colIndex) => {
+const handleSeatClick = (rowIndex, colIndex) => {
     const newMap = [...seatMap];
     newMap[rowIndex] = [...newMap[rowIndex]];
     const current = newMap[rowIndex][colIndex];
 
     if (editMode) {
-      let nextType = current.type;
-      let nextCondition = current.condition;
+      // MODO ESTRUCTURA (1 -> 2 -> 3 -> 1)
+      let nextCondition;
+      let nextType = 'active'; // Por defecto es un asiento activo
 
-      if (current.type === 'active' && current.condition === 1) {
-        nextCondition = 2; // Mantenimiento
+      if (current.condition === 1) {
+        nextCondition = 2; // A Mantenimiento
       } else if (current.condition === 2) {
-        nextType = 'empty'; // Pasillo
-        nextCondition = 1;
+        nextCondition = 3; // A Pasillo
+        nextType = 'empty'; // Cambiar el type para que se vea como pasillo
       } else {
-        nextType = 'active'; // Disponible
-        nextCondition = 1;
+        nextCondition = 1; 
+        nextType = 'active';
       }
-      newMap[rowIndex][colIndex] = { ...current, type: nextType, condition: nextCondition };
+
+      newMap[rowIndex][colIndex] = { 
+        ...current, 
+        condition: nextCondition, 
+        type: nextType 
+      };
     } else {
-      if (current.type === 'empty') return;
-      newMap[rowIndex][colIndex] = { ...current, category: current.category === 1 ? 2 : 1 };
+      // MODO CATEGORÍA: Solo si no es pasillo
+      if (current.condition === 3 || current.type === 'empty') return;
+      
+      newMap[rowIndex][colIndex] = { 
+        ...current, 
+        category: current.category === 1 ? 2 : 1 
+      };
     }
     setSeatMap(newMap);
   };
@@ -118,7 +129,7 @@ export default function SeatGridDesigner({ onValidationChange, initialLayout, ex
         >
           {seatMap.map((row, rowIndex) => (
             row.map((seat, colIndex) => {
-              const isEmpty = seat.type === 'empty';
+              const isEmpty = seat.condition === 3;
               const isDisability = seat.category === 2;
               const isMaintenance = seat.condition === 2;
               
