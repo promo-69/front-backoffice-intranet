@@ -79,9 +79,15 @@ export function ShowtimeForm({ open, onClose, onSuccess, initialData, movies = [
                 {...register("room", { required: "Selecciona una sala" })}
               >
                 <option value="">Seleccionar...</option>
-                {rooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                 {rooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                {/*{rooms.map((room) => (
+                  <option key={room.id} value={room.id}>
+                    {room.description}
+                  </option>
+                ))}*/}
               </SelectForm>
             </div>
+            
 
             <div >
               <InputForm

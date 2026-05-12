@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { useModal } from "@/hooks/useModal"
 import { MoviesTab } from "@/components/admin/exhibition/movies/MoviesTab2"
 import { ShowtimesTab } from "@/components/admin/exhibition/showtimes/ShowtimesTab2"
@@ -8,54 +8,19 @@ import DeleteConfirmModal from "@/components/ui/DialogConfirmModal"
 import MovieForm from "@/components/admin/exhibition/movies/MovieForm2"
 import { TabsCustom } from "@/components/ui/TabsCustom";
 import { Plus } from "lucide-react";
+import { useLoading } from "@/context/LoadingContext";
+import { moviesService } from "@/services/movie.service";
+import { showtimesService } from "@/services/showtime.service";
 
 
-// Mock Data actualizado con la nueva nomenclatura
-const MOCK_MOVIES = [
-  {
-    id: 1,
-    title: "The Drama",
-    ageClassification: 3, // Clase C (+16)
-    releaseDate: "2026-05-20",
-    durationMinutes: 125,
-    lifecycleStates: 2, // En Cartelera
-    synopsis: "Una historia intensa sobre las relaciones modernas.",
-    trailerUrl: "https://youtube.com/watch?v=example1",
-    posterUrl: "https://placehold.co/400x600?text=The+Drama",
-    allowPromotions: true
-  },
-  {
-    id: 2,
-    title: "Sonic 3",
-    ageClassificationId: 1, // Clase A (TP)
-    releaseDate: "2026-06-15",
-    durationMinutes: 110,
-    lifecycleStates: 1, // Próximamente
-    synopsis: "Sonic regresa para una nueva aventura a toda velocidad.",
-    trailerUrl: "https://youtube.com/watch?v=example2",
-    posterUrl: "https://placehold.co/400x600?text=Sonic+3",
-    allowPromotions: true
-  },
-  {
-    id: 3,
-    title: "Cinefilos Night",
-    ageClassificationId: 4, // Clase D (+18)
-    releaseDate: "2026-05-10",
-    durationMinutes: 180,
-    lifecycleStates: 3, // Evento Especial
-    synopsis: "Maratón exclusiva para fanáticos del cine clásico.",
-    trailerUrl: "https://youtube.com/watch?v=example3",
-    posterUrl: "https://placehold.co/400x600?text=Evento+Especial",
-    specialPrice: 15.50,
-    allowPromotions: false
-  }
-];
 
 export default function ExhibitionPage() {
   const { modal, openModal, closeModal } = useModal();
-  const [movies, setMovies] = useState(MOCK_MOVIES);
-  const [showtimes, setShowtimes] = useState(MOCK_SHOWTIMES);
+  const [movies, setMovies] = useState([]);
+  const [showtimes, setShowtimes] = useState([]);
   const [search, setSearch] = useState("");
+  const [rooms, setRooms] = useState([]);
+  const { showLoader, hideLoader } = useLoading();
   const [activeTab, setActiveTab] = useState("movies");
 
   const tabs = [
@@ -63,46 +28,111 @@ export default function ExhibitionPage() {
     { id: "showtimes", label: "Funciones" }
   ];
 
-  const actions = {
-    // Detecta qué formulario abrir según el Tab activo
-    openForm: (data = null) => {
-      const type = activeTab === "movies" ? "movieForm" : "showtimeForm";
-      openModal(type, data);
-    },
+  const fetchAllData = useCallback(async () => {
+    showLoader();
+    try {
+      const [moviesRes] = await Promise.all([
+        moviesService.getAll(),
+      
+      ]);
+      setMovies(moviesRes.data || []);
+    } catch (error) {
+      console.error("Error al sincronizar:", error);
+    } finally {
+      hideLoader();
+    }
+  }, [showLoader, hideLoader]);
 
-    openDelete: (item) => {
-      openModal("delete", item);
-    },
+  const fetchRooms = useCallback(async () => {
+    showLoader();
+    try {
+      const roomsRes = await showtimesService.getRooms();
+      setRooms(roomsRes);
+    } catch (error) {
+      console.error("Error fetching rooms:", error);
+    } finally {
+      hideLoader();
+    }
+  }, [showLoader, hideLoader]);
 
-    handleSave: (formData) => {
-      // Lógica de guardado genérica (aquí procesarías según el tab)
-      console.log("Guardando en:", activeTab, formData);
-      closeModal();
-      openModal("success", { 
-        title: "¡Éxito!", 
-        message: "El registro ha sido actualizado correctamente." 
-      });
-    },
+  useEffect(() => {
+  // Disparar la carga inicial automáticamente
+  fetchAllData(); 
+  //etchRooms();
+}, [/*, fetchRooms]*/]); 
 
-    handleDeleteConfirm: () => {
+
+  // Función para Crear o Editar (POST/PUT)
+  const handleSave = async (payload) => {
+    showLoader();
+    try {
       if (activeTab === "movies") {
-        setMovies(prev => prev.filter(m => m.id !== modal.data.id));
+        modal.data?.id 
+          ? await moviesService.update(modal.data.id, payload)
+          : await moviesService.create(payload);
       } else {
-        setShowtimes(prev => prev.filter(s => s.id !== modal.data.id));
+        modal.data?.id
+          ? await showtimesService.update(modal.data.id, payload)
+          : await showtimesService.create(payload);
+      }
+      
+      closeModal();
+      await fetchAllData(); // Recarga la lista automáticamente
+      
+      // Abrimos modal de éxito
+      openModal("success", { 
+        title: "¡Operación Exitosa!", 
+        message: "La cartelera ha sido actualizada correctamente." 
+      });
+    } catch (error) {
+      console.error("Error al guardar:", error);
+      alert(error.response?.data?.message || "Error al conectar con el servidor");
+    } finally {
+      hideLoader();
+    }
+  };
+
+  // Función para Eliminar (DELETE)
+  const handleDelete = async () => {
+    showLoader();
+    try {
+      if (activeTab === "movies") {
+        await moviesService.delete(modal.data.id);
+      } else {
+        await showtimesService.delete(modal.data.id);
       }
       closeModal();
-
-      setTimeout(() => {
-        openModal("success", { 
-          title: modal.data?.id ? "¡Cambios Guardados!" : "¡Registro Exitoso!", 
-          message: modal.data?.id 
-            ? "La información de la película ha sido actualizada correctamente." 
-            : "El nuevo título ha sido añadido al catálogo." 
-        });
-      }, 100);
+      await fetchAllData();
+    } finally {
+      hideLoader();
     }
-  
   };
+
+  const handleDeleteConfirm = async () => {
+  if (!modal.data?.id) return;
+  
+  showLoader();
+  try {
+    if (activeTab === "movies") {
+      await moviesService.delete(modal.data.id);
+    } else {
+      await showtimesService.delete(modal.data.id);
+    }
+    
+    closeModal();
+    await fetchAllData();
+    
+    openModal("success", { 
+      title: "Eliminado", 
+      message: "El registro ha sido removido" 
+    });
+  } catch (error) {
+    console.error("Error al eliminar:", error);
+    alert(error.response?.data?.message || "Error al conectar con el servidor");
+  } finally {
+    hideLoader();
+  }
+};
 
   return (
     
@@ -132,7 +162,7 @@ export default function ExhibitionPage() {
               className="w-64 px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-brand-primary/20 outline-none transition-all"
             />
             <button 
-              onClick={() => actions.openForm()}
+              onClick={() => openModal(activeTab === "movies" ? "movieForm" : "showtimeForm")}
               className="bg-brand-primary text-white px-6 py-2.5 rounded-xl flex items-center gap-2 text-[11px] font-black uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-md"
             >
               <Plus className="w-6 h-6 text-brand-gold" strokeWidth={3} />
@@ -148,8 +178,8 @@ export default function ExhibitionPage() {
         {activeTab === "movies" && (
           <MoviesTab 
             data={movies} 
-            onEdit={actions.openForm} 
-            onDelete={actions.openDelete} 
+            onEdit={openModal} 
+            onDelete={openModal} 
           />
         )}
 
@@ -157,31 +187,38 @@ export default function ExhibitionPage() {
         {activeTab === "showtimes" && (
           <ShowtimesTab 
             data={showtimes} 
-            onEdit={actions.openForm} 
-            onDelete={actions.openDelete} 
+            onEdit={openModal} 
+            onDelete={openModal} 
           />
         )}
 
         {/* --- MODALES CENTRALIZADOS --- */}
+       {/* Formulario de Películas */}
+       {modal.isOpen && modal.type === "movieForm"&& (
         <MovieForm
-          open={modal.isOpen && modal.type === "movieForm"}
+          open={true}
           initialData={modal.data}
           onClose={closeModal}
-          onSuccess={actions.handleSave}
-        />
+          onSuccess={handleSave} 
+          lifecycleStatesList={MOCK_LIFECYCLE}
+          genresList={MOCK_GENRES}
+        />)}
 
+
+        {/* Formulario de Funciones */}
         <ShowtimeForm
           open={modal.isOpen && modal.type === "showtimeForm"}
           initialData={modal.data}
           onClose={closeModal}
-          onSave={actions.handleSave}
+          onSave={handleSave}    
           movies={movies}
+          rooms={rooms}         
         />
 
         <DeleteConfirmModal 
           isOpen={modal.isOpen && modal.type === "delete"}
           onClose={closeModal}
-          onConfirm={actions.handleDeleteConfirm}
+          onConfirm={handleDeleteConfirm}
           itemName={activeTab === "movies" ? modal.data?.title : "esta función"}
         />
 
@@ -195,14 +232,32 @@ export default function ExhibitionPage() {
   );
 }
 
-const MOCK_SHOWTIMES = [
-  {
-    id: 1,
-    movie_title: "The Drama",
-    room_name: "Sala 01 - IMAX",
-    date: "2026-05-30",
-    start_time: "14:00",
-    end_time: "16:30",
-    price: "12.00",
-  }
+const MOCK_ROOMS = [
+  { id: 1, descripton: "Sala 1" },
+  { id: 2, descripton: "Sala 2" }
+];
+
+const MOCK_CLASSIFICATIONS = [
+  { id: 1, description: "A (Todo Público)" },
+  { id: 2, description: "B (+12)" },
+  { id: 3, description: "C (+15)" },
+  { id: 4, description: "D (+18)"  }
+];
+
+const MOCK_LIFECYCLE = [
+  { id: 1, description: 'Próximamente' },
+  { id: 2, description: 'En Cartelera (Estreno)'},
+  { id: 3, description: 'En Cartelera (Regular)'},
+  { id: 4, description: 'Últimos Días'},
+  { id: 5, description: 'Fuera de Cartelera'},
+           
+]
+
+const MOCK_GENRES =[
+{ id: 1, description: 'Acción'},
+{ id: 2, description: 'Comedia' },
+{ id: 3, description: 'Drama' },
+{ id: 4, description: 'Ciencia Ficción'},
+{ id: 5, description: 'Terror / Suspenso'},
+{ id: 6, description: 'Animación / Infantil'}
 ];

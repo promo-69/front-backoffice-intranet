@@ -12,7 +12,12 @@ export function useModal() {
     setModal({ isOpen: true, type, data, context });
 
   const closeModal = () => 
-    setModal((prev) => ({ ...prev, isOpen: false }));
+    setModal({ 
+      type: null, 
+      isOpen: false, 
+      data: null, 
+      context: null 
+    });
 
   return { modal, openModal, closeModal };
 }

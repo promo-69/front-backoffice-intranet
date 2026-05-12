@@ -18,6 +18,8 @@ export const TextAreaCustom = forwardRef(({ label, error, ...props }, ref) => {
         )}
         {...props}
       />
+      {/* Mostrar el mensaje de error */}
+      {error && <p className="text-[10px] text-red-500 font-bold mt-1 ml-3 uppercase ">{error}</p>}
     </div>
   )
 })
