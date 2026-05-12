@@ -7,18 +7,17 @@ import { EditUserModal } from "@/components/admin/users/EditUserModal";
 import DeleteConfirmModal from "@/components/ui/DialogConfirmModal";
 import SuccessModal from "@/components/ui/SuccessModal";
 
-import EmployeesTab from "./employeesTab";
-import ClientsTab from "./clientsTab";
+import UsersTab from "./UsersTab";
 
 import { useLoading } from "@/context/LoadingContext";
-import api from "@/api/axios";
-import { useAuth } from "@/context/AuthContext";
+import { getUsers, deleteUser } from "@/services/users.service";
 
 export default function Users() {
-  const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState("employees");
+  const { showLoader, hideLoader } = useLoading();
 
-  // MODALES
+  const [users, setUsers] = useState([]);
+  const [search] = useState("");
+
   const [openModal, setOpenModal] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState(null);
@@ -27,174 +26,119 @@ export default function Users() {
   const [itemToDelete, setItemToDelete] = useState(null);
 
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
+  const [successTitle, setSuccessTitle] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
-  // BUSCADOR
-  const [search, setSearch] = useState("");
-
-  // EMPLEADOS
-  const [employees, setEmployees] = useState([]);
-
-  const { showLoader, hideLoader } = useLoading();
-
-  // ⭐ GET REAL DE EMPLEADOS
-  const fetchEmployees = async () => {
-    showLoader();
+  const fetchUsers = async () => {
     try {
-      const res = await api.get("/employees"); 
-      setEmployees(res.data.data);
+      showLoader();
+      const data = await getUsers();
+      setUsers(data.data);
     } catch (error) {
-      console.error("Error cargando empleados:", error);
+      console.error("Error cargando usuarios:", error);
+      setUsers([]);
     } finally {
       hideLoader();
     }
   };
 
-  // ⭐ REFRESCAR TABLA DESPUÉS DE REGISTRAR
-  const refreshEmployees = async () => {
-    await fetchEmployees();
-    setSuccessTitle("Empleado Registrado");
-    setSuccessMessage("El empleado ha sido registrado exitosamente.");
-    setIsSuccessOpen(true); 
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const refreshUsers = () => {
+    fetchUsers();
+    setSuccessTitle("Usuario Registrado");
+    setSuccessMessage("El usuario ha sido registrado exitosamente.");
+    setIsSuccessOpen(true);
   };
 
-  useEffect(() => {
-    if (user) {
-      fetchEmployees();
-    }
-  }, [user]);
-
-  const [successMessage, setSuccessMessage] = useState("");
-  const [successTitle, setSuccessTitle] = useState("");
-
-
-  // ⭐ EDITAR
-  const handleEditClick = (employee) => {
-    setUserToEdit(employee);
+  const handleEditClick = (user) => {
+    setUserToEdit(user);
     setIsEditModalOpen(true);
   };
 
-  // ⭐ ELIMINAR
-  const handleDeleteClick = (employee) => {
-    setItemToDelete(employee);
+  const handleDeleteClick = (user) => {
+    setItemToDelete(user);
     setIsDeleteModalOpen(true);
   };
 
   const handleConfirmDelete = async () => {
     try {
-      await api.delete(`/employees/${itemToDelete.id}`);
-      setEmployees((prev) => prev.filter((emp) => emp.id !== itemToDelete.id));
-      setSuccessTitle("Empleado Eliminado");
-      setSuccessMessage(
-        `El acceso de ${itemToDelete.firstName} ha sido revocado correctamente.`,
-      );
+      showLoader();
+      await deleteUser(itemToDelete.id);
+
+      setSuccessTitle("Usuario Eliminado");
+      setSuccessMessage(`El usuario ha sido eliminado correctamente.`);
       setIsSuccessOpen(true);
+
+      fetchUsers();
     } catch (error) {
-      console.error("Error eliminando empleado:", error);
+      console.error("Error eliminando usuario:", error);
     } finally {
       setIsDeleteModalOpen(false);
+      setItemToDelete(null);
+      hideLoader();
     }
   };
 
   return (
     <div className="space-y-6">
       {/* HEADER */}
-      <div className="flex justify-between items-center border-b border-gray-100 pb-4">
+      <div className="flex justify-between items-center border-b pb-4">
         <div>
-          <h3 className="text-lg font-montserrat font-bold text-brand-primary">
-            Gestión de personal
+          <h3 className="text-lg font-bold text-brand-primary">
+            Gestión de Usuarios
           </h3>
           <p className="text-xs text-muted-foreground">
-            Administra el acceso de cajeros y operadores por sucursal
+            Administra el acceso de empleados al sistema
           </p>
         </div>
 
-        {/* BUSCADOR + BOTÓN */}
-        <div className="flex items-center gap-4">
-          <input
-            type="text"
-            placeholder="Buscar Empleado..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-64 px-3 py-2 rounded-cineflix border border-gray-300 text-sm font-montserrat focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
-          />
-
-          <button
-            onClick={() => setOpenModal(true)}
-            className="bg-brand-primary text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-[11px] font-black uppercase tracking-widest hover:brightness-110 hover:shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all duration-300 border-2 border-purple-400/30 font-montserrat"
-          >
-            <Plus className="w-4 h-4 text-brand-gold" strokeWidth={3} />
-            Añadir empleado
-          </button>
-        </div>
-      </div>
-
-      {/* TABS */}
-      <div className="flex gap-4 border-b pb-2">
         <button
-          className={`text-xs font-montserrat uppercase tracking-wide pb-1 border-b-2 transition-colors ${
-            activeTab === "employees"
-              ? "font-bold text-brand-gold border-brand-gold"
-              : "text-muted-foreground border-transparent hover:text-brand-primary"
-          }`}
-          onClick={() => setActiveTab("employees")}
+          onClick={() => setOpenModal(true)}
+          className="bg-brand-primary text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-[11px] font-black uppercase tracking-widest"
         >
-          Empleados
-        </button>
-
-        <button
-          className={`text-xs font-montserrat uppercase tracking-wide pb-1 border-b-2 transition-colors ${
-            activeTab === "clients"
-              ? "font-bold text-brand-gold border-brand-gold"
-              : "text-muted-foreground border-transparent hover:text-brand-primary"
-          }`}
-          onClick={() => setActiveTab("clients")}
-        >
-          Clientes
+          <Plus className="w-4 h-4 text-brand-gold" strokeWidth={3} />
+          Añadir usuario
         </button>
       </div>
 
-      {/* CONTENIDO */}
-      {activeTab === "employees" && (
-        <EmployeesTab
-          search={search}
-          employees={employees}
-          onDelete={handleDeleteClick}
-          onEdit={handleEditClick}
-        />
-      )}
+      <UsersTab
+        search={search}
+        users={users}
+        onDelete={handleDeleteClick}
+        onEdit={handleEditClick}
+      />
 
-      {activeTab === "clients" && <ClientsTab />}
-
-      {/* MODAL ELIMINAR */}
       <DeleteConfirmModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleConfirmDelete}
-        itemName={itemToDelete?.firstName}
+        itemName={itemToDelete?.email}
       />
 
-      {/* MODAL ÉXITO */}
       <SuccessModal
         isOpen={isSuccessOpen}
-        onClose={() => {
-          setIsSuccessOpen(false);
-          setItemToDelete(null);
-        }}
+        onClose={() => setIsSuccessOpen(false)}
         title={successTitle}
         message={successMessage}
       />
 
-      {/* MODAL REGISTRO ⭐ AQUÍ VA */}
       <RegisterUserModal
         open={openModal}
-        onClose={() => setOpenModal(false)}
-        onSuccess={refreshEmployees} // ⭐ REFRESCA TABLA
+        onClose={(shouldRefresh) => {
+          setOpenModal(false);
+          if (shouldRefresh) refreshUsers();
+        }}
       />
 
-      {/* MODAL EDICIÓN */}
       <EditUserModal
         open={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
+        onClose={(shouldRefresh) => {
+          setIsEditModalOpen(false);
+          if (shouldRefresh) fetchUsers();
+        }}
         user={userToEdit}
       />
     </div>
