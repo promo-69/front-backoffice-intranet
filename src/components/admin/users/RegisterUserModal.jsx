@@ -10,68 +10,76 @@ import {
 import { Button } from "@/components/ui/button";
 import { InputForm } from "@/components/ui/inputForm";
 import { SelectForm } from "@/components/ui/SelectForm";
+import { createEmployee } from "@/services/employees.service";
 
-export function RegisterUserModal({ open, onClose }) {
+export function RegisterUserModal({ open, onClose, onSuccess }) {
   const [formData, setFormData] = useState({
-    fullName: "",
+    documentNumber: "",
+    firstName: "",
+    lastName: "",
     email: "",
-    role: "",
-    branch: "",
+    jobPosition: "",
+    cinema: "",
+    startDate: "",
+    salaryBase: "",
+    status: "",
   });
 
   const [errors, setErrors] = useState({});
 
-  // Limpiar el formulario al cerrar/abrir
+  // Reset al cerrar
   useEffect(() => {
     if (!open) {
-      setFormData({ fullName: "", email: "", role: "", branch: "" });
+      setFormData({
+        documentNumber: "",
+        firstName: "",
+        lastName: "",
+        email: "",
+        jobPosition: "",
+        cinema: "",
+        startDate: "",
+        salaryBase: "",
+        status: "",
+      });
       setErrors({});
     }
   }, [open]);
 
+  // Validaciones
   const validateField = (name, value) => {
-    let error = "";
+    if (!value || value.trim() === "") return "Este campo es obligatorio.";
 
-    // Validación de obligatoriedad
-    if (!value || value.trim() === "") {
-      return "Este campo es obligatorio.";
+    if (name === "firstName" || name === "lastName") {
+      const regex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
+      if (!regex.test(value)) return "Solo se permiten letras.";
     }
 
-    // Validación específica para Nombre (Solo letras y espacios)
-    if (name === "fullName") {
-      const nameRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
-      if (!nameRegex.test(value)) {
-        error = "Solo se permiten letras en este campo.";
-      }
-    }
-
-    // Validación básica de email
     if (name === "email") {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(value)) {
-        error = "Ingrese un correo electrónico válido.";
-      }
+      if (!emailRegex.test(value)) return "Correo inválido.";
     }
 
-    return error;
+    return "";
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
-    // Validar en tiempo real
-    const fieldError = validateField(name, value);
-    setErrors((prev) => ({ ...prev, [name]: fieldError }));
-    
+
+    setErrors((prev) => ({
+      ...prev,
+      [name]: validateField(name, value),
+    }));
+
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = () => {
-    // Validar todos los campos al intentar enviar
+  // Submit
+  const handleSubmit = async () => {
     const newErrors = {};
+
     Object.keys(formData).forEach((key) => {
-      const error = validateField(key, formData[key]);
-      if (error) newErrors[key] = error;
+      const err = validateField(key, formData[key]);
+      if (err) newErrors[key] = err;
     });
 
     if (Object.keys(newErrors).length > 0) {
@@ -79,15 +87,41 @@ export function RegisterUserModal({ open, onClose }) {
       return;
     }
 
-    // Si todo está bien
-    console.log("Empleado registrado:", formData);
-    onClose();
+    try {
+      const firstName = formData.firstName.trim();
+      const lastName = formData.lastName.trim();
+
+      const payload = {
+        documentNumber: formData.documentNumber,
+        firstName,
+        lastName,
+        email: formData.email,
+        employeeCode: `${firstName[0]}${lastName[0]}-${Math.floor(
+          Math.random() * 9000 + 1000,
+        )}`,
+        jobPosition: Number(formData.jobPosition),
+        cinema: Number(formData.cinema),
+        startDate: formData.startDate,
+        salaryBase: Number(formData.salaryBase),
+        status: Number(formData.status),
+      };
+
+      await createEmployee(payload);
+
+      if (onSuccess) onSuccess(); // refresca tabla
+      onClose();
+    } catch (error) {
+      console.error("Error creando empleado:", error);
+      alert("No se pudo registrar el empleado.");
+    }
   };
 
-  // Componente de error reutilizable
-  const ErrorMsg = ({ message }) => (
-    message ? <p className="text-[10px] text-red-500 mt-1 ml-1 font-medium">{message}</p> : null
-  );
+  const ErrorMsg = ({ message }) =>
+    message ? (
+      <p className="text-[10px] text-red-500 mt-1 ml-1 font-medium">
+        {message}
+      </p>
+    ) : null;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -96,11 +130,9 @@ export function RegisterUserModal({ open, onClose }) {
           onClick={onClose}
           className="absolute top-3 right-3 text-gray-400 hover:text-brand-primary transition"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          ✕
         </button>
-        
+
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-brand-primary font-montserrat">
             Registrar Empleado
@@ -110,18 +142,46 @@ export function RegisterUserModal({ open, onClose }) {
           </DialogDescription>
         </DialogHeader>
 
+        {/* FORMULARIO */}
         <div className="space-y-4 mt-4">
+          {/* CÉDULA */}
           <div>
-            <InputForm 
-              label="Nombre completo" 
-              name="fullName"
-              value={formData.fullName}
+            <InputForm
+              label="Cédula"
+              name="documentNumber"
+              value={formData.documentNumber}
               onChange={handleChange}
-              placeholder="Ej: María González" 
+              placeholder="Ej: 123456789"
             />
-            <ErrorMsg message={errors.fullName} />
+            <ErrorMsg message={errors.documentNumber} />
           </div>
 
+          {/* NOMBRE + APELLIDO */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col">
+              <InputForm
+                label="Nombre"
+                name="firstName"
+                value={formData.firstName}
+                onChange={handleChange}
+                placeholder="Ej: María"
+              />
+              <ErrorMsg message={errors.firstName} />
+            </div>
+
+            <div className="flex flex-col">
+              <InputForm
+                label="Apellido"
+                name="lastName"
+                value={formData.lastName}
+                onChange={handleChange}
+                placeholder="Ej: González"
+              />
+              <ErrorMsg message={errors.lastName} />
+            </div>
+          </div>
+
+          {/* CORREO */}
           <div>
             <InputForm
               label="Correo electrónico"
@@ -133,76 +193,91 @@ export function RegisterUserModal({ open, onClose }) {
             <ErrorMsg message={errors.email} />
           </div>
 
-          <div>
-            <SelectForm 
-              label="Rol" 
-              name="role" 
-              value={formData.role} 
-              onChange={handleChange}
-            >
-              <option value="">Seleccione un rol</option>
-              <option value="CAJERO">Cajero</option>
-              <option value="OPERADOR">Operador</option>
-              <option value="ADMIN">Administrador</option>
-            </SelectForm>
-            <ErrorMsg message={errors.role} />
+          {/* CARGO + SUCURSAL */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col">
+              <SelectForm
+                label="Cargo"
+                name="jobPosition"
+                value={formData.jobPosition}
+                onChange={handleChange}
+              >
+                <option value="">Seleccione...</option>
+                <option value="1">Administrador</option>
+                <option value="2">Gerente</option>
+                <option value="3">Cajero</option>
+                <option value="4">Operador</option>
+              </SelectForm>
+              <ErrorMsg message={errors.jobPosition} />
+            </div>
+
+            <div className="flex flex-col">
+              <SelectForm
+                label="Sucursal"
+                name="cinema"
+                value={formData.cinema}
+                onChange={handleChange}
+              >
+                <option value="">Seleccione...</option>
+                <option value="1">Sucursal 1</option>
+                <option value="2">Sucursal 2</option>
+                <option value="3">Sucursal 3</option>
+              </SelectForm>
+              <ErrorMsg message={errors.cinema} />
+            </div>
           </div>
 
-          <div>
-            <SelectForm 
-              label="Sucursal" 
-              name="branch" 
-              value={formData.branch} 
-              onChange={handleChange}
-            >
-              <option value="">Seleccione una sucursal</option>
-              <option value="SUCURSAL_1">Sucursal 1</option>
-              <option value="SUCURSAL_2">Sucursal 2</option>
-              <option value="SUCURSAL_3">Sucursal 3</option>
-            </SelectForm>
-            <ErrorMsg message={errors.branch} />
+          {/* FECHA + SALARIO */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col">
+              <InputForm
+                label="Fecha de ingreso"
+                name="startDate"
+                type="date"
+                value={formData.startDate}
+                onChange={handleChange}
+              />
+              <ErrorMsg message={errors.startDate} />
+            </div>
+
+            <div className="flex flex-col">
+              <InputForm
+                label="Salario base"
+                name="salaryBase"
+                type="number"
+                value={formData.salaryBase}
+                onChange={handleChange}
+                placeholder="Ej: 50000"
+              />
+              <ErrorMsg message={errors.salaryBase} />
+            </div>
           </div>
 
-          <p className="text-[11px] text-gray-500 mt-2 text-center leading-relaxed">
-            Se enviarán las credenciales automáticamente al correo registrado.
-            El usuario deberá cambiar su contraseña en el primer inicio de
-            sesión.
-          </p>
+          {/* ESTATUS */}
+          <div className="flex flex-col">
+            <SelectForm
+              label="Estatus"
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+            >
+              <option value="">Seleccione...</option>
+              <option value="1">Activo</option>
+              <option value="0">Inactivo</option>
+            </SelectForm>
+            <ErrorMsg message={errors.status} />
+          </div>
         </div>
 
+        {/* BOTONES */}
         <DialogFooter className="mt-6 flex justify-end gap-3">
-          <Button
-            variant="outline"
-            onClick={onClose}
-            className="
-              font-montserrat 
-              border-gray-300 
-              transition-all 
-              duration-200 
-              hover:bg-gray-50 
-              hover:border-gray-400 
-              active:scale-95
-            "
-          >
+          <Button variant="outline" onClick={onClose}>
             Cancelar
           </Button>
 
-          <Button 
+          <Button
             onClick={handleSubmit}
-            className="
-              bg-brand-primary 
-              text-white 
-              font-montserrat 
-              font-bold 
-              px-6 
-              rounded-cineflix 
-              transition-all 
-              duration-200 
-              hover:bg-brand-primary/90 
-              hover:shadow-md 
-              hover:-translate-y-0.5 
-              active:scale-95
-            "
+            className="bg-brand-primary text-white"
           >
             Registrar Empleado
           </Button>

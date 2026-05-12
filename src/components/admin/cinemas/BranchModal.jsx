@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -14,28 +14,47 @@ import { useLoading } from "../../../context/LoadingContext";
 import api from '../../../api/axios';
 
 function ErrorMessage({ message }) {
-  return message ? (
-    <p className="text-[10px] text-red-500 mt-1 ml-1 font-medium italic">
-      {message}
-    </p>
-  ) : null;
+  return message ? <p className="text-[10px] text-red-500 mt-1 ml-1 font-medium italic">{message}</p> : null;
 }
 
-const emptyBranchForm = {
-  name: "",
-  address: "",
-  phone: "",
-  openingTime: "",
-  closingTime: "",
+const emptyBranchForm = { 
+  name: "", 
+  address: "", 
+  phone: "", 
+  openingTime: "", 
+  closingTime: "" 
 };
 
 export default function BranchModal({ open, onClose, initialData }) {
   const isEdit = !!initialData;
   const { showLoader, hideLoader } = useLoading();
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const [formData, setFormData] = useState(initialData ?? emptyBranchForm);
+  const [formData, setFormData] = useState(emptyBranchForm);
   const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    if (open) {
+      if (initialData) {
+        // Mapeo desde la base de datos al estado del formulario
+        setFormData({
+          name: initialData.name || "",
+          address: initialData.address || "",
+          phone: initialData.phone || "",
+          openingTime: initialData.openingTime || initialData.opening_time || "", 
+          closingTime: initialData.closingTime || initialData.closing_time || "", 
+        });
+      } else {
+        setFormData(emptyBranchForm);
+      }
+      setErrors({});
+    }
+  }, [open, initialData]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setErrors((prev) => ({ ...prev, [name]: null, general: null }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
   const validateField = (name, value) => {
     let error = "";
@@ -46,30 +65,25 @@ export default function BranchModal({ open, onClose, initialData }) {
       }
     }
 
-    // NUEVA VALIDACIÓN: Formato 24h (HH:mm)
     if (name === "openingTime" || name === "closingTime") {
       const time24hRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
       if (value && !time24hRegex.test(value)) {
-        error = "Formato 24h inválido (Ej: 14:30 o 09:00).";
+        error = "Formato 24h inválido (Ej: 14:30).";
       }
     }
     return error;
   };
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    const fieldError = validateField(name, value);
-    setErrors((prev) => ({ ...prev, [name]: fieldError }));
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
+  
   const handleSubmit = async () => {
     const newErrors = {};
-    Object.keys(formData).forEach((key) => {
-      const error = validateField(key, formData[key]);
-      if (error) newErrors[key] = error;
-      if (!formData[key] && key !== "status")
+    Object.keys(emptyBranchForm).forEach((key) => {
+      const value = formData[key]?.toString().trim(); 
+      if (!value) {
         newErrors[key] = "Este campo es obligatorio.";
+      } else {
+        const fieldError = validateField(key, value);
+        if (fieldError) newErrors[key] = fieldError;
+      }
     });
 
     if (Object.keys(newErrors).length > 0) {
@@ -79,16 +93,47 @@ export default function BranchModal({ open, onClose, initialData }) {
 
     setIsSubmitting(true);
     showLoader();
+
     try {
+      // El servidor espera camelCase según el error 400 detectado
+      const payload = {
+        name: formData.name.trim(),
+        address: formData.address.trim(),
+        phone: formData.phone.trim(),
+        openingTime: formData.openingTime, 
+        closingTime: formData.closingTime, 
+        status: 1 
+      };
+      
+      console.log("Enviando a DB:", payload);
+
       if (isEdit) {
-        await api.put(`/cinemas/${initialData.id}`, formData);
+        await api.put(`/cinemas/${initialData.id}`, payload);
       } else {
-        await api.post('/cinemas', formData);
+        await api.post('/cinemas', payload);
       }
       onClose(true);
     } catch (error) {
-      console.error("Error al procesar la sucursal:", error);
-      alert("No se pudo guardar la información.");
+      const status = error.response?.status;
+      const serverData = error.response?.data;
+
+      if (status === 400) {
+        console.log("Detalles del error 400:", serverData); //
+        setErrors((prev) => ({
+          ...prev,
+          general: "Datos inválidos. Revisa el formato de los campos."
+        }));
+      } else if (status === 409) {
+        setErrors((prev) => ({
+          ...prev,
+          name: "Ya existe una sucursal con este nombre."
+        }));
+      } else {
+        setErrors((prev) => ({
+          ...prev,
+          general: "Error al guardar. Intente de nuevo."
+        }));
+      }
     } finally {
       hideLoader();
       setIsSubmitting(false);
@@ -96,97 +141,58 @@ export default function BranchModal({ open, onClose, initialData }) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={() => onClose(false)}>
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose(false)}>
       <DialogContent className="max-w-md bg-white rounded-cineflix p-6 shadow-2xl border-none">
-        
-        <button
-          onClick={() => onClose(false)}
-          className="absolute top-3 right-3 text-gray-400 hover:text-brand-primary transition"
-        >
-            <X className="h-5 w-5" />
-        </button>
-
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-brand-primary font-montserrat">
+          <DialogTitle className="text-xl font-bold text-brand-primary">
             {isEdit ? "Editar Sucursal" : "Nueva Sucursal"}
           </DialogTitle>
-          <DialogDescription className="text-xs text-muted-foreground">
-            {isEdit
-              ? "Modifique los detalles de la sucursal seleccionada."
-              : "Complete los datos para registrar una nueva sede en el sistema."}
+          <DialogDescription className="text-xs text-slate-500">
+            {isEdit ? "Modifica los datos de la sede seleccionada." : "Registra una nueva sede."}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 mt-4">
+        <div className="space-y-4 mt-6">
           <div>
-            <InputForm
-              label="Nombre de Sucursal"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              placeholder="Ej: Sambil Barquisimeto"
-            />
+            <InputForm label="Nombre" name="name" value={formData.name} onChange={handleChange} placeholder="Ej: Cine Plaza" />
             <ErrorMessage message={errors.name} />
           </div>
 
           <div>
-            <InputForm
-              label="Dirección"
-              name="address"
-              value={formData.address}
-              onChange={handleChange}
-              placeholder="Ej: Av. Venezuela..."
-            />
+            <InputForm label="Dirección" name="address" value={formData.address} onChange={handleChange} placeholder="Ej: Av. Principal 123" />
             <ErrorMessage message={errors.address} />
           </div>
 
           <div>
-            <InputForm
-              label="Teléfono"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              placeholder="0251-XXXXXXX"
-            />
+            <InputForm label="Teléfono" name="phone" value={formData.phone} onChange={handleChange} placeholder="Ej: 0251 123 1234" />
             <ErrorMessage message={errors.phone} />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <InputForm
-                label="Hora Apertura (24h)"
-                name="openingTime"
-                type="text" // Puedes cambiar a type="time" para usar el selector nativo
-                value={formData.openingTime}
-                onChange={handleChange}
-                placeholder="09:00"
-              />
+              <InputForm label="Apertura (HH:mm)" name="openingTime" value={formData.openingTime} onChange={handleChange} placeholder="11:00" />
               <ErrorMessage message={errors.openingTime} />
             </div>
             <div>
-              <InputForm
-                label="Hora Cierre (24h)"
-                name="closingTime"
-                type="text" 
-                value={formData.closingTime}
-                onChange={handleChange}
-                placeholder="22:30"
-              />
+              <InputForm label="Cierre (HH:mm)" name="closingTime" value={formData.closingTime} onChange={handleChange} placeholder="22:30" />
               <ErrorMessage message={errors.closingTime} />
             </div>
           </div>
+          {errors.general && (
+            <p className="text-red-500 text-xs text-center font-bold mt-2">
+              {errors.general}
+            </p>
+          )}
         </div>
 
-        <DialogFooter className="mt-6 flex justify-end gap-3">
-          <Button variant="outline" onClick={() => onClose(false)} className="font-montserrat" disabled={isSubmitting}>
-            Cancelar
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="bg-brand-primary hover:bg-brand-primary/90 text-white font-montserrat font-bold px-6 rounded-cineflix"
+        <DialogFooter className="mt-8 flex gap-3">
+          <Button variant="outline" onClick={() => onClose(false)} className="flex-1">Cancelar</Button>
+          <Button 
+            onClick={handleSubmit} 
+            disabled={isSubmitting} 
+            className="flex-1 bg-brand-primary text-white font-bold hover:bg-brand-primary/90"
           >
-            {isSubmitting ? "Procesando..." : isEdit ? "Guardar Cambios" : "Registrar Sucursal"}
+            {isEdit ? "Actualizar" : "Registrar"}
           </Button>
         </DialogFooter>
       </DialogContent>

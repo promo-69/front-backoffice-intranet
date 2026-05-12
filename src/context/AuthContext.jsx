@@ -1,8 +1,12 @@
-import { createContext, useState, useContext } from "react";
-import { loginRequest } from "../services/auth.service";
+import { createContext, useState, useContext, useEffect } from "react";
+import {
+  loginRequest,
+  refreshSession,
+  logoutRequest,
+} from "../services/auth.service";
 import { useLoading } from "./LoadingContext";
 
-export const AuthContext = createContext()
+export const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
@@ -12,29 +16,49 @@ export function AuthProvider({ children }) {
 
   const { showLoader, hideLoader } = useLoading();
 
+  useEffect(() => {
+    async function initSession() {
+      // 1. Evitamos el 401 innecesario: si no hay usuario guardado, 
+      // asumimos que no hay sesión y no disparamos el refresh.
+      if (!localStorage.getItem("user")) return;
+
+      showLoader();
+      try {
+        // 2. Intentamos renovar la sesión (el interceptor en axios.js ayudará aquí)
+        const ok = await refreshSession(); 
+
+        if (ok) {
+          const saved = localStorage.getItem("user");
+          if (saved) setUser(JSON.parse(saved));
+        } else {
+          // Si el refresh falla (401), limpiamos el estado
+          localStorage.removeItem("user");
+          setUser(null);
+        }
+      } catch (error) {
+        // Fallo de red o servidor caído
+        setUser(null);
+      } finally {
+        hideLoader();
+      }
+    }
+
+    initSession();
+  }, []);
+
   const login = async (credentials) => {
     showLoader();
     try {
       const data = await loginRequest(credentials);
 
-      const userFromServer = data.user;
-      const tokens = data.tokens;
-
-      if (!userFromServer || !userFromServer.roleCode) {
-        return {
-          success: false,
-          message: "El usuario no tiene rol asignado",
-        };
+      if (!data || !data.roleCode) {
+        return { success: false, message: "El usuario no tiene rol asignado" };
       }
 
-      // Guardar tokens y usuario
-      localStorage.setItem("token", tokens.accessToken);
-      localStorage.setItem("refreshToken", tokens.refreshToken);
-      localStorage.setItem("user", JSON.stringify(userFromServer));
+      localStorage.setItem("user", JSON.stringify(data));
+      setUser(data);
 
-      setUser(userFromServer);
-
-      return { success: true, user: userFromServer };
+      return { success: true, user: data };
     } catch (error) {
       return {
         success: false,
@@ -45,11 +69,15 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("user");
-    setUser(null);
+  const logout = async () => {
+    showLoader();
+    try {
+      await logoutRequest();
+      localStorage.removeItem("user");
+      setUser(null);
+    } finally {
+      hideLoader();
+    }
   };
 
   return (
@@ -59,7 +87,6 @@ export function AuthProvider({ children }) {
   );
 }
 
-// ⭐ Hook necesario para Sidebar, PrivateRoute y layouts
 export function useAuth() {
   return useContext(AuthContext);
 }
