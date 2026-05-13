@@ -53,72 +53,43 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
   const handleEditClick = async (room) => {
     try {
       showLoader();
-      
-      // Normalización de snake_case (API) a variables locales
       const rows = parseInt(room.grid_rows) || 8;
       const cols = parseInt(room.grid_columns) || 12;
 
-      setEditingRoomId(room.id);
-      setFormData({
-        name: room.name || "",
-        rows: String(rows),
-        cols: String(cols),
-        // Nota: Asegúrate de que tu API devuelva projection_types si vas a usarlo aquí
-        projectionType: String(room.projection_types?.[0]?.id || "1"),
-      });
+      const savedSeatsResponse = await getSeatsByRoom(room.id);
+      const seatsArray = savedSeatsResponse?.data?.rows || [];
 
-      const savedSeats = await getSeatsByRoom(room.id);
-
-        console.log("ROOM EDIT DATA");
-        console.log("ROOM:", room);
-        console.log("SEATS:", savedSeats);
-      
       const newLayout = Array.from({ length: rows }, () =>
         Array.from({ length: cols }, () => ({
-          type: "seat",
+          type: "active",
           category: 1,
           condition: 1,
         }))
       );
 
-      const seatsArray = savedSeats?.data?.rows || [];
-
-        if (Array.isArray(seatsArray)) {
-
-          seatsArray.forEach((seat) => {
-
-            const rowIndex =
-              seat.row_identifier.charCodeAt(0) - 65;
-
-            const colIndex =
-              seat.column_number - 1;
-
-            if (
-              newLayout[rowIndex] &&
-              newLayout[rowIndex][colIndex]
-            ) {
-
-              newLayout[rowIndex][colIndex] = {
-                type:
-                  seat.seat_condition === 3
-                    ? "empty"
-                    : "active",
-
-                category:
-                  seat.seat_category || 1,
-
-                condition:
-                  seat.seat_condition || 1,
-              };
-            }
-          });
+      seatsArray.forEach((seat) => {
+        const rowIndex = seat.row_identifier.toUpperCase().charCodeAt(0) - 65;
+        const colIndex = parseInt(seat.column_number) - 1;
+        if (newLayout[rowIndex] && newLayout[rowIndex][colIndex]) {
+          newLayout[rowIndex][colIndex] = {
+            type: seat.seat_condition === 3 ? "empty" : "active",
+            category: seat.seat_category || 1,
+            condition: seat.seat_condition || 1,
+          };
         }
+      });
 
+      setFormData({
+        name: room.name || "",
+        rows: String(rows),
+        cols: String(cols),
+        projectionType: String(room.projection_types?.[0]?.id || "1"),
+      });
       setRoomLayout(newLayout);
+      setEditingRoomId(room.id);
       setExternalIsAdding(true);
     } catch (error) {
       console.error("Error al cargar sala:", error);
-      alert("No se pudo procesar la configuración de la sala.");
     } finally {
       hideLoader();
     }
@@ -135,7 +106,6 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
     if (!formData.name) return alert("Asigna un nombre.");
     try {
       showLoader();
-      
       const roomPayload = {
         name: formData.name,
         projectionTypes: [parseInt(formData.projectionType)],
@@ -174,7 +144,6 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
       fetchRooms();
     } catch (error) {
       console.error("Error en proceso:", error);
-      alert("Error al procesar la solicitud.");
     } finally {
       hideLoader();
     }
@@ -218,35 +187,47 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {rooms.map((room) => (
-              <div key={room.id} className="border border-slate-100 p-4 rounded-2xl flex justify-between items-center bg-white shadow-sm hover:border-brand-primary/20 transition-all">
-                <div>
-                  <h4 className="font-bold text-brand-primary font-montserrat text-sm">{room.name}</h4>
-                  <p className="text-[10px] text-slate-400 uppercase font-bold mt-1">
-                    {/* Corrección de NaN: Leemos snake_case directamente del objeto room */}
-                    ID: {room.id} | Capacidad: {room.total_capacity || (room.grid_rows * room.grid_columns) || 0}
-                  </p>
+            {rooms.length > 0 ? (
+              rooms.map((room) => (
+                <div key={room.id} className="border border-slate-100 p-4 rounded-2xl flex justify-between items-center bg-white shadow-sm hover:border-brand-primary/20 transition-all">
+                  <div>
+                    <h4 className="font-bold text-brand-primary font-montserrat text-sm">{room.name}</h4>
+                    <p className="text-[10px] text-slate-400 uppercase font-bold mt-1">
+                      ID: {room.id} | Capacidad: {room.total_capacity || (room.grid_rows * room.grid_columns) || 0}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    {/* Botón de edición comentado temporalmente por discrepancia de datos en Backend */}
+                    {/* 
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      onClick={() => handleEditClick(room)} 
+                      className="h-8 w-8 text-brand-primary bg-brand-primary/5 hover:bg-brand-primary hover:text-white rounded-lg transition-all"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button> 
+                    */}
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      onClick={() => { setRoomToDelete(room); setIsDeleteModalOpen(true); }} 
+                      className="h-8 w-8 text-red-500 bg-red-50 hover:bg-red-500 hover:text-white rounded-lg transition-all"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button 
-                    size="icon" 
-                    variant="ghost" 
-                    onClick={() => handleEditClick(room)} 
-                    className="h-8 w-8 text-brand-primary bg-brand-primary/5 hover:bg-brand-primary hover:text-white rounded-lg transition-all"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button 
-                    size="icon" 
-                    variant="ghost" 
-                    onClick={() => { setRoomToDelete(room); setIsDeleteModalOpen(true); }} 
-                    className="h-8 w-8 text-red-500 bg-red-50 hover:bg-red-500 hover:text-white rounded-lg transition-all"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+              ))
+            ) : (
+              <div className="col-span-full py-12 flex flex-col items-center justify-center border-2 border-dashed border-slate-100 rounded-3xl bg-slate-50/30">
+                <div className="bg-white p-4 rounded-full shadow-sm mb-4">
+                  <Square className="w-8 h-8 text-slate-200" />
                 </div>
+                <h4 className="text-slate-500 font-bold text-sm font-montserrat">No hay salas registradas</h4>
+                <p className="text-slate-400 text-[11px] mt-1">Comienza añadiendo una nueva sala para gestionar el aforo.</p>
               </div>
-            ))}
+            )}
           </div>
         </>
       ) : (
@@ -296,6 +277,7 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
           </div>
 
           <SeatGridDesigner
+            key={editingRoomId || 'new-room'}
             externalFormData={formData}
             setExternalFormData={setFormData}
             initialLayout={roomLayout} 
