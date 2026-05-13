@@ -68,6 +68,10 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
       });
 
       const savedSeats = await getSeatsByRoom(room.id);
+
+        console.log("ROOM EDIT DATA");
+        console.log("ROOM:", room);
+        console.log("SEATS:", savedSeats);
       
       const newLayout = Array.from({ length: rows }, () =>
         Array.from({ length: cols }, () => ({
@@ -77,20 +81,38 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
         }))
       );
 
-      if (Array.isArray(savedSeats)) {
-        savedSeats.forEach(seat => {
-          const rowIndex = seat.rowIdentifier.charCodeAt(0) - 65;
-          const colIndex = seat.columnNumber - 1;
+      const seatsArray = savedSeats?.data?.rows || [];
 
-          if (newLayout[rowIndex] && newLayout[rowIndex][colIndex]) {
-            newLayout[rowIndex][colIndex] = {
-              type: seat.seatCondition === 3 ? "empty" : "seat",
-              category: seat.seatCategory || 1,
-              condition: seat.seatCondition === 3 ? 1 : (seat.seatCondition || 1),
-            };
-          }
-        });
-      }
+        if (Array.isArray(seatsArray)) {
+
+          seatsArray.forEach((seat) => {
+
+            const rowIndex =
+              seat.row_identifier.charCodeAt(0) - 65;
+
+            const colIndex =
+              seat.column_number - 1;
+
+            if (
+              newLayout[rowIndex] &&
+              newLayout[rowIndex][colIndex]
+            ) {
+
+              newLayout[rowIndex][colIndex] = {
+                type:
+                  seat.seat_condition === 3
+                    ? "empty"
+                    : "active",
+
+                category:
+                  seat.seat_category || 1,
+
+                condition:
+                  seat.seat_condition || 1,
+              };
+            }
+          });
+        }
 
       setRoomLayout(newLayout);
       setExternalIsAdding(true);
@@ -114,13 +136,12 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
     try {
       showLoader();
       
-      // Enviamos el payload usando los nombres que espera tu backend (snake_case)
       const roomPayload = {
         name: formData.name,
-        projection_types: [parseInt(formData.projectionType)],
-        grid_rows: parseInt(formData.rows),
-        grid_columns: parseInt(formData.cols),
-        total_capacity: theoreticalCapacity
+        projectionTypes: [parseInt(formData.projectionType)],
+        gridRows: parseInt(formData.rows),
+        gridColumns: parseInt(formData.cols),
+        totalCapacity: theoreticalCapacity
       };
 
       const response = await saveRoom(branch.id, roomPayload);
