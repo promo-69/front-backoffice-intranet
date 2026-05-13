@@ -1,71 +1,55 @@
+import { forwardRef } from "react";
+import { ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils";
 
-export function SelectForm({
+export const SelectForm = forwardRef(({
   label,
   className,
   selectClassName,
   children,
+  error, 
   ...props
-}) {
+}, ref) => {
   return (
-    <div className={cn("relative w-full px-2", className)}>
+    <div className={cn("relative w-full group", className)}>
       {/* LABEL */}
       <label
-        className="
-          absolute 
-          top-1
-          left-4
-          text-[11px] 
-          font-montserrat 
-          font-bold 
-          text-brand-primary 
-          tracking-wide 
-          uppercase
-        "
+        className={cn(
+          "absolute top-0 left-3 z-10 block px-1 text-[10px] -translate-y-1/2 bg-white font-black uppercase tracking-widest transition-none",
+          error ? "text-red-500" : "text-brand-primary"
+        )}
       >
         {label}
       </label>
 
       {/* SELECT */}
       <select
+        ref={ref} 
         {...props}
         className={cn(
-          `
-          w-full 
-          bg-white 
-          border 
-          border-border 
-          rounded-cineflix 
-          px-3 
-          pt-6 
-          pb-2 
-          text-sm 
-          font-montserrat
-          appearance-none
-          focus:outline-none 
-          focus:ring-2 
-          focus:ring-brand-primary/40 
-          focus:border-brand-primary
-        `,
-          selectClassName,
+          "w-full h-14 bg-white border rounded-2xl px-5 py-4  text-slate-700 font-montserrat appearance-none transition-all",
+          
+          error 
+            ? "border-red-500 focus:ring-0 focus:border-red-500" 
+            : "border-slate-200 focus:ring-0 focus:border-brand-primary",
+          selectClassName
         )}
       >
         {children}
       </select>
 
-      {/* ICONO ▼ */}
-      <div
-        className="
-          pointer-events-none 
-          absolute 
-          right-5 
-          top-[40%] 
-          translate-y-[-10%]
-          text-gray-400
-        "
-      >
-        ▼
+      {/* ICONO */}
+      <div className={cn("absolute inset-y-0 right-4 flex items-center pointer-events-none", error ? "text-red-500" : "text-slate-400")}>
+         <ChevronDown  />
       </div>
+
+      {/* MENSAJE DE ERROR */}
+      {error && (
+        <p className="text-[10px] text-red-500 font-bold mt-1 ml-2 uppercase">
+          {error}
+        </p>
+      )}
     </div>
   );
-}
+});
+SelectForm.displayName = "SelectForm";
