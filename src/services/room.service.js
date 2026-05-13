@@ -19,6 +19,17 @@ export const saveRoom = async (cinemaId, roomData, roomId = null) => {
   }
 };
 
+export const getSeatsByRoom = async (roomId) => {
+  try {
+    // Endpoint basado en image_71b79e.png
+    const response = await api.get(`/rooms/${roomId}/seats`);
+    return response.data; 
+  } catch (error) {
+    console.error("Error al obtener el mapa de asientos:", error);
+    throw error;
+  }
+};
+
 // Crear Asientos - Enviamos el objeto individual directamente
 export const createRoomSeats = async (roomId, seatData) => {
   return await api.post(`/rooms/${roomId}/seats`, seatData);
