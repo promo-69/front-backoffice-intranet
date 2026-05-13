@@ -5,7 +5,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/Dialog";
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { SelectForm } from "@/components/ui/SelectForm";
 import { InputForm } from "@/components/ui/inputForm";
