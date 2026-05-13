@@ -18,17 +18,25 @@ export default function UsersTab({ users, onEdit, onEditEmployee, onDelete }) {
         <tbody className="divide-y divide-border">
           {users.map((u) => (
             <tr key={u.id} className="border-b hover:bg-gray-50 transition">
+              {/* NOMBRE */}
               <td className="py-4 px-18 font-bold text-slate-700">
                 {u._People?.first_name || ""} {u._People?.last_name || ""}
               </td>
-              <td className="py-4 px-4">{u.email}</td>
-              {/*rol cruzado*/}
-              <td className="py-4 px-4">{u.roleName}</td>
-              <td className="py-4 px-7">
-                {u.employeeData?.employee_code || "Sin cargo"}
-              </td>
-              <td>{u.status === 1 ? "Activo" : "Inactivo"}</td>
 
+              {/* CORREO */}
+              <td className="py-4 px-4">{u.email}</td>
+
+              {/* ROL */}
+              <td className="py-4 px-4">{u._Roles?.code || "Sin rol"}</td>
+
+              {/* CARGO */}
+              <td className="py-4 px-7">
+                {u._Employee?.employee_code || "Sin cargo"}
+              </td>
+
+              {/* ESTADO */}
+              <td>{u.status === 1 ? "Activo" : "Inactivo"}</td>
+              
               {/* ⭐ ACCIONES */}
               <td className="py-4 px-4">
                 <div className="flex justify-center gap-4">

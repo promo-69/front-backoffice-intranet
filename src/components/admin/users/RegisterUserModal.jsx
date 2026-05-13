@@ -6,7 +6,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/components/ui/dialog";
+} from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/button";
 import { InputForm } from "@/components/ui/inputForm";
 import { SelectForm } from "@/components/ui/SelectForm";
@@ -14,8 +14,6 @@ import { SelectForm } from "@/components/ui/SelectForm";
 import { createEmployee } from "@/services/employees.service";
 import { createUser, getRoles } from "@/services/users.service";
 import { AiFillEye, AiFillEyeInvisible } from "react-icons/ai";
-
-
 
 export function RegisterUserModal({ open, onClose }) {
   const [step, setStep] = useState(1);
@@ -26,9 +24,6 @@ export function RegisterUserModal({ open, onClose }) {
     lastName: "",
     jobPosition: "",
     cinema: "",
-    startDate: "",
-    salaryBase: "",
-    status: "1",
   });
 
   const [userData, setUserData] = useState({
@@ -42,7 +37,7 @@ export function RegisterUserModal({ open, onClose }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [roles, setRoles] = useState([]);
 
-
+  // ⭐ Cargar roles dinámicamente
   useEffect(() => {
     if (!open) {
       setStep(1);
@@ -52,9 +47,6 @@ export function RegisterUserModal({ open, onClose }) {
         lastName: "",
         jobPosition: "",
         cinema: "",
-        startDate: "",
-        salaryBase: "",
-        status: "1",
       });
       setUserData({
         email: "",
@@ -64,9 +56,9 @@ export function RegisterUserModal({ open, onClose }) {
       setErrorsEmp({});
       setErrorsUser({});
       setIsSubmitting(false);
+      return;
     }
 
-    // ⭐ Cargar roles dinámicamente
     const fetchRoles = async () => {
       try {
         const data = await getRoles();
@@ -79,6 +71,7 @@ export function RegisterUserModal({ open, onClose }) {
     fetchRoles();
   }, [open]);
 
+  // ⭐ Validaciones
   const validateEmpField = (name, value) => {
     if (!value || value.toString().trim() === "")
       return "Este campo es obligatorio.";
@@ -88,8 +81,8 @@ export function RegisterUserModal({ open, onClose }) {
       if (!regex.test(value)) return "Solo se permiten letras.";
     }
 
-    if (name === "salaryBase") {
-      if (Number(value) <= 0) return "El salario debe ser mayor a 0.";
+    if (name === "jobPosition" || name === "cinema") {
+      if (value === "") return "Debe seleccionar una opción.";
     }
 
     return "";
@@ -161,24 +154,25 @@ export function RegisterUserModal({ open, onClose }) {
     setStep(1);
   };
 
+  // ⭐ SUBMIT FINAL
   const handleSubmit = async () => {
     if (!validateUserStep()) return;
 
     try {
       setIsSubmitting(true);
 
+      // ⭐ FORMATO REAL DEL BACKEND
       const payloadEmployee = {
-        documentNumber: employeeData.documentNumber,
-        firstName: employeeData.firstName.trim(),
-        lastName: employeeData.lastName.trim(),
-        employeeCode: `${employeeData.firstName[0] || "X"}${employeeData.lastName[0] || "X"}-${Math.floor(
-          Math.random() * 9000 + 1000,
-        )}`,
-        jobPosition: Number(employeeData.jobPosition),
+        person: {
+          document_number: employeeData.documentNumber,
+          first_name: employeeData.firstName.trim(),
+          last_name: employeeData.lastName.trim(),
+        },
+        employee_code: `${employeeData.firstName[0] || "X"}${
+          employeeData.lastName[0] || "X"
+        }-${Math.floor(Math.random() * 9000 + 1000)}`,
+        job_position: Number(employeeData.jobPosition),
         cinema: Number(employeeData.cinema),
-        startDate: employeeData.startDate,
-        salaryBase: Number(employeeData.salaryBase),
-        status: Number(employeeData.status),
       };
 
       const empRes = await createEmployee(payloadEmployee);
@@ -197,9 +191,7 @@ export function RegisterUserModal({ open, onClose }) {
         password: userData.password,
       };
 
-      
       await createUser(payloadUser);
-       
 
       onClose(true);
     } catch (error) {
@@ -306,44 +298,6 @@ export function RegisterUserModal({ open, onClose }) {
                 <ErrorMsg message={errorsEmp.cinema} />
               </div>
             </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col">
-                <InputForm
-                  label="Fecha de ingreso"
-                  name="startDate"
-                  type="date"
-                  value={employeeData.startDate}
-                  onChange={handleEmpChange}
-                />
-                <ErrorMsg message={errorsEmp.startDate} />
-              </div>
-
-              <div className="flex flex-col">
-                <InputForm
-                  label="Salario base"
-                  name="salaryBase"
-                  type="number"
-                  value={employeeData.salaryBase}
-                  onChange={handleEmpChange}
-                  placeholder="Ej: 1200"
-                />
-                <ErrorMsg message={errorsEmp.salaryBase} />
-              </div>
-            </div>
-
-            <div className="flex flex-col">
-              <SelectForm
-                label="Estatus"
-                name="status"
-                value={employeeData.status}
-                onChange={handleEmpChange}
-              >
-                <option value="1">Activo</option>
-                <option value="0">Inactivo</option>
-              </SelectForm>
-              <ErrorMsg message={errorsEmp.status} />
-            </div>
           </div>
         )}
 
@@ -394,7 +348,7 @@ export function RegisterUserModal({ open, onClose }) {
                 {roles.length > 0 ? (
                   roles.map((r) => (
                     <option key={r.id} value={r.id}>
-                      {r.name}
+                      {r.code}
                     </option>
                   ))
                 ) : (

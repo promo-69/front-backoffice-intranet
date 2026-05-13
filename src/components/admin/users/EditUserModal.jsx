@@ -57,7 +57,7 @@ export default function EditUserModal({ open, onClose, user }) {
 
           <InputForm
             label="Rol del Sistema"
-            value={user?.roleCode || "—"}
+            value={user?._Roles?.code || "—"}
             disabled
           />
 
@@ -65,7 +65,7 @@ export default function EditUserModal({ open, onClose, user }) {
             label="Estado"
             name="status"
             value={form.status}
-            onChange={(e) => setForm({ ...form, status: e.target.value })}
+            onChange={(e) => setForm({ ...form, status: Number(e.target.value) })}
           >
             <option value="1">Activo</option>
             <option value="0">Inactivo</option>

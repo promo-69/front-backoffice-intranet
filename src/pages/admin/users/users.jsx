@@ -12,8 +12,8 @@ import UsersTab from "@/pages/admin/users/usersTab";
 import ClientsTab from "@/pages/admin/users/clientsTab";
 
 import { useLoading } from "@/context/LoadingContext";
-import { getUsers, deleteUser, getRoles } from "@/services/users.service";
-import { getEmployeeById } from "@/services/employees.service";
+import { getUsers, deleteUser} from "@/services/users.service";
+//import { getEmployeeById } from "@/services/employees.service";
 
 export default function Users() {
   const { showLoader, hideLoader } = useLoading();
@@ -44,35 +44,8 @@ export default function Users() {
   const fetchUsers = async () => {
     try {
       showLoader();
-      // 1. Obtener usuarios
       const usersRaw = await getUsers();
-      // 2. Obtener roles
-      const roles = await getRoles();
-      // 3. Cruzar usuarios con roles
-      const usersWithEmployeeData = await Promise.all(
-        usersRaw.map(async (u) => {
-          let employee = null;
-
-          try {
-            if (u.employee) {
-              employee = await getEmployeeById(u.employee);
-            }
-          } catch {
-            employee = null;
-          }
-
-          // Buscar el rol por ID
-          const roleObj = roles.find((r) => r.id === u.role);
-
-          return {
-            ...u,
-            employeeData: employee,
-            roleName: roleObj?.name || "Sin rol",
-          };
-        }),
-      );
-
-      setUsers(usersWithEmployeeData);
+      setUsers(usersRaw);
     } catch (error) {
       console.error("Error cargando usuarios:", error);
       setUsers([]);
@@ -80,6 +53,7 @@ export default function Users() {
       hideLoader();
     }
   };
+
 
   useEffect(() => {
     fetchUsers();
