@@ -8,6 +8,8 @@ import AuthLayout from "../layouts/AuthLayout";
 import AdminLayout from "../layouts/AdminLayout";
 import Users from "../pages/admin/users/users";
 import CinemasPage from "../pages/admin/cinemas/cinemas";
+import ProductsPage from "../pages/admin/inventory/products";
+import CategoriesPage from "../pages/admin/inventory/categories";
 import PrivateRoute from "./PrivateRoute";
 import GlobalLoader from "../components/ui/GlobalLoader";
 import { useLoading } from "../context/LoadingContext";
@@ -98,7 +100,18 @@ function AppRoute() {
           element={
             <PrivateRoute permission="inventory">
               <AdminLayout>
-                <div className="p-4">Próximamente: Inventario</div>
+                <ProductsPage />
+              </AdminLayout>
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/admin/inventario/categorias"
+          element={
+            <PrivateRoute permission="inventory">
+              <AdminLayout>
+                <CategoriesPage />
               </AdminLayout>
             </PrivateRoute>
           }
