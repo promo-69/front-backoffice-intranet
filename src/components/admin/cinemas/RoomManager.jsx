@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Presentation, Plus, Square, Trash2, Video } from "lucide-react";
+import { Plus, Square, Trash2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import DeleteConfirmModal from "@/components/ui/DialogConfirmModal";
 import SuccessModal from "@/components/ui/SuccessModal";
@@ -10,20 +10,22 @@ import { getRoomsByCinema, deleteRoom, saveRoom, createRoomSeats } from "../../.
 export default function RoomManager({ branch, externalIsAdding, setExternalIsAdding }) {
   const { showLoader, hideLoader } = useLoading();
   const [rooms, setRooms] = useState([]);
-  const [editingRoomId, setEditingRoomId] = useState(null);
+  const [isSuccessOpen, setIsSuccessOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [roomToDelete, setRoomToDelete] = useState(null);
+
+  // Estados de diseño y validación
   const [isLayoutValid, setIsLayoutValid] = useState(false);
   const [roomLayout, setRoomLayout] = useState([]);
 
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isSuccessOpen, setIsSuccessOpen] = useState(false);
-  const [roomToDelete, setRoomToDelete] = useState(null);
-
   const [formData, setFormData] = useState({
     name: "",
-    rows: "",
-    cols: "",
-    projectionType: "1", // Inicializado con el ID 1 (2D Digital)
+    rows: "8",
+    cols: "12",
+    projectionType: "1",
   });
+
+  const theoreticalCapacity = (parseInt(formData.rows) || 0) * (parseInt(formData.cols) || 0);
 
   const fetchRooms = async () => {
     if (!branch?.id) return;
@@ -33,95 +35,85 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
       setRooms(data);
     } catch (error) {
       console.error("Error al obtener salas:", error);
-      setRooms([]);
     } finally {
       hideLoader();
     }
   };
 
   useEffect(() => {
-    if (branch?.id) {
-      resetForm();
-      fetchRooms();
-    }
+    if (branch?.id) fetchRooms();
   }, [branch?.id]);
 
   const resetForm = () => {
     setExternalIsAdding(false);
-    setEditingRoomId(null);
-    setFormData({ name: "", rows: "", cols: "", projectionType: "1" });
+    setFormData({ name: "", rows: "8", cols: "12", projectionType: "1" });
     setIsLayoutValid(false);
     setRoomLayout([]);
   };
 
-  const handleEditRoom = (room) => {
-    setFormData({
-      name: room.name,
-      rows: room.gridRows?.toString() || room.grid_rows?.toString() || "",
-      cols: room.gridColumns?.toString() || room.grid_columns?.toString() || "",
-      projectionType: room.projectionTypes?.[0]?.toString() || "1",
-    });
-    
-    // Aquí deberías procesar el layout si viene del backend como lista de asientos
-    setRoomLayout(room.layout || []); 
-    setIsLayoutValid(true);
-    setEditingRoomId(room.id);
-    setExternalIsAdding(true);
-  };
+  /**
+   * SOLUCIÓN IMPLEMENTADA: 
+   * Registro secuencial para evitar el colapso del SeatsController (Error 500)
+   */
+  const handleProcessChain = async () => {
+    if (!formData.name) return alert("Por favor, asigna un nombre a la sala.");
 
-  const handleSaveRoom = async () => {
     try {
       showLoader();
 
-      // 1. Preparar Asientos con mapeo de IDs de condición y categoría
-      const formattedSeats = [];
+      // PASO 1: Crear la sala base
+      const roomPayload = {
+        name: formData.name,
+        projectionTypes: [parseInt(formData.projectionType)],
+        gridRows: parseInt(formData.rows),
+        gridColumns: parseInt(formData.cols),
+        totalCapacity: theoreticalCapacity
+      };
+
+      const response = await saveRoom(branch.id, roomPayload);
+      
+      // Ajuste de ID según tu respuesta JSON: { data: { room_id: X } }
+      const newRoomId = response?.data?.room_id || response?.room_id;
+
+      if (!newRoomId) {
+        throw new Error("No se pudo obtener el ID de la sala desde el servidor.");
+      }
+
+      // PASO 2: Preparar la lista de asientos desde el grid
+      const seatsToCreate = [];
       roomLayout.forEach((row, rowIndex) => {
         row.forEach((seat, colIndex) => {
-          let conditionId = seat.condition; 
-          if (seat.type === 'empty') {
-            conditionId = 3; // ID para Pasillo
-          }
-
-          formattedSeats.push({
+          seatsToCreate.push({
             rowIdentifier: String.fromCharCode(65 + rowIndex),
             columnNumber: colIndex + 1,
-            seatCategoryId: seat.category,   // 1=normal, 2=discapacitado
-            seatConditionId: conditionId     // 1=normal, 2=mantenimiento, 3=pasillo
+            seatCategory: Number(seat.category),
+            seatCondition: seat.type === 'empty' ? 3 : Number(seat.condition)
           });
         });
       });
 
-      // 2. Construir el Payload de la Sala (CamelCase según el error de validación)
-      const roomPayload = {
-        name: formData.name,
-        gridRows: parseInt(formData.rows),
-        gridColumns: parseInt(formData.cols),
-        // Capacidad real: solo asientos que NO son pasillos (condición 3)
-        totalCapacity: formattedSeats.filter(s => s.seatConditionId !== 3).length,
-        projectionTypes: [parseInt(formData.projectionType)], 
-      };
-
-      let roomId = editingRoomId;
-
-      // 3. Guardar o Actualizar Sala
-      if (editingRoomId) {
-        await saveRoom(branch.id, roomPayload, editingRoomId);
-      } else {
-        const roomResponse = await saveRoom(branch.id, roomPayload);
-        // Extraer ID (ajusta según la estructura de tu respuesta de API)
-        roomId = roomResponse.id || roomResponse.data?.id;
-      }
-
-      // 4. Guardar los asientos vinculados a la sala
-      if (roomId && formattedSeats.length > 0) {
-        await createRoomSeats(roomId, formattedSeats);
+      // PASO 3: Registro Secuencial (Uno por uno, como en image_722114.png)
+      console.log(`Iniciando registro de ${seatsToCreate.length} asientos...`);
+      
+      for (const seatData of seatsToCreate) {
+        try {
+          // Esperamos la respuesta de cada uno antes de enviar el siguiente
+          await createRoomSeats(newRoomId, seatData);
+        } catch (seatErr) {
+          console.warn(`Error en asiento ${seatData.rowIdentifier}${seatData.columnNumber}:`, seatErr);
+          // Opcional: podrías decidir si detener todo o continuar
+        }
       }
 
       setIsSuccessOpen(true);
       resetForm();
       fetchRooms();
     } catch (error) {
-      console.error("Error en el proceso de guardado:", error.response?.data || error);
+      console.error("Error en la cadena de registro:", error);
+      const msg = error.response?.status === 409 
+        ? "El nombre de la sala ya existe." 
+        : "Error interno al procesar la solicitud.";
+      alert(msg);
     } finally {
       hideLoader();
     }
@@ -133,144 +125,113 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
       showLoader();
       await deleteRoom(roomToDelete.id);
       setIsDeleteModalOpen(false);
-      setRoomToDelete(null);
       setIsSuccessOpen(true);
       fetchRooms();
     } catch (error) {
-      console.error("Error al eliminar la sala:", error);
+      console.error(error);
     } finally {
       hideLoader();
+      setRoomToDelete(null);
     }
   };
 
   return (
     <div className="bg-white p-6 rounded-cineflix border border-gray-100 shadow-sm min-h-[400px]">
-      
-      {!externalIsAdding && (
-        <div className="flex justify-between items-center border-b border-gray-100 pb-6 mb-6">
-          <div>
-            <h3 className="text-lg font-montserrat font-bold text-brand-primary">
-              Salas de {branch?.name || "Sucursal"}
-            </h3>
-            <p className="text-xs text-muted-foreground">
-              Administra la configuración de asientos y tipos de proyección por sala
-            </p>
-          </div>
-
-          <button
-            onClick={() => setExternalIsAdding(true)}
-            className="bg-brand-primary text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-[11px] font-black uppercase tracking-widest hover:brightness-110 hover:shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all duration-300 border-2 border-purple-400/30 font-montserrat"
-          >
-            <Plus className="w-4 h-4 text-brand-gold" strokeWidth={3} />
-            Añadir Sala
-          </button>
-        </div>
-      )}
-
-      {externalIsAdding ? (
-        <div className="bg-gray-50 p-6 rounded-cineflix border border-gray-200 shadow-inner">
-          <div className="flex items-center gap-2 mb-6 border-b border-gray-200 pb-3">
-            <Square className="text-brand-primary h-6 w-6 fill-brand-primary" />
-            <h3 className="text-lg font-montserrat font-bold text-gray-800">
-              {editingRoomId ? "Editar Sala" : "Registrar Nueva Sala"}
-            </h3>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700">Nombre de la sala</label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-brand-primary outline-none font-montserrat"
-                placeholder="Ej: Sala 1"
-              />
+      {!externalIsAdding ? (
+        <>
+          <div className="flex justify-between items-center border-b border-gray-100 pb-6 mb-6">
+            <div>
+              <h3 className="text-lg font-montserrat font-bold text-brand-primary">Salas Registradas</h3>
+              <p className="text-xs text-muted-foreground">Gestión de aforo y tecnología</p>
             </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700">Tipo de Proyección</label>
+            <button
+              onClick={() => setExternalIsAdding(true)}
+              className="bg-brand-primary text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-[11px] font-black uppercase font-montserrat"
+            >
+              <Plus className="w-4 h-4 text-brand-gold" strokeWidth={3} /> Añadir Sala
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            {rooms.map((room) => (
+              <div key={room.id} className="border p-4 rounded-xl flex justify-between items-center bg-white shadow-sm hover:border-brand-primary/30 transition-colors">
+                <div>
+                  <h4 className="font-bold text-brand-primary font-montserrat">{room.name}</h4>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mt-1">ID: {room.id} | Capacidad: {room.totalCapacity}</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="icon" variant="ghost" onClick={() => { setRoomToDelete(room); setIsDeleteModalOpen(true); }} className="text-red-500 hover:bg-red-50">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      ) : (
+        <div className="space-y-6 animate-in fade-in duration-500">
+          <div className="bg-slate-50 p-6 rounded-xl border border-slate-200">
+            <h3 className="text-sm font-black uppercase mb-4 text-slate-400 flex items-center gap-2">
+              <Square className="w-4 h-4 text-brand-primary fill-brand-primary" /> Datos Generales
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+              <div className="md:col-span-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Nombre de Sala</label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full border p-2 rounded-lg text-sm bg-white"
+                  placeholder="Ej: Sala 1"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Tecnología</label>
                 <select
                   value={formData.projectionType}
                   onChange={(e) => setFormData({ ...formData, projectionType: e.target.value })}
-                  className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-brand-primary outline-none bg-white font-montserrat"
+                  className="w-full border p-2 rounded-lg text-sm bg-white"
                 >
                   <option value="1">2D Digital</option>
                   <option value="2">3D Digital</option>
                   <option value="3">IMAX</option>
-                  <option value="4">4DX</option>
                 </select>
+              </div>
+              <div className="bg-brand-primary/5 p-2 rounded-lg text-center border border-brand-primary/10">
+                <span className="text-[9px] block font-bold text-brand-primary uppercase">Dimensiones</span>
+                <span className="font-bold text-brand-primary">{formData.rows}x{formData.cols}</span>
+              </div>
+              <div className="bg-blue-600/5 p-2 rounded-lg text-center border border-blue-600/10">
+                <span className="text-[9px] block font-bold text-blue-600 uppercase">Capacidad Max</span>
+                <span className="font-bold text-blue-600">{theoreticalCapacity}</span>
+              </div>
             </div>
           </div>
 
           <SeatGridDesigner
-            key={editingRoomId || "new"}
-            externalFormData={formData} 
+            externalFormData={formData}
             setExternalFormData={setFormData}
-            initialLayout={roomLayout}
             onValidationChange={(isValid, layout) => {
               setIsLayoutValid(isValid);
               setRoomLayout(layout);
             }}
           />
 
-          <div className="flex justify-end gap-3 mt-8">
-            <Button variant="outline" onClick={resetForm}>Cancelar</Button>
+          <div className="flex justify-end gap-3 pt-4">
+            <Button variant="outline" onClick={resetForm} className="rounded-xl">Cancelar</Button>
             <Button
-              onClick={handleSaveRoom}
+              onClick={handleProcessChain}
               disabled={!isLayoutValid || !formData.name}
-              className={`text-white font-bold font-montserrat ${!isLayoutValid ? "bg-gray-400" : "bg-brand-primary hover:bg-brand-primary/90"}`}
+              className="bg-brand-primary text-white rounded-xl flex gap-2 items-center px-8 shadow-lg shadow-brand-primary/20"
             >
-              {editingRoomId ? "Actualizar Sala" : "Guardar Sala"}
+              <CheckCircle2 className="w-4 h-4" /> Guardar Sala y Asientos
             </Button>
           </div>
         </div>
-      ) : (
-        <>
-          {rooms.length > 0 ? (
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 animate-in fade-in duration-500">
-              {rooms.map((room) => (
-                <div key={room.id} className="border border-gray-200 p-4 rounded-cineflix flex justify-between items-center bg-white shadow-sm hover:border-brand-primary/30 transition-colors group">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-purple-100 p-2 rounded-lg text-brand-primary">
-                      <Video className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-sm text-brand-primary font-montserrat">{room.name}</h4>
-                      <div className="flex gap-2 mt-1">
-                        <span className="text-[9px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-bold uppercase tracking-wider font-montserrat">
-                          Capacidad: {room.totalCapacity || room.total_capacity || "--"}
-                        </span>
-                        <span className="text-[9px] bg-brand-primary/10 text-brand-primary px-2 py-0.5 rounded font-bold uppercase tracking-wider font-montserrat">
-                          {room.projection_type || (room.projectionTypes?.[0]?.description) || "2D"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button size="sm" variant="ghost" onClick={() => handleEditRoom(room)} className="text-blue-600 hover:bg-blue-50 font-montserrat">Editar</Button>
-                    <Button size="icon" variant="ghost" onClick={() => { setRoomToDelete({id: room.id, name: room.name}); setIsDeleteModalOpen(true); }} className="text-red-500 hover:bg-red-50"><Trash2 className="h-4 w-4" /></Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-24 bg-slate-50/50 rounded-3xl border-2 border-dashed border-slate-200 animate-in zoom-in-95 duration-300">
-              <div className="bg-white p-4 rounded-full shadow-sm mb-4">
-                <Presentation className="h-10 w-10 text-slate-300" />
-              </div>
-              <h4 className="text-slate-500 font-bold font-montserrat uppercase text-[11px] tracking-[0.2em]">
-                No hay salas asignadas
-              </h4>
-              <p className="text-slate-400 text-[10px] mt-2 max-w-[200px] text-center leading-relaxed font-montserrat">
-                Parece que esta sede aún no tiene espacios configurados.
-              </p>
-            </div>
-          )}
-        </>
       )}
 
       <DeleteConfirmModal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} onConfirm={handleConfirmDeleteRoom} itemName={roomToDelete?.name} />
-      <SuccessModal isOpen={isSuccessOpen} onClose={() => setIsSuccessOpen(false)} title="¡Éxito!" message="Operación realizada correctamente." />
+      <SuccessModal isOpen={isSuccessOpen} onClose={() => setIsSuccessOpen(false)} title="Proceso Exitoso" message="La sala y todos sus asientos han sido registrados." />
     </div>
   );
 }

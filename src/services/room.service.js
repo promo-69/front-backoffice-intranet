@@ -19,10 +19,9 @@ export const saveRoom = async (cinemaId, roomData, roomId = null) => {
   }
 };
 
-// Crear Asientos 
-export const createRoomSeats = async (roomId, seatsArray) => {
-
-  return await api.post(`/rooms/${roomId}/seats`, { seats: seatsArray });
+// Crear Asientos - Enviamos el objeto individual directamente
+export const createRoomSeats = async (roomId, seatData) => {
+  return await api.post(`/rooms/${roomId}/seats`, seatData);
 };
 
 export const deleteRoom = async (roomId) => {
