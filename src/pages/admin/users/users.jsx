@@ -9,6 +9,7 @@ import DeleteConfirmModal from "@/components/ui/DialogConfirmModal";
 import SuccessModal from "@/components/ui/SuccessModal";
 
 import UsersTab from "@/pages/admin/users/usersTab";
+import ClientsTab from "@/pages/admin/users/clientsTab";
 
 import { useLoading } from "@/context/LoadingContext";
 import { getUsers, deleteUser, getRoles } from "@/services/users.service";
@@ -37,6 +38,8 @@ export default function Users() {
   // ⭐ PAGINACIÓN
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
+  // PESTAÑAS
+  const [activeTab, setActiveTab] = useState("employees");
 
   const fetchUsers = async () => {
     try {
@@ -154,80 +157,115 @@ export default function Users() {
         </div>
 
         {/* BUSCADOR + BOTÓN */}
-        <div className="flex items-center gap-4">
-          {/* BUSCADOR */}
-          <input
-            type="text"
-            placeholder="Buscar Empleado..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="w-64 px-3 py-2 rounded-cineflix border border-gray-300 text-sm font-montserrat focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
+        {activeTab === "employees" && (
+          <div className="flex items-center gap-4">
+            {/* BUSCADOR */}
+            <input
+              type="text"
+              placeholder="Buscar Empleado..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-64 px-3 py-2 rounded-cineflix border border-gray-300 text-sm font-montserrat focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
+            />
+
+            {/* BOTÓN */}
+            <button
+              onClick={() => setOpenModal(true)}
+              className="bg-brand-primary text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-[11px] font-black uppercase tracking-widest"
+            >
+              <Plus className="w-4 h-4 text-brand-gold" strokeWidth={3} />
+              Añadir usuario
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* ⭐ PESTAÑAS */}
+      <div className="flex gap-6 border-b border-gray-200 pb-2 px-2">
+        <button
+          onClick={() => setActiveTab("employees")}
+          className={`pb-2 font-semibold ${
+            activeTab === "employees"
+              ? "text-brand-primary border-b-2 border-brand-primary"
+              : "text-gray-500"
+          }`}
+        >
+          Empleados
+        </button>
+
+        <button
+          onClick={() => setActiveTab("clients")}
+          className={`text-xs font-montserrat uppercase tracking-wide pb-1 border-b-2 transition-colors ${
+            activeTab === "clients"
+              ? "font-bold text-brand-gold border-brand-gold"
+              : "text-muted-foreground border-transparent hover:text-brand-primary"
+          }`}
+        >
+          Clientes
+        </button>
+      </div>
+
+      {/* ⭐ CONTENIDO DE PESTAÑAS */}
+      {activeTab === "employees" && (
+        <>
+          <UsersTab
+            users={paginatedUsers}
+            onEdit={handleEditClick}
+            onEditEmployee={handleEditEmployeeClick}
+            onDelete={handleDeleteClick}
           />
 
-          {/* BOTÓN */}
-          <button
-            onClick={() => setOpenModal(true)}
-            className="bg-brand-primary text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-[11px] font-black uppercase tracking-widest"
-          >
-            <Plus className="w-4 h-4 text-brand-gold" strokeWidth={3} />
-            Añadir usuario
-          </button>
-        </div>
-      </div>
+          {/* ⭐ PAGINACIÓN */}
+          <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6 rounded-b-xl shadow-sm">
+            <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+              <p className="text-sm text-gray-700">
+                Mostrando{" "}
+                <span className="font-medium">
+                  {(currentPage - 1) * itemsPerPage + 1}
+                </span>{" "}
+                a{" "}
+                <span className="font-medium">
+                  {Math.min(currentPage * itemsPerPage, filteredUsers.length)}
+                </span>{" "}
+                de <span className="font-medium">{filteredUsers.length}</span>{" "}
+                resultados
+              </p>
 
-      {/* TABLA */}
-      <UsersTab
-        users={paginatedUsers}
-        onEdit={handleEditClick}
-        onEditEmployee={handleEditEmployeeClick}
-        onDelete={handleDeleteClick}
-      />
+              <nav
+                className="inline-flex -space-x-px rounded-md shadow-sm"
+                aria-label="Pagination"
+              >
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-2 border border-gray-300 bg-white text-gray-500 rounded-l-md disabled:opacity-50"
+                >
+                  ◀
+                </button>
 
-      {/* ⭐ PAGINACIÓN */}
-      <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6 rounded-b-xl shadow-sm">
-        <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-          <p className="text-sm text-gray-700">
-            Mostrando{" "}
-            <span className="font-medium">
-              {(currentPage - 1) * itemsPerPage + 1}
-            </span>{" "}
-            a{" "}
-            <span className="font-medium">
-              {Math.min(currentPage * itemsPerPage, filteredUsers.length)}
-            </span>{" "}
-            de <span className="font-medium">{filteredUsers.length}</span>{" "}
-            resultados
-          </p>
+                <div className="px-4 py-2 text-sm font-semibold text-brand-primary border border-gray-300 bg-white">
+                  Página {currentPage} de {totalPages}
+                </div>
 
-          <nav
-            className="inline-flex -space-x-px rounded-md shadow-sm"
-            aria-label="Pagination"
-          >
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-2 border border-gray-300 bg-white text-gray-500 rounded-l-md disabled:opacity-50"
-            >
-              ◀
-            </button>
-
-            <div className="px-4 py-2 text-sm font-semibold text-brand-primary border border-gray-300 bg-white">
-              Página {currentPage} de {totalPages}
+                <button
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(p + 1, totalPages))
+                  }
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-2 border border-gray-300 bg-white text-gray-500 rounded-r-md disabled:opacity-50"
+                >
+                  ▶
+                </button>
+              </nav>
             </div>
+          </div>
+        </>
+      )}
 
-            <button
-              onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className="px-3 py-2 border border-gray-300 bg-white text-gray-500 rounded-r-md disabled:opacity-50"
-            >
-              ▶
-            </button>
-          </nav>
-        </div>
-      </div>
+      {activeTab === "clients" && <ClientsTab />}
 
       {/* Modales */}
       <DeleteConfirmModal
