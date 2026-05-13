@@ -1,8 +1,16 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import api from "@/api/axios";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getProducts } from "../../../services/product.service";
+import {
+  initLocalStore,
+  getProductCategories,
+  getCurrencies,
+  getConcessionProducts,
+  deleteConcessionProduct,
+} from "../../../services/localStore.service";
 import ProductSearchBar from "../../../components/admin/inventory/ProductSearchBar";
 import ProductTable from "../../../components/admin/inventory/ProductTable";
 import ProductModal from "../../../components/admin/inventory/ProductModal";
@@ -43,28 +51,32 @@ const ProductsPage = () => {
     message: "",
   });
 
-  // Cargar catálogos (categorías y monedas) al montar
-  const fetchCatalogs = async () => {
+  // Cargar catálogos al montar
+  const fetchCatalogs = () => {
     try {
-      const [catRes, currRes] = await Promise.all([
-        api.get("/concessions/product-categories"),
-        api.get("/currencies"),
-      ]);
-      setCategories(catRes.data?.data || catRes.data || []);
-      setCurrencies(currRes.data?.data || currRes.data || []);
+      initLocalStore();
+      setCategories(getProductCategories());
+      setCurrencies(getCurrencies());
     } catch (error) {
       console.error("Error al cargar catálogos:", error);
     }
   };
 
-  const fetchProducts = async (page = 1) => {
+  const fetchProducts = () => {
     try {
       showLoader();
-      const data = await getProducts(page);
-      setProducts(data.data);
-      if (data.metadata) {
-        setMetadata(data.metadata);
-      }
+      initLocalStore();
+      const data = getConcessionProducts();
+      setProducts(data);
+      // Falso metadata para paginación
+      setMetadata({
+        total: data.length,
+        per_page: data.length || 10,
+        current_page: 1,
+        total_pages: 1,
+        next_page: null,
+        prev_page: null,
+      });
     } catch (error) {
       console.error("Error al cargar productos:", error);
       setProducts([]);
@@ -80,7 +92,7 @@ const ProductsPage = () => {
 
   // Efecto que reacciona al cambio de página
   useEffect(() => {
-    fetchProducts(currentPage);
+    fetchProducts();
   }, [currentPage]);
 
   // MANEJO DE EDICIÓN
@@ -104,10 +116,10 @@ const ProductsPage = () => {
     setProductToEdit(null);
   };
 
-  const handleConfirmDelete = async () => {
+  const handleConfirmDelete = () => {
     try {
       showLoader();
-      await api.delete(`/concessions/products/${itemToDelete.id}`);
+      deleteConcessionProduct(itemToDelete.id);
 
       setIsDeleteModalOpen(false);
       setSuccessConfig({
@@ -115,7 +127,7 @@ const ProductsPage = () => {
         message: `Se ha removido "${itemToDelete.name}" exitosamente.`,
       });
       setIsSuccessOpen(true);
-      fetchProducts(currentPage);
+      fetchProducts();
     } catch (error) {
       console.error("Error al eliminar:", error);
     } finally {
@@ -133,10 +145,18 @@ const ProductsPage = () => {
       {/* HEADER Y BÚSQUEDA */}
       <div className="flex justify-between items-center border-b border-gray-100 pb-4">
         <div>
-          <h3 className="text-lg font-montserrat font-bold text-brand-primary">
-            Productos de Dulcería
-          </h3>
-          <p className="text-xs text-muted-foreground">
+          <div className="flex items-center gap-4">
+            <h3 className="text-lg font-montserrat font-bold text-brand-primary">
+              Productos de Dulcería
+            </h3>
+            <Link 
+              to="/admin/inventario/categorias" 
+              className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-full font-semibold transition-colors"
+            >
+              Ver Categorías →
+            </Link>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
             Administra los productos de la dulcería. Puedes agregar, editar o
             eliminar productos según sea necesario.
           </p>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { saveConcessionProduct } from "../../../services/localStore.service";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +11,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { InputForm } from "@/components/ui/inputForm";
 import { useLoading } from "../../../context/LoadingContext";
-import api from "../../../api/axios";
 
 function ErrorMessage({ message }) {
   return message ? (
@@ -128,32 +128,16 @@ export default function ProductModal({ open, onClose, initialData, categories = 
       console.log("Enviando producto a DB:", payload);
 
       if (isEdit) {
-        await api.put(`/concessions/products/${initialData.id}`, payload);
-      } else {
-        await api.post("/concessions/products", payload);
+        payload.id = initialData.id;
       }
+      saveConcessionProduct(payload);
       onClose(true);
     } catch (error) {
-      const status = error.response?.status;
-      const serverData = error.response?.data;
-
-      if (status === 400) {
-        console.log("Detalles del error 400:", serverData);
-        setErrors((prev) => ({
-          ...prev,
-          general: "Datos inválidos. Revisa el formato de los campos.",
-        }));
-      } else if (status === 409) {
-        setErrors((prev) => ({
-          ...prev,
-          name: "Ya existe un producto con este nombre o código.",
-        }));
-      } else {
-        setErrors((prev) => ({
-          ...prev,
-          general: "Error al guardar. Intente de nuevo.",
-        }));
-      }
+      console.error("Error al guardar producto:", error);
+      setErrors((prev) => ({
+        ...prev,
+        name: "Ocurrió un error inesperado al guardar el producto.",
+      }));
     } finally {
       hideLoader();
       setIsSubmitting(false);

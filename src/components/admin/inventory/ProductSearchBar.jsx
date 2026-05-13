@@ -1,6 +1,6 @@
 import { Plus } from 'lucide-react';
 
-const ProductSearchBar = ({ searchTerm, setSearchTerm, onAddClick, placeholder = "Buscar producto..." }) => (
+const ProductSearchBar = ({ searchTerm, setSearchTerm, onAddClick, placeholder = "Buscar producto...", buttonText = "NUEVO PRODUCTO" }) => (
   <div className="flex items-center gap-4">
     <input
       type="text"
@@ -33,7 +33,7 @@ const ProductSearchBar = ({ searchTerm, setSearchTerm, onAddClick, placeholder =
       "
     >
       <Plus className="w-4 h-4 text-brand-gold" strokeWidth={3} /> 
-      NUEVO PRODUCTO
+      {buttonText}
     </button>
   </div>
 );

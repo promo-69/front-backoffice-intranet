@@ -12,6 +12,8 @@ const KEYS = {
   PRODUCTS: "cx_concession_products",
   COMBOS: "cx_concession_combos",
   ORDERS: "cx_orders",
+  PRODUCT_CATEGORIES: "cx_product_categories",
+  CURRENCIES: "cx_currencies",
 };
 
 // ─── SEED DATA ───────────────────────────────────────────────
@@ -98,6 +100,18 @@ const SEED_COMBOS = [
   { id: 104, name: "Combo Premium", description: "Cotufas Grandes + Refresco Grande + Nachos", price: 12.00, emoji: "⭐", items: ["Cotufas Grandes x1", "Refresco Grande x1", "Nachos con Queso x1"] },
 ];
 
+const SEED_CATEGORIES = [
+  { id: 1, name: "Bebidas", description: "Refrescos, agua, jugos", status: 1 },
+  { id: 2, name: "Chocolates y Dulces", description: "Golosinas y chocolates", status: 1 },
+  { id: 3, name: "Promociones", description: "Vasos coleccionables, combos especiales", status: 1 },
+  { id: 4, name: "Snack", description: "Cotufas, tequeños, nachos", status: 1 }
+];
+
+const SEED_CURRENCIES = [
+  { id: 1, code: "USD", symbol: "$", description: "Dólares" },
+  { id: 2, code: "VES", symbol: "Bs", description: "Bolívares" }
+];
+
 // ─── INICIALIZACIÓN ───────────────────────────────────────────
 
 export function initLocalStore() {
@@ -115,6 +129,12 @@ export function initLocalStore() {
   }
   if (!localStorage.getItem(KEYS.ORDERS)) {
     localStorage.setItem(KEYS.ORDERS, JSON.stringify([]));
+  }
+  if (!localStorage.getItem(KEYS.PRODUCT_CATEGORIES)) {
+    localStorage.setItem(KEYS.PRODUCT_CATEGORIES, JSON.stringify(SEED_CATEGORIES));
+  }
+  if (!localStorage.getItem(KEYS.CURRENCIES)) {
+    localStorage.setItem(KEYS.CURRENCIES, JSON.stringify(SEED_CURRENCIES));
   }
   // Seat maps se generan bajo demanda
 }
@@ -177,8 +197,56 @@ export function getConcessionProducts() {
   return JSON.parse(localStorage.getItem(KEYS.PRODUCTS) || "[]");
 }
 
+export function saveConcessionProduct(product) {
+  const products = getConcessionProducts();
+  if (product.id) {
+    const index = products.findIndex((p) => p.id === product.id);
+    if (index > -1) products[index] = product;
+  } else {
+    product.id = Date.now();
+    products.push(product);
+  }
+  localStorage.setItem(KEYS.PRODUCTS, JSON.stringify(products));
+  return product;
+}
+
+export function deleteConcessionProduct(id) {
+  const products = getConcessionProducts();
+  const filtered = products.filter((p) => p.id !== id);
+  localStorage.setItem(KEYS.PRODUCTS, JSON.stringify(filtered));
+}
+
 export function getConcessionCombos() {
   return JSON.parse(localStorage.getItem(KEYS.COMBOS) || "[]");
+}
+
+// ─── INVENTARIO: CATEGORÍAS Y MONEDAS ────────────────────────
+
+export function getProductCategories() {
+  return JSON.parse(localStorage.getItem(KEYS.PRODUCT_CATEGORIES) || "[]");
+}
+
+export function saveProductCategory(category) {
+  const categories = getProductCategories();
+  if (category.id) {
+    const index = categories.findIndex((c) => c.id === category.id);
+    if (index > -1) categories[index] = category;
+  } else {
+    category.id = Date.now();
+    categories.push(category);
+  }
+  localStorage.setItem(KEYS.PRODUCT_CATEGORIES, JSON.stringify(categories));
+  return category;
+}
+
+export function deleteProductCategory(id) {
+  const categories = getProductCategories();
+  const filtered = categories.filter((c) => c.id !== id);
+  localStorage.setItem(KEYS.PRODUCT_CATEGORIES, JSON.stringify(filtered));
+}
+
+export function getCurrencies() {
+  return JSON.parse(localStorage.getItem(KEYS.CURRENCIES) || "[]");
 }
 
 // ─── ÓRDENES ─────────────────────────────────────────────────
