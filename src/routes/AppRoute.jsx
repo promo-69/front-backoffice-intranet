@@ -6,7 +6,7 @@ import Exhibition from "@/pages/admin/exhibition/exhibition2";
 import SellTickets from "../pages/ticketOffice/sellTickets";
 import AuthLayout from "../layouts/AuthLayout";
 import AdminLayout from "../layouts/AdminLayout";
-import Users from "../pages/admin/users/users";
+import Personal from "../pages/admin/personal/personalPage";
 import CinemasPage from "../pages/admin/cinemas/cinemas";
 import ProductsPage from "../pages/admin/inventory/products";
 import CategoriesPage from "../pages/admin/inventory/categories";
@@ -74,11 +74,11 @@ function AppRoute() {
         />
 
         <Route
-          path="/admin/users"
+          path="/admin/personal"
           element={
-            <PrivateRoute permission="users">
+            <PrivateRoute permission="personal">
               <AdminLayout>
-                <Users />
+                <Personal />
               </AdminLayout>
             </PrivateRoute>
           }

@@ -1,9 +1,4 @@
-export default function UsersTable({
-  users,
-  onEdit,
-  onEditEmployee,
-  onDelete,
-}) {
+export default function EmployeeTable({ employees, onEdit, onDelete }) {
   return (
     <div className="overflow-x-auto bg-white rounded-xl shadow-sm border border-gray-200">
       <table className="min-w-full divide-y divide-gray-200">
@@ -14,10 +9,13 @@ export default function UsersTable({
               Nombre
             </th>
             <th className="px-6 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600">
-              Correo
+              Documento
             </th>
             <th className="px-6 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600">
-              Rol
+              Cargo
+            </th>
+            <th className="px-6 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600">
+              Sucursal
             </th>
             <th className="px-6 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600">
               Estado
@@ -30,68 +28,65 @@ export default function UsersTable({
 
         {/* ⭐ CUERPO */}
         <tbody className="divide-y divide-gray-200">
-          {users.length === 0 && (
+          {employees.length === 0 && (
             <tr>
               <td
-                colSpan="5"
+                colSpan="6"
                 className="text-center py-6 text-gray-500 font-montserrat"
               >
-                No hay usuarios registrados.
+                No hay empleados registrados.
               </td>
             </tr>
           )}
 
-          {users.map((u) => (
-            <tr key={u.id} className="hover:bg-gray-50 transition-colors">
+          {employees.map((emp) => (
+            <tr key={emp.id} className="hover:bg-gray-50 transition-colors">
               {/* ⭐ NOMBRE */}
               <td className="px-6 py-4 whitespace-nowrap text-sm font-montserrat text-gray-800">
-                {u._People?.first_name} {u._People?.last_name}
+                {emp.firstName} {emp.lastName}
               </td>
 
-              {/* ⭐ CORREO */}
+              {/* ⭐ DOCUMENTO */}
               <td className="px-6 py-4 whitespace-nowrap text-sm font-montserrat text-gray-700">
-                {u.email}
+                {emp.documentNumber}
               </td>
 
-              {/* ⭐ ROL */}
+              {/* ⭐ CARGO */}
               <td className="px-6 py-4 whitespace-nowrap text-sm font-montserrat text-gray-700">
-                {u._Roles?.code || "SIN ROL"}
+                {emp.jobPositionName || "—"}
+              </td>
+
+              {/* ⭐ SUCURSAL */}
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-montserrat text-gray-700">
+                {emp.cinemaName || "—"}
               </td>
 
               {/* ⭐ ESTADO */}
               <td className="px-6 py-4 whitespace-nowrap">
                 <span
                   className={`px-3 py-1 rounded-full text-xs font-bold ${
-                    u.status === 1
+                    emp.status === 1
                       ? "bg-green-100 text-green-700"
                       : "bg-red-100 text-red-700"
                   }`}
                 >
-                  {u.status === 1 ? "Activo" : "Inactivo"}
+                  {emp.status === 1 ? "Activo" : "Inactivo"}
                 </span>
               </td>
 
               {/* ⭐ ACCIONES */}
               <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex justify-end gap-3">
-                {/* EDITAR USUARIO */}
+                {/* EDITAR */}
                 <button
-                  onClick={() => onEdit(u)}
+                  onClick={() => onEdit(emp)}
                   className="text-brand-primary font-bold hover:underline text-xs"
                 >
-                  Editar Usuario
-                </button>
-
-                {/* EDITAR EMPLEADO */}
-                <button
-                  onClick={() => onEditEmployee(u)}
-                  className="text-brand-gold font-bold hover:underline text-xs"
-                >
-                  Editar Empleado
+                  Editar
                 </button>
 
                 {/* ELIMINAR */}
                 <button
-                  onClick={() => onDelete(u)}
+                  onClick={() => onDelete(emp)}
                   className="text-red-600 font-bold hover:underline text-xs"
                 >
                   Eliminar

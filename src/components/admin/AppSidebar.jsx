@@ -38,9 +38,9 @@ const navItems = [
     url: "/admin/sucursales",
     icon: MapPin,
   },
-  { id: "users",
-    title: "Usuarios",
-    url: "/admin/users",
+  { id: "personal",
+    title: "Personal",
+    url: "/admin/personal",
     icon: Users },
   {
     id: "transactions",
