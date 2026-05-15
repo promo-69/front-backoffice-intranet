@@ -2,192 +2,284 @@ import { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
 
 import { RegisterUserModal } from "@/components/admin/users/RegisterUserModal";
-import { EditUserModal } from "@/components/admin/users/EditUserModal";
+import  EditUserModal from "@/components/admin/users/EditUserModal";
+import EditEmployeeModal from "@/components/admin/users/EditEmployeeModal";
 
 import DeleteConfirmModal from "@/components/ui/DialogConfirmModal";
 import SuccessModal from "@/components/ui/SuccessModal";
 
-import EmployeesTab from "./employeesTab";
-import ClientsTab from "./clientsTab";
+import UsersTab from "@/pages/admin/users/usersTab";
+import ClientsTab from "@/pages/admin/users/clientsTab";
 
 import { useLoading } from "@/context/LoadingContext";
-import api from "@/api/axios";
-import { useAuth } from "@/context/AuthContext";
+import { getUsers, deleteUser} from "@/services/users.service";
+//import { getEmployeeById } from "@/services/employees.service";
 
 export default function Users() {
-  const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState("employees");
+  const { showLoader, hideLoader } = useLoading();
 
-  // MODALES
+  const [users, setUsers] = useState([]);
+  const [search, setSearch] = useState("");
+
   const [openModal, setOpenModal] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isEditEmployeeOpen, setIsEditEmployeeOpen] = useState(false);
+
   const [userToEdit, setUserToEdit] = useState(null);
+  const [employeeToEdit, setEmployeeToEdit] = useState(null);
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
 
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
+  const [successTitle, setSuccessTitle] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
-  // BUSCADOR
-  const [search, setSearch] = useState("");
+  // ⭐ PAGINACIÓN
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
+  // PESTAÑAS
+  const [activeTab, setActiveTab] = useState("employees");
 
-  // EMPLEADOS
-  const [employees, setEmployees] = useState([]);
-
-  const { showLoader, hideLoader } = useLoading();
-
-  // ⭐ GET REAL DE EMPLEADOS
-  const fetchEmployees = async () => {
-    showLoader();
+  const fetchUsers = async () => {
     try {
-      const res = await api.get("/employees"); // GET real
-      setEmployees(res.data);
+      showLoader();
+      const usersRaw = await getUsers();
+      setUsers(usersRaw);
     } catch (error) {
-      console.error("Error cargando empleados:", error);
+      console.error("Error cargando usuarios:", error);
+      setUsers([]);
     } finally {
       hideLoader();
     }
   };
 
-  // ⭐ REFRESCAR TABLA DESPUÉS DE REGISTRAR
-  const refreshEmployees = () => fetchEmployees();
 
   useEffect(() => {
-    if (user) {
-      fetchEmployees();
-    }
-  }, [user]);
+    fetchUsers();
+  }, []);
 
-  /*useEffect(() => {
-    fetchEmployees();
-  }, []);*/
+  const refreshUsers = () => {
+    fetchUsers();
+    setSuccessTitle("Usuario Registrado");
+    setSuccessMessage("El usuario ha sido registrado exitosamente.");
+    setIsSuccessOpen(true);
+  };
 
-  // ⭐ EDITAR
-  const handleEditClick = (employee) => {
-    setUserToEdit(employee);
+  // ⭐ FILTRADO POR BÚSQUEDA
+  const filteredUsers = users.filter((u) => {
+    const fullName =
+      `${u._People?.first_name || ""} ${u._People?.last_name || ""}`.toLowerCase();
+    return (
+      fullName.includes(search.toLowerCase()) ||
+      u.email.toLowerCase().includes(search.toLowerCase())
+    );
+  });
+
+  // ⭐ PAGINACIÓN
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  const paginatedUsers = filteredUsers.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage,
+  );
+
+  const handleEditClick = (user) => {
+    setUserToEdit(user);
     setIsEditModalOpen(true);
   };
 
-  // ⭐ ELIMINAR
-  const handleDeleteClick = (employee) => {
-    setItemToDelete(employee);
+  const handleEditEmployeeClick = (employee) => {
+    setEmployeeToEdit(employee);
+    setIsEditEmployeeOpen(true);
+  };
+
+  const handleDeleteClick = (user) => {
+    setItemToDelete(user);
     setIsDeleteModalOpen(true);
   };
 
   const handleConfirmDelete = async () => {
     try {
-      await api.delete(`/employees/${itemToDelete.id}`);
-      setEmployees((prev) => prev.filter((emp) => emp.id !== itemToDelete.id));
+      showLoader();
+      await deleteUser(itemToDelete.id);
+
+      setSuccessTitle("Usuario Eliminado");
+      setSuccessMessage(`El usuario ha sido eliminado correctamente.`);
       setIsSuccessOpen(true);
+
+      fetchUsers();
     } catch (error) {
-      console.error("Error eliminando empleado:", error);
+      console.error("Error eliminando usuario:", error);
     } finally {
       setIsDeleteModalOpen(false);
+      setItemToDelete(null);
+      hideLoader();
     }
   };
 
   return (
     <div className="space-y-6">
-      
-      {/* Barra de acciones superior */}
+      {/* ⭐ BARRA SUPERIOR */}
       <div className="flex justify-between items-center bg-white p-6 rounded-cineflix border border-gray-100 shadow-sm">
-        <div >
+        <div>
           <h3 className="text-lg font-montserrat font-bold text-brand-primary">
             Gestión de personal
           </h3>
           <p className="text-xs text-muted-foreground">
-            Administra el acceso de cajeros y operadores por sucursal
+            Administra el acceso de empleados al sistema
           </p>
         </div>
 
         {/* BUSCADOR + BOTÓN */}
-        <div className="flex items-center gap-4">
-          <input
-            type="text"
-            placeholder="Buscar Empleado..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-64 px-3 py-2 rounded-cineflix border border-gray-300 text-sm font-montserrat focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
-          />
+        {activeTab === "employees" && (
+          <div className="flex items-center gap-4">
+            {/* BUSCADOR */}
+            <input
+              type="text"
+              placeholder="Buscar Empleado..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-64 px-3 py-2 rounded-cineflix border border-gray-300 text-sm font-montserrat focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
+            />
 
-          <button
-            onClick={() => setOpenModal(true)}
-            className="bg-brand-primary text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-[11px] font-black uppercase tracking-widest hover:brightness-110 hover:shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all duration-300 border-2 border-purple-400/30 font-montserrat"
-          >
-            <Plus className="w-6 h-6 text-brand-gold" strokeWidth={3} />
-            Añadir empleado
-          </button>
-        </div>
+            {/* BOTÓN */}
+            <button
+              onClick={() => setOpenModal(true)}
+              className="bg-brand-primary text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-[11px] font-black uppercase tracking-widest"
+            >
+              <Plus className="w-4 h-4 text-brand-gold" strokeWidth={3} />
+              Añadir usuario
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* TABS */}
-      <div className="flex gap-4 border-b pb-2">
+      {/* ⭐ PESTAÑAS */}
+      <div className="flex gap-6 border-b border-gray-200 pb-2 px-2">
         <button
-          className={`text-xs font-montserrat uppercase tracking-wide pb-1 border-b-2 transition-colors ${
-            activeTab === "employees"
-              ? "font-bold text-brand-gold border-brand-gold"
-              : "text-muted-foreground border-transparent hover:text-brand-primary"
-          }`}
           onClick={() => setActiveTab("employees")}
+          className={`pb-2 font-semibold ${
+            activeTab === "employees"
+              ? "text-brand-primary border-b-2 border-brand-primary"
+              : "text-gray-500"
+          }`}
         >
           Empleados
         </button>
 
         <button
+          onClick={() => setActiveTab("clients")}
           className={`text-xs font-montserrat uppercase tracking-wide pb-1 border-b-2 transition-colors ${
             activeTab === "clients"
               ? "font-bold text-brand-gold border-brand-gold"
               : "text-muted-foreground border-transparent hover:text-brand-primary"
           }`}
-          onClick={() => setActiveTab("clients")}
         >
           Clientes
         </button>
       </div>
 
-      {/* CONTENIDO */}
+      {/* ⭐ CONTENIDO DE PESTAÑAS */}
       {activeTab === "employees" && (
-        <EmployeesTab
-          search={search}
-          employees={employees}
-          onDelete={handleDeleteClick}
-          onEdit={handleEditClick}
-        />
+        <>
+          <UsersTab
+            users={paginatedUsers}
+            onEdit={handleEditClick}
+            onEditEmployee={handleEditEmployeeClick}
+            onDelete={handleDeleteClick}
+          />
+
+          {/* ⭐ PAGINACIÓN */}
+          <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6 rounded-b-xl shadow-sm">
+            <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+              <p className="text-sm text-gray-700">
+                Mostrando{" "}
+                <span className="font-medium">
+                  {(currentPage - 1) * itemsPerPage + 1}
+                </span>{" "}
+                a{" "}
+                <span className="font-medium">
+                  {Math.min(currentPage * itemsPerPage, filteredUsers.length)}
+                </span>{" "}
+                de <span className="font-medium">{filteredUsers.length}</span>{" "}
+                resultados
+              </p>
+
+              <nav
+                className="inline-flex -space-x-px rounded-md shadow-sm"
+                aria-label="Pagination"
+              >
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-2 border border-gray-300 bg-white text-gray-500 rounded-l-md disabled:opacity-50"
+                >
+                  ◀
+                </button>
+
+                <div className="px-4 py-2 text-sm font-semibold text-brand-primary border border-gray-300 bg-white">
+                  Página {currentPage} de {totalPages}
+                </div>
+
+                <button
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(p + 1, totalPages))
+                  }
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-2 border border-gray-300 bg-white text-gray-500 rounded-r-md disabled:opacity-50"
+                >
+                  ▶
+                </button>
+              </nav>
+            </div>
+          </div>
+        </>
       )}
 
       {activeTab === "clients" && <ClientsTab />}
 
-      {/* MODAL ELIMINAR */}
+      {/* Modales */}
       <DeleteConfirmModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleConfirmDelete}
-        itemName={itemToDelete?.firstName}
+        itemName={itemToDelete?.email}
       />
 
-      {/* MODAL ÉXITO */}
       <SuccessModal
         isOpen={isSuccessOpen}
-        onClose={() => {
-          setIsSuccessOpen(false);
-          setItemToDelete(null);
-        }}
-        title="Empleado Eliminado"
-        message={`El acceso de ${itemToDelete?.firstName} ha sido revocado correctamente.`}
+        onClose={() => setIsSuccessOpen(false)}
+        title={successTitle}
+        message={successMessage}
       />
 
-      {/* MODAL REGISTRO ⭐ AQUÍ VA */}
       <RegisterUserModal
         open={openModal}
-        onClose={() => setOpenModal(false)}
-        onSuccess={refreshEmployees} // ⭐ REFRESCA TABLA
+        onClose={(shouldRefresh) => {
+          setOpenModal(false);
+          if (shouldRefresh) refreshUsers();
+        }}
       />
 
-      {/* MODAL EDICIÓN */}
       <EditUserModal
         open={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
+        onClose={(shouldRefresh) => {
+          setIsEditModalOpen(false);
+          if (shouldRefresh) fetchUsers();
+        }}
         user={userToEdit}
+      />
+
+      <EditEmployeeModal
+        open={isEditEmployeeOpen}
+        onClose={(shouldRefresh) => {
+          setIsEditEmployeeOpen(false);
+          if (shouldRefresh) fetchUsers();
+        }}
+        employee={employeeToEdit}
       />
     </div>
   );
