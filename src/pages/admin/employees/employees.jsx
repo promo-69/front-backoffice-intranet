@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { Plus } from "lucide-react";
 
 import EmployeeTable from "@/pages/admin/employees/employeeTable";
 import RegisterEmployeeModal from "@/components/admin/employees/RegisterEmployeeModal";
@@ -11,11 +10,10 @@ import SuccessModal from "@/components/ui/SuccessModal";
 import { useLoading } from "@/context/LoadingContext";
 import { getEmployees, deleteEmployee } from "@/services/employees.service";
 
-export default function Employees() {
+export default function Employees(search) {
   const { showLoader, hideLoader } = useLoading();
 
   const [employees, setEmployees] = useState([]);
-  const [search, setSearch] = useState("");
 
   const [openModal, setOpenModal] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -101,39 +99,6 @@ export default function Employees() {
 
   return (
     <div className="space-y-6">
-      {/* ⭐ HEADER */}
-      <div className="flex justify-between items-center bg-white p-6 rounded-cineflix border border-gray-100 shadow-sm">
-        <div>
-          <h3 className="text-lg font-montserrat font-bold text-brand-primary">
-            Gestión de Empleados
-          </h3>
-          <p className="text-xs text-muted-foreground">
-            Administra la información laboral del personal
-          </p>
-        </div>
-
-        {/* BUSCADOR + BOTÓN */}
-        <div className="flex items-center gap-4">
-          <input
-            type="text"
-            placeholder="Buscar Empleado..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="w-64 px-3 py-2 rounded-cineflix border border-gray-300 text-sm font-montserrat focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
-          />
-
-          <button
-            onClick={() => setOpenModal(true)}
-            className="bg-brand-primary text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-[11px] font-black uppercase tracking-widest"
-          >
-            <Plus className="w-4 h-4 text-brand-gold" strokeWidth={3} />
-            Añadir empleado
-          </button>
-        </div>
-      </div>
 
       {/* ⭐ TABLA */}
       <EmployeeTable

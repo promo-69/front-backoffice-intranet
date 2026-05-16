@@ -16,7 +16,7 @@ export default function Users() {
   const { showLoader, hideLoader } = useLoading();
 
   const [users, setUsers] = useState([]);
-  const [search, setSearch] = useState("");
+  const [search, /*setSearch*/] = useState("");
 
   const [openModal, setOpenModal] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -113,39 +113,6 @@ export default function Users() {
 
   return (
     <div className="space-y-6">
-      {/* ⭐ HEADER */}
-      <div className="flex justify-between items-center bg-white p-6 rounded-cineflix border border-gray-100 shadow-sm">
-        <div>
-          <h3 className="text-lg font-montserrat font-bold text-brand-primary">
-            Gestión de Usuarios
-          </h3>
-          <p className="text-xs text-muted-foreground">
-            Administra el acceso de empleados al sistema
-          </p>
-        </div>
-
-        {/* BUSCADOR + BOTÓN */}
-        <div className="flex items-center gap-4">
-          <input
-            type="text"
-            placeholder="Buscar Usuario..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="w-64 px-3 py-2 rounded-cineflix border border-gray-300 text-sm font-montserrat focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
-          />
-
-          <button
-            onClick={() => setOpenModal(true)}
-            className="bg-brand-primary text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-[11px] font-black uppercase tracking-widest"
-          >
-            <Plus className="w-4 h-4 text-brand-gold" strokeWidth={3} />
-            Añadir usuario
-          </button>
-        </div>
-      </div>
 
       {/* ⭐ TABLA */}
       <UsersTab
