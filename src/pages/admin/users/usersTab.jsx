@@ -1,3 +1,5 @@
+import { Pencil, Trash2, UserCog } from "lucide-react";
+
 export default function UsersTable({
   users,
   onEdit,
@@ -72,29 +74,32 @@ export default function UsersTable({
               </td>
 
               {/* ⭐ ACCIONES */}
-              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex justify-end gap-3">
+              <td className="px-6 py-4 whitespace-nowrap text-right flex justify-end gap-3">
                 {/* EDITAR USUARIO */}
                 <button
                   onClick={() => onEdit(u)}
-                  className="text-brand-primary font-bold hover:underline text-xs"
+                  className="text-blue-500 hover:scale-110 transition-transform"
+                  title="Editar usuario"
                 >
-                  Editar Usuario
+                  <Pencil className="w-5 h-5" />
                 </button>
 
                 {/* EDITAR EMPLEADO */}
                 <button
                   onClick={() => onEditEmployee(u)}
-                  className="text-brand-gold font-bold hover:underline text-xs"
+                  className="text-brand-gold hover:scale-110 transition-transform"
+                  title="Editar empleado asociado"
                 >
-                  Editar Empleado
+                  <UserCog className="w-5 h-5" />
                 </button>
 
                 {/* ELIMINAR */}
                 <button
                   onClick={() => onDelete(u)}
-                  className="text-red-600 font-bold hover:underline text-xs"
+                  className="text-red-500 hover:scale-110 transition-transform"
+                  title="Eliminar usuario"
                 >
-                  Eliminar
+                  <Trash2 className="w-5 h-5" />
                 </button>
               </td>
             </tr>
