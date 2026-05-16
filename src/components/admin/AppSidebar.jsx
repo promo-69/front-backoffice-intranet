@@ -45,12 +45,10 @@ const navItems = [
     url: "/admin/sucursales",
     icon: MapPin,
   },
-  {
-    id: "users",
-    title: "Usuarios",
-    url: "/admin/users",
-    icon: Users
-  },
+  { id: "personal",
+    title: "Personal",
+    url: "/admin/personal",
+    icon: Users },
   {
     id: "transactions",
     title: "Transacciones",

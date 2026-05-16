@@ -5,6 +5,11 @@ export const createEmployee = async (payload) => {
   return res.data;
 };
 
+export const getEmployees = async () => {
+  const res = await api.get("/employees");
+  return res.data.data; 
+};
+
 
 export const getEmployeeById = async (id) => {
   const res = await api.get(`/employees/${id}`);
@@ -13,4 +18,9 @@ export const getEmployeeById = async (id) => {
 
 export const updateEmployeePosition = async (id, payload) => {
   return api.put(`/employees/${id}/positions`, payload);
+};
+
+export const deleteEmployee = async (id) => {
+  const res = await api.delete(`/employees/${id}`);
+  return res.data;
 };

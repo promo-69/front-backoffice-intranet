@@ -7,58 +7,40 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+
 import { Button } from "@/components/ui/button";
 import { InputForm } from "@/components/ui/inputForm";
 import { SelectForm } from "@/components/ui/SelectForm";
 
-import { createEmployee } from "@/services/employees.service";
 import { createUser, getRoles } from "@/services/users.service";
 import { AiFillEye, AiFillEyeInvisible } from "react-icons/ai";
 
-export function RegisterUserModal({ open, onClose }) {
-  const [step, setStep] = useState(1);
-
-  const [employeeData, setEmployeeData] = useState({
-    documentNumber: "",
-    firstName: "",
-    lastName: "",
-    jobPosition: "",
-    cinema: "",
-  });
-
+export default function RegisterUserModal({ open, onClose }) {
   const [userData, setUserData] = useState({
     email: "",
     password: "",
     roleId: "",
   });
 
-  const [errorsEmp, setErrorsEmp] = useState({});
-  const [errorsUser, setErrorsUser] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState({});
   const [roles, setRoles] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
-  // ⭐ Cargar roles dinámicamente
+  // ⭐ Reset al abrir/cerrar
   useEffect(() => {
     if (!open) {
-      setStep(1);
-      setEmployeeData({
-        documentNumber: "",
-        firstName: "",
-        lastName: "",
-        jobPosition: "",
-        cinema: "",
-      });
       setUserData({
         email: "",
         password: "",
         roleId: "",
       });
-      setErrorsEmp({});
-      setErrorsUser({});
+      setErrors({});
       setIsSubmitting(false);
       return;
     }
 
+    // ⭐ Cargar roles
     const fetchRoles = async () => {
       try {
         const data = await getRoles();
@@ -72,23 +54,7 @@ export function RegisterUserModal({ open, onClose }) {
   }, [open]);
 
   // ⭐ Validaciones
-  const validateEmpField = (name, value) => {
-    if (!value || value.toString().trim() === "")
-      return "Este campo es obligatorio.";
-
-    if (name === "firstName" || name === "lastName") {
-      const regex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
-      if (!regex.test(value)) return "Solo se permiten letras.";
-    }
-
-    if (name === "jobPosition" || name === "cinema") {
-      if (value === "") return "Debe seleccionar una opción.";
-    }
-
-    return "";
-  };
-
-  const validateUserField = (name, value) => {
+  const validateField = (name, value) => {
     if (!value || value.toString().trim() === "")
       return "Este campo es obligatorio.";
 
@@ -105,97 +71,43 @@ export function RegisterUserModal({ open, onClose }) {
     return "";
   };
 
-  const [showPassword, setShowPassword] = useState(false);
-
-  const handleEmpChange = (e) => {
-    const { name, value } = e.target;
-    setEmployeeData((prev) => ({ ...prev, [name]: value }));
-    setErrorsEmp((prev) => ({
-      ...prev,
-      [name]: validateEmpField(name, value),
-    }));
-  };
-
-  const handleUserChange = (e) => {
+  const handleChange = (e) => {
     const { name, value } = e.target;
     setUserData((prev) => ({ ...prev, [name]: value }));
-    setErrorsUser((prev) => ({
+    setErrors((prev) => ({
       ...prev,
-      [name]: validateUserField(name, value),
+      [name]: validateField(name, value),
     }));
   };
 
-  const validateEmployeeStep = () => {
-    const newErrors = {};
-    Object.keys(employeeData).forEach((key) => {
-      const err = validateEmpField(key, employeeData[key]);
-      if (err) newErrors[key] = err;
-    });
-    setErrorsEmp(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const validateUserStep = () => {
+  const validateAll = () => {
     const newErrors = {};
     Object.keys(userData).forEach((key) => {
-      const err = validateUserField(key, userData[key]);
+      const err = validateField(key, userData[key]);
       if (err) newErrors[key] = err;
     });
-    setErrorsUser(newErrors);
+    setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleNext = () => {
-    if (!validateEmployeeStep()) return;
-    setStep(2);
-  };
-
-  const handleBack = () => {
-    setStep(1);
-  };
-
-  // ⭐ SUBMIT FINAL
+  // ⭐ SUBMIT
   const handleSubmit = async () => {
-    if (!validateUserStep()) return;
+    if (!validateAll()) return;
 
     try {
       setIsSubmitting(true);
 
-      // ⭐ FORMATO REAL DEL BACKEND
-      const payloadEmployee = {
-        person: {
-          document_number: employeeData.documentNumber,
-          first_name: employeeData.firstName.trim(),
-          last_name: employeeData.lastName.trim(),
-        },
-        employee_code: `${employeeData.firstName[0] || "X"}${
-          employeeData.lastName[0] || "X"
-        }-${Math.floor(Math.random() * 9000 + 1000)}`,
-        job_position: Number(employeeData.jobPosition),
-        cinema: Number(employeeData.cinema),
-      };
-
-      const empRes = await createEmployee(payloadEmployee);
-      const employeeId = empRes?.data?.id;
-
-      if (!employeeId) {
-        console.error("No se obtuvo el ID del empleado creado.");
-        setIsSubmitting(false);
-        return;
-      }
-
-      const payloadUser = {
-        employeeId,
-        roleId: Number(userData.roleId),
+      const payload = {
         email: userData.email,
         password: userData.password,
+        roleId: Number(userData.roleId),
       };
 
-      await createUser(payloadUser);
+      await createUser(payload);
 
       onClose(true);
     } catch (error) {
-      console.error("Error en el registro de usuario:", error);
+      console.error("Error registrando usuario:", error);
       setIsSubmitting(false);
     }
   };
@@ -219,181 +131,86 @@ export function RegisterUserModal({ open, onClose }) {
 
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-brand-primary font-montserrat">
-            {step === 1 ? "Registrar Empleado" : "Crear Usuario de Acceso"}
+            Crear Usuario de Acceso
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
-            {step === 1
-              ? "Ingrese los datos del empleado."
-              : "Configure el usuario del sistema (correo, contraseña y rol)."}
+            Configure el usuario del sistema (correo, contraseña y rol).
           </DialogDescription>
         </DialogHeader>
 
-        {/* PASO 1: EMPLEADO */}
-        {step === 1 && (
-          <div className="space-y-4 mt-4">
-            <div>
-              <InputForm
-                label="Cédula"
-                name="documentNumber"
-                value={employeeData.documentNumber}
-                onChange={handleEmpChange}
-                placeholder="Ej: 123456789"
-              />
-              <ErrorMsg message={errorsEmp.documentNumber} />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col">
-                <InputForm
-                  label="Nombre"
-                  name="firstName"
-                  value={employeeData.firstName}
-                  onChange={handleEmpChange}
-                  placeholder="Ej: María"
-                />
-                <ErrorMsg message={errorsEmp.firstName} />
-              </div>
-
-              <div className="flex flex-col">
-                <InputForm
-                  label="Apellido"
-                  name="lastName"
-                  value={employeeData.lastName}
-                  onChange={handleEmpChange}
-                  placeholder="Ej: González"
-                />
-                <ErrorMsg message={errorsEmp.lastName} />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col">
-                <SelectForm
-                  label="Cargo"
-                  name="jobPosition"
-                  value={employeeData.jobPosition}
-                  onChange={handleEmpChange}
-                >
-                  <option value="">Seleccione...</option>
-                  <option value="1">Administrador</option>
-                  <option value="2">Gerente</option>
-                  <option value="3">Cajero</option>
-                  <option value="4">Operador</option>
-                </SelectForm>
-                <ErrorMsg message={errorsEmp.jobPosition} />
-              </div>
-
-              <div className="flex flex-col">
-                <SelectForm
-                  label="Sucursal"
-                  name="cinema"
-                  value={employeeData.cinema}
-                  onChange={handleEmpChange}
-                >
-                  <option value="">Seleccione...</option>
-                  <option value="1">Sucursal 1</option>
-                  <option value="2">Sucursal 2</option>
-                  <option value="3">Sucursal 3</option>
-                </SelectForm>
-                <ErrorMsg message={errorsEmp.cinema} />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* PASO 2: USUARIO */}
-        {step === 2 && (
-          <div className="space-y-4 mt-4">
-            <div>
-              <InputForm
-                label="Correo electrónico"
-                name="email"
-                value={userData.email}
-                onChange={handleUserChange}
-                placeholder="Ej: usuario@cineflix.com"
-              />
-              <ErrorMsg message={errorsUser.email} />
-            </div>
-
-            <div className="relative">
-              <InputForm
-                label="Contraseña"
-                name="password"
-                type={showPassword ? "text" : "password"}
-                value={userData.password}
-                onChange={handleUserChange}
-                placeholder="Mínimo 8 caracteres"
-              />
-
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-9 -translate-y-1/2 text-gray-600 text-xl opacity-80 hover:opacity-100"
-              >
-                {showPassword ? <AiFillEyeInvisible /> : <AiFillEye />}
-              </button>
-
-              <ErrorMsg message={errorsUser.password} />
-            </div>
-
-            <div>
-              <SelectForm
-                label="Rol"
-                name="roleId"
-                value={userData.roleId}
-                onChange={handleUserChange}
-              >
-                <option value="">Seleccione...</option>
-
-                {roles.length > 0 ? (
-                  roles.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.code}
-                    </option>
-                  ))
-                ) : (
-                  <option disabled>Cargando roles...</option>
-                )}
-              </SelectForm>
-
-              <ErrorMsg message={errorsUser.roleId} />
-            </div>
-          </div>
-        )}
-
-        <DialogFooter className="mt-6 flex justify-between gap-3">
+        {/* FORMULARIO */}
+        <div className="space-y-4 mt-4">
+          {/* EMAIL */}
           <div>
-            {step === 2 && (
-              <Button variant="outline" onClick={handleBack}>
-                Atrás
-              </Button>
-            )}
+            <InputForm
+              label="Correo electrónico"
+              name="email"
+              value={userData.email}
+              onChange={handleChange}
+              placeholder="Ej: usuario@cineflix.com"
+            />
+            <ErrorMsg message={errors.email} />
           </div>
 
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={() => onClose(false)}>
-              Cancelar
-            </Button>
+          {/* PASSWORD */}
+          <div className="relative">
+            <InputForm
+              label="Contraseña"
+              name="password"
+              type={showPassword ? "text" : "password"}
+              value={userData.password}
+              onChange={handleChange}
+              placeholder="Mínimo 8 caracteres"
+            />
 
-            {step === 1 && (
-              <Button
-                onClick={handleNext}
-                className="bg-brand-primary text-white"
-              >
-                Siguiente
-              </Button>
-            )}
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-9 -translate-y-1/2 text-gray-600 text-xl opacity-80 hover:opacity-100"
+            >
+              {showPassword ? <AiFillEyeInvisible /> : <AiFillEye />}
+            </button>
 
-            {step === 2 && (
-              <Button
-                onClick={handleSubmit}
-                className="bg-brand-primary text-white"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Guardando..." : "Registrar Usuario"}
-              </Button>
-            )}
+            <ErrorMsg message={errors.password} />
           </div>
+
+          {/* ROLE */}
+          <div>
+            <SelectForm
+              label="Rol"
+              name="roleId"
+              value={userData.roleId}
+              onChange={handleChange}
+            >
+              <option value="">Seleccione...</option>
+
+              {roles.length > 0 ? (
+                roles.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.code}
+                  </option>
+                ))
+              ) : (
+                <option disabled>Cargando roles...</option>
+              )}
+            </SelectForm>
+
+            <ErrorMsg message={errors.roleId} />
+          </div>
+        </div>
+
+        <DialogFooter className="mt-6 flex justify-end gap-3">
+          <Button variant="outline" onClick={() => onClose(false)}>
+            Cancelar
+          </Button>
+
+          <Button
+            onClick={handleSubmit}
+            className="bg-brand-primary text-white"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Guardando..." : "Registrar Usuario"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

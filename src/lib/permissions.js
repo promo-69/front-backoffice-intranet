@@ -4,7 +4,7 @@ export const PERMISSIONS = {
     "catalog",
     "exhibition",
     "cinemas",
-    "users",
+    "personal",
     "transactions",
     "inventory",
     "reports",

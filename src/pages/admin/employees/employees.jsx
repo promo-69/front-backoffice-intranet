@@ -1,26 +1,23 @@
 import { useState, useEffect } from "react";
 
-import UsersTab from "@/pages/admin/users/usersTab";
-import RegisterUserModal from "@/components/admin/users/RegisterUserModal";
-import EditUserModal from "@/components/admin/users/EditUserModal";
+import EmployeeTable from "@/pages/admin/employees/employeeTable";
+import RegisterEmployeeModal from "@/components/admin/employees/RegisterEmployeeModal";
 import EditEmployeeModal from "@/components/admin/employees/EditEmployeeModal";
 
 import DeleteConfirmModal from "@/components/ui/DialogConfirmModal";
 import SuccessModal from "@/components/ui/SuccessModal";
 
 import { useLoading } from "@/context/LoadingContext";
-import { getUsers, deleteUser } from "@/services/users.service";
+import { getEmployees, deleteEmployee } from "@/services/employees.service";
 
-export default function Users({ search }) {
+export default function Employees({ search }) {
   const { showLoader, hideLoader } = useLoading();
 
-  const [users, setUsers] = useState([]);
+  const [employees, setEmployees] = useState([]);
 
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
-  const [isEditUserOpen, setIsEditUserOpen] = useState(false);
-  const [isEditEmployeeOpen, setIsEditEmployeeOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
-  const [userToEdit, setUserToEdit] = useState(null);
   const [employeeToEdit, setEmployeeToEdit] = useState(null);
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -34,74 +31,66 @@ export default function Users({ search }) {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
 
-  const fetchUsers = async () => {
+  const fetchEmployees = async () => {
     try {
       showLoader();
-      const usersRaw = await getUsers();
-      setUsers(usersRaw);
+      const employeesRaw = await getEmployees();
+      setEmployees(employeesRaw);
     } catch (error) {
-      console.error("Error cargando usuarios:", error);
-      setUsers([]);
+      console.error("Error cargando empleados:", error);
+      setEmployees([]);
     } finally {
       hideLoader();
     }
   };
 
   useEffect(() => {
-    fetchUsers();
+    fetchEmployees();
   }, []);
 
-  const refreshUsers = () => {
-    fetchUsers();
-    setSuccessTitle("Usuario Registrado");
-    setSuccessMessage("El usuario ha sido registrado exitosamente.");
+  const refreshEmployees = () => {
+    fetchEmployees();
+    setSuccessTitle("Empleado Registrado");
+    setSuccessMessage("El empleado ha sido registrado exitosamente.");
     setIsSuccessOpen(true);
   };
 
-  // ⭐ FILTRADO
-  const filteredUsers = users.filter((u) => {
+  // ⭐ FILTRADO (usando backend real)
+  const filteredEmployees = employees.filter((e) => {
     const fullName =
-      `${u._People?.first_name || ""} ${u._People?.last_name || ""}`.toLowerCase();
-    return (
-      fullName.includes(search.toLowerCase()) ||
-      u.email.toLowerCase().includes(search.toLowerCase())
-    );
+      `${e.people?.first_name || ""} ${e.people?.last_name || ""}`.toLowerCase();
+    return fullName.includes(search.toLowerCase());
   });
 
   // ⭐ PAGINACIÓN
-  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
-  const paginatedUsers = filteredUsers.slice(
+  const totalPages = Math.ceil(filteredEmployees.length / itemsPerPage);
+  const paginatedEmployees = filteredEmployees.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage,
   );
 
-  const handleEditClick = (user) => {
-    setUserToEdit(user);
-    setIsEditUserOpen(true);
-  };
-
-  const handleEditEmployeeClick = (employee) => {
+  const handleEditClick = (employee) => {
     setEmployeeToEdit(employee);
-    setIsEditEmployeeOpen(true);
+    setIsEditOpen(true);
   };
 
-  const handleDeleteClick = (user) => {
-    setItemToDelete(user);
+  const handleDeleteClick = (employee) => {
+    setItemToDelete(employee);
     setIsDeleteOpen(true);
   };
 
   const handleConfirmDelete = async () => {
     try {
       showLoader();
-      await deleteUser(itemToDelete.id);
+      await deleteEmployee(itemToDelete.id);
 
-      setSuccessTitle("Usuario Eliminado");
-      setSuccessMessage(`El usuario ha sido eliminado correctamente.`);
+      setSuccessTitle("Empleado Eliminado");
+      setSuccessMessage(`El empleado ha sido eliminado correctamente.`);
       setIsSuccessOpen(true);
 
-      fetchUsers();
+      fetchEmployees();
     } catch (error) {
-      console.error("Error eliminando usuario:", error);
+      console.error("Error eliminando empleado:", error);
     } finally {
       setIsDeleteOpen(false);
       setItemToDelete(null);
@@ -112,10 +101,9 @@ export default function Users({ search }) {
   return (
     <div className="space-y-6">
       {/* ⭐ TABLA */}
-      <UsersTab
-        users={paginatedUsers}
+      <EmployeeTable
+        employees={paginatedEmployees}
         onEdit={handleEditClick}
-        onEditEmployee={handleEditEmployeeClick}
         onDelete={handleDeleteClick}
       />
 
@@ -129,9 +117,9 @@ export default function Users({ search }) {
             </span>{" "}
             a{" "}
             <span className="font-medium">
-              {Math.min(currentPage * itemsPerPage, filteredUsers.length)}
+              {Math.min(currentPage * itemsPerPage, filteredEmployees.length)}
             </span>{" "}
-            de <span className="font-medium">{filteredUsers.length}</span>{" "}
+            de <span className="font-medium">{filteredEmployees.length}</span>{" "}
             resultados
           </p>
 
@@ -164,7 +152,7 @@ export default function Users({ search }) {
         isOpen={isDeleteOpen}
         onClose={() => setIsDeleteOpen(false)}
         onConfirm={handleConfirmDelete}
-        itemName={itemToDelete?.email}
+        itemName={`${itemToDelete?.people?.first_name} ${itemToDelete?.people?.last_name}`}
       />
 
       <SuccessModal
@@ -174,28 +162,19 @@ export default function Users({ search }) {
         message={successMessage}
       />
 
-      <RegisterUserModal
+      <RegisterEmployeeModal
         open={isRegisterOpen}
         onClose={(shouldRefresh) => {
           setIsRegisterOpen(false);
-          if (shouldRefresh) refreshUsers();
+          if (shouldRefresh) refreshEmployees();
         }}
-      />
-
-      <EditUserModal
-        open={isEditUserOpen}
-        onClose={(shouldRefresh) => {
-          setIsEditUserOpen(false);
-          if (shouldRefresh) fetchUsers();
-        }}
-        user={userToEdit}
       />
 
       <EditEmployeeModal
-        open={isEditEmployeeOpen}
+        open={isEditOpen}
         onClose={(shouldRefresh) => {
-          setIsEditEmployeeOpen(false);
-          if (shouldRefresh) fetchUsers();
+          setIsEditOpen(false);
+          if (shouldRefresh) fetchEmployees();
         }}
         employee={employeeToEdit}
       />
