@@ -10,17 +10,17 @@ import SuccessModal from "@/components/ui/SuccessModal";
 import { useLoading } from "@/context/LoadingContext";
 import { getEmployees, deleteEmployee } from "@/services/employees.service";
 
-export default function Employees(search) {
+export default function Employees({ search }) {
   const { showLoader, hideLoader } = useLoading();
 
   const [employees, setEmployees] = useState([]);
 
-  const [openModal, setOpenModal] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   const [employeeToEdit, setEmployeeToEdit] = useState(null);
 
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
 
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
@@ -55,9 +55,10 @@ export default function Employees(search) {
     setIsSuccessOpen(true);
   };
 
-  // ⭐ FILTRADO
+  // ⭐ FILTRADO (usando backend real)
   const filteredEmployees = employees.filter((e) => {
-    const fullName = `${e.firstName || ""} ${e.lastName || ""}`.toLowerCase();
+    const fullName =
+      `${e.people?.first_name || ""} ${e.people?.last_name || ""}`.toLowerCase();
     return fullName.includes(search.toLowerCase());
   });
 
@@ -70,12 +71,12 @@ export default function Employees(search) {
 
   const handleEditClick = (employee) => {
     setEmployeeToEdit(employee);
-    setIsEditModalOpen(true);
+    setIsEditOpen(true);
   };
 
   const handleDeleteClick = (employee) => {
     setItemToDelete(employee);
-    setIsDeleteModalOpen(true);
+    setIsDeleteOpen(true);
   };
 
   const handleConfirmDelete = async () => {
@@ -91,7 +92,7 @@ export default function Employees(search) {
     } catch (error) {
       console.error("Error eliminando empleado:", error);
     } finally {
-      setIsDeleteModalOpen(false);
+      setIsDeleteOpen(false);
       setItemToDelete(null);
       hideLoader();
     }
@@ -99,7 +100,6 @@ export default function Employees(search) {
 
   return (
     <div className="space-y-6">
-
       {/* ⭐ TABLA */}
       <EmployeeTable
         employees={paginatedEmployees}
@@ -149,10 +149,10 @@ export default function Employees(search) {
 
       {/* ⭐ MODALES */}
       <DeleteConfirmModal
-        isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
+        isOpen={isDeleteOpen}
+        onClose={() => setIsDeleteOpen(false)}
         onConfirm={handleConfirmDelete}
-        itemName={`${itemToDelete?.firstName} ${itemToDelete?.lastName}`}
+        itemName={`${itemToDelete?.people?.first_name} ${itemToDelete?.people?.last_name}`}
       />
 
       <SuccessModal
@@ -163,17 +163,17 @@ export default function Employees(search) {
       />
 
       <RegisterEmployeeModal
-        open={openModal}
+        open={isRegisterOpen}
         onClose={(shouldRefresh) => {
-          setOpenModal(false);
+          setIsRegisterOpen(false);
           if (shouldRefresh) refreshEmployees();
         }}
       />
 
       <EditEmployeeModal
-        open={isEditModalOpen}
+        open={isEditOpen}
         onClose={(shouldRefresh) => {
-          setIsEditModalOpen(false);
+          setIsEditOpen(false);
           if (shouldRefresh) fetchEmployees();
         }}
         employee={employeeToEdit}

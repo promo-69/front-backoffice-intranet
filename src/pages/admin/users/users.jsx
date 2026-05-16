@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { Plus } from "lucide-react";
 
 import UsersTab from "@/pages/admin/users/usersTab";
 import RegisterUserModal from "@/components/admin/users/RegisterUserModal";
@@ -12,20 +11,19 @@ import SuccessModal from "@/components/ui/SuccessModal";
 import { useLoading } from "@/context/LoadingContext";
 import { getUsers, deleteUser } from "@/services/users.service";
 
-export default function Users() {
+export default function Users({ search }) {
   const { showLoader, hideLoader } = useLoading();
 
   const [users, setUsers] = useState([]);
-  const [search, /*setSearch*/] = useState("");
 
-  const [openModal, setOpenModal] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+  const [isEditUserOpen, setIsEditUserOpen] = useState(false);
   const [isEditEmployeeOpen, setIsEditEmployeeOpen] = useState(false);
 
   const [userToEdit, setUserToEdit] = useState(null);
   const [employeeToEdit, setEmployeeToEdit] = useState(null);
 
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
 
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
@@ -79,7 +77,7 @@ export default function Users() {
 
   const handleEditClick = (user) => {
     setUserToEdit(user);
-    setIsEditModalOpen(true);
+    setIsEditUserOpen(true);
   };
 
   const handleEditEmployeeClick = (employee) => {
@@ -89,7 +87,7 @@ export default function Users() {
 
   const handleDeleteClick = (user) => {
     setItemToDelete(user);
-    setIsDeleteModalOpen(true);
+    setIsDeleteOpen(true);
   };
 
   const handleConfirmDelete = async () => {
@@ -105,7 +103,7 @@ export default function Users() {
     } catch (error) {
       console.error("Error eliminando usuario:", error);
     } finally {
-      setIsDeleteModalOpen(false);
+      setIsDeleteOpen(false);
       setItemToDelete(null);
       hideLoader();
     }
@@ -113,7 +111,6 @@ export default function Users() {
 
   return (
     <div className="space-y-6">
-
       {/* ⭐ TABLA */}
       <UsersTab
         users={paginatedUsers}
@@ -164,8 +161,8 @@ export default function Users() {
 
       {/* ⭐ MODALES */}
       <DeleteConfirmModal
-        isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
+        isOpen={isDeleteOpen}
+        onClose={() => setIsDeleteOpen(false)}
         onConfirm={handleConfirmDelete}
         itemName={itemToDelete?.email}
       />
@@ -178,17 +175,17 @@ export default function Users() {
       />
 
       <RegisterUserModal
-        open={openModal}
+        open={isRegisterOpen}
         onClose={(shouldRefresh) => {
-          setOpenModal(false);
+          setIsRegisterOpen(false);
           if (shouldRefresh) refreshUsers();
         }}
       />
 
       <EditUserModal
-        open={isEditModalOpen}
+        open={isEditUserOpen}
         onClose={(shouldRefresh) => {
-          setIsEditModalOpen(false);
+          setIsEditUserOpen(false);
           if (shouldRefresh) fetchUsers();
         }}
         user={userToEdit}

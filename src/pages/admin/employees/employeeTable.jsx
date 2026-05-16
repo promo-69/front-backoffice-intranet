@@ -1,3 +1,5 @@
+import { Pencil, Trash2, UserCog } from "lucide-react";
+
 export default function EmployeeTable({ employees, onEdit, onDelete }) {
   return (
     <div className="overflow-x-auto bg-white rounded-xl shadow-sm border border-gray-200">
@@ -43,12 +45,12 @@ export default function EmployeeTable({ employees, onEdit, onDelete }) {
             <tr key={emp.id} className="hover:bg-gray-50 transition-colors">
               {/* ⭐ NOMBRE */}
               <td className="px-6 py-4 whitespace-nowrap text-sm font-montserrat text-gray-800">
-                {emp.firstName} {emp.lastName}
+                {emp.people?.first_name} {emp.people?.last_name}
               </td>
 
               {/* ⭐ DOCUMENTO */}
               <td className="px-6 py-4 whitespace-nowrap text-sm font-montserrat text-gray-700">
-                {emp.documentNumber}
+                {emp.people?.document_number}
               </td>
 
               {/* ⭐ CARGO */}
@@ -79,17 +81,19 @@ export default function EmployeeTable({ employees, onEdit, onDelete }) {
                 {/* EDITAR */}
                 <button
                   onClick={() => onEdit(emp)}
-                  className="text-brand-primary font-bold hover:underline text-xs"
+                  className="text-blue-500 hover:scale-110 transition-transform"
+                  title="Editar empleado"
                 >
-                  Editar
+                  <Pencil className="w-5 h-5" />
                 </button>
 
                 {/* ELIMINAR */}
                 <button
                   onClick={() => onDelete(emp)}
-                  className="text-red-600 font-bold hover:underline text-xs"
+                  className="text-red-500 hover:scale-110 transition-transform"
+                  title="Eliminar empleado"
                 >
-                  Eliminar
+                  <Trash2 className="w-5 h-5" />
                 </button>
               </td>
             </tr>
