@@ -34,6 +34,7 @@ function AdminLayoutContent({ location, children }) {
       "/admin/transacciones": "Registro de Transacciones",
       "/admin/inventario": "Control de Inventario",
       "/admin/reports": "Reportes",
+      "/admin/catalogo": "Gestión de Maestros",
     };
     return titles[pathname] || "Dashboard";
   };
