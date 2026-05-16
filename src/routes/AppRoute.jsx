@@ -4,6 +4,7 @@ import Dashboard from "../pages/admin/dashboard";
 import DashboardCashier from "../pages/ticketOffice/dashboardCashier";
 import Exhibition from "@/pages/admin/exhibition/exhibition";
 import SellTickets from "../pages/ticketOffice/sellTickets";
+import CandyBar from "../pages/ticketOffice/candyBar";
 import AuthLayout from "../layouts/AuthLayout";
 import AdminLayout from "../layouts/AdminLayout";
 import Users from "../pages/admin/users/users";
@@ -133,6 +134,17 @@ function AppRoute() {
             <PrivateRoute permission="sell_tickets">
               <AdminLayout>
                 <SellTickets />
+              </AdminLayout>
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/ticketOffice/candy"
+          element={
+            <PrivateRoute permission="candy_bar">
+              <AdminLayout>
+                <CandyBar />
               </AdminLayout>
             </PrivateRoute>
           }
