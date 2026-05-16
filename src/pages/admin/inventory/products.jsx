@@ -149,12 +149,6 @@ const ProductsPage = () => {
             <h3 className="text-lg font-montserrat font-bold text-brand-primary">
               Productos de Dulcería
             </h3>
-            <Link 
-              to="/admin/inventario/categorias" 
-              className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-full font-semibold transition-colors"
-            >
-              Ver Categorías →
-            </Link>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
             Administra los productos de la dulcería. Puedes agregar, editar o
