@@ -6,6 +6,11 @@ export const showtimesService = {
     return response.data;
   },
 
+  getById: async(id)=>{
+    const response = await api.get(`/showtimes/${id}`)
+    return response.data;
+  },
+
   create: async (showtimeData) => {
     const response = await api.post('/showtimes', showtimeData);
     return response.data;

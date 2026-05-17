@@ -7,13 +7,7 @@ export const moviesService = {
   },
 
   create: async (formData) => {
-  const response = await api.post('/movies', formData, {
-    headers: {
-      // Axios detecta que es FormData y pone el multipart/form-data 
-      // con el boundary correcto que el backend (multer) necesita.
-      "Content-Type": undefined, 
-    },
-  });
+  const response = await api.post('/movies', formData);
   return response.data;
 },
 
