@@ -7,28 +7,52 @@ import SuccessModal from "@/components/ui/SuccessModal"
 import DeleteConfirmModal from "@/components/ui/DialogConfirmModal"
 import MovieForm from "@/components/admin/exhibition/movies/MovieForm"
 import { TabsCustom } from "@/components/ui/TabsCustom";
-import { Plus } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { useLoading } from "@/context/LoadingContext";
-import { moviesService } from "@/services/movie.service";
+import { getMovies, getMovieById, createMovie, updateMovie, deleteMovie} from "@/services/movie.service";
 import { showtimesService } from "@/services/showtime.service";
+import { getAllRooms } from "@/services/room.service";
+import { Alert } from "@/components/ui/alert"
+import { toast } from "sonner";
 
 
 
 export default function ExhibitionPage() {
-  const { modal, openModal, closeModal } = useModal();
-  const [movies, setMovies] = useState([]);
-  const [showtimes, setShowtimes] = useState([]);
-  const [search, setSearch] = useState("");
-  const [rooms, setRooms] = useState([]);
-  const { showLoader, hideLoader } = useLoading();
+  console.log("!!! EL COMPONENTE EXHBTIONPAGE SE ACABA DE MONTAR O RE-RENDERIZAR !!!");
   const [activeTab, setActiveTab] = useState("movies");
-
   const tabs = [
     { id: "movies", label: "Películas" },
     { id: "showtimes", label: "Funciones" }
   ];
+  const { modal, openModal, closeModal } = useModal();
+  const { showLoader, hideLoader } = useLoading();
+  
+  const [movies, setMovies] = useState([]);
+  const [moviesPage, setMoviesPage] = useState(1);
+  const [moviesMetadata, setMoviesMetadata] = useState({
+    total: 0,
+    per_page: 10,
+    current_page: 1,
+    total_pages: 1,
+    next_page: 0,
+    prev_page: 0
+  });
 
-  const fetchAllData = useCallback(async () => {
+  const [showtimes, setShowtimes] = useState([]);
+  const [showtimesPage, setShowtimesPage] = useState(1);
+  const [showtimesMetadata, setShowtimesMetadata] = useState({
+    total: 0,
+    per_page: 10,
+    current_page: 1,
+    total_pages: 1,
+    next_page: 0,
+    prev_page: 0
+  });
+
+  const [search, setSearch] = useState("")
+
+  
+  /*const fetchAllData = useCallback(async () => {
     showLoader();
     try {
       const [moviesRes] = await Promise.all([
@@ -41,98 +65,195 @@ export default function ExhibitionPage() {
     } finally {
       hideLoader();
     }
-  }, [showLoader, hideLoader]);
+  }, [showLoader, hideLoader]);*/
 
-  const fetchRooms = useCallback(async () => {
+  const fetchMovies = useCallback(async (page=1) => {
     showLoader();
     try {
-      const roomsRes = await showtimesService.getRooms();
-      setRooms(roomsRes);
+      
+      const response = await getMovies({ page, per_page: 10 });
+        
+        // Guardamos los datos de las películas
+      setMovies(response.data || []);
+        
+       
+      if (response.metadata) {
+          setMoviesMetadata(response.metadata);
+      }
+      } catch (error) {
+        console.error("Error al cargar películas:", error);
+        const messageError=error.response?.data?.message || "Error al conectar con el servidor";
+        toast.error(messageError);
+        setMovies([]);
+      } finally {
+        hideLoader();
+      }
+    }, [showLoader, hideLoader]);
+
+    /*const fetchShowtimes = useCallback(async (page=1) => {
+      showLoader();
+      try {
+        const response = await showtimesService.getAll({ page, per_page: 10 });
+        setShowtimes(response.data || []);
+        if (response.metadata) {
+          setShowtimesMetadata(response.metadata);
+        } 
+      } catch (error) {
+        console.error("Error al cargar funciones:", error);
+        const messageError=error.response?.data?.message || "Error al conectar con el servidor";
+        toast.error(messageError);
+        setShowtimes([]);
+      } finally {
+        hideLoader();
+      }
+    }, [showLoader, hideLoader]);*/
+
+    const fetchShowtimes = useCallback(async ()=> {
+      showLoader();
+      try {
+        const response = await showtimesService.getAll();
+        setShowtimes(response.data || []);
+      } catch (error) {
+        console.error("Error al cargar funciones:", error);
+        const messageError=error.response?.data?.message || "Error al conectar con el servidor";
+        toast.error(messageError);
+        setShowtimes([]);
+      } finally {
+        hideLoader();
+      }
+    }, [showLoader, hideLoader]);
+
+    useEffect(() => {
+  const loadInitialData = async () => {
+    showLoader(); // Sube el contador a 1 de forma limpia
+    try {
+      // Se ejecutan en paralelo de forma controlada
+      await Promise.all([
+        fetchMovies(moviesPage),
+        fetchShowtimes()
+      ]);
     } catch (error) {
-      console.error("Error fetching rooms:", error);
+      console.error("Error cargando cartelera:", error);
     } finally {
-      hideLoader();
+      hideLoader(); // Baja el contador a 0 limpiamente
     }
-  }, [showLoader, hideLoader]);
+  };
 
-  useEffect(() => {
-  // Disparar la carga inicial automáticamente
-  fetchAllData(); 
-  //etchRooms();
-}, [/*, fetchRooms]*/]); 
+  loadInitialData();
+}, [moviesPage]);
 
 
-  // Función para Crear o Editar (POST/PUT)
+   /*     
+    useEffect(() => {
+      console.log("-> useEffect de películas ejecutado. moviesPage actual:", moviesPage);
+      fetchMovies(moviesPage);
+    }, [moviesPage, fetchMovies]); 
+
+
+   useEffect(() => {
+    /* * Como el endpoint actual de showtimes no maneja paginación en el backend,
+     * llamamos a fetchShowtimes sin pasarle ningún parámetro de página.
+     * Esto ejecutará la petición directa limpia y evitará ciclos innecesarios.
+     
+    console.log("-> useEffect de funciones ejecutado.");
+    fetchShowtimes(); 
+  }, [fetchShowtimes]); */
+
+
+    const refreshActiveTab = async () => {
+    if (activeTab === "movies") {
+      await fetchMovies(moviesPage);
+    } else {
+      await fetchShowtimes(showtimesPage);
+    }
+  };
+
+
+  const handleOpenEditModal = (type, item) => {
+  if (type === "movieForm") {
+    // CORREGIDO: Mapeamos accediendo a la propiedad exacta ".genre" que devuelve tu API
+    const genreIds = item._MovieGenres?.map(g => g.genre) || [];
+    
+    const mappedMovie = {
+      ...item,
+      genres: genreIds 
+    };
+    
+    openModal("movieForm", mappedMovie);
+  } else {
+    openModal(type, item);
+  }
+};
+
+// --- ACCIONES MUTABLES (SAVE & DELETE) ---
   const handleSave = async (payload) => {
-    showLoader();
+    showLoader()
     try {
       if (activeTab === "movies") {
+        // Si el payload viene con un arreglo de números [2], lo convertimos a string "[2]"
+        let finalPayload = payload;
+        if (payload && Array.isArray(payload.genres)) {
+          finalPayload = {
+            ...payload,
+            genres: JSON.stringify(payload.genres) 
+          }
+        }
+
         modal.data?.id 
-          ? await moviesService.update(modal.data.id, payload)
-          : await moviesService.create(payload);
+          ? await updateMovie(modal.data.id, finalPayload)
+          : await createMovie(finalPayload)
+          
       } else {
         modal.data?.id
           ? await showtimesService.update(modal.data.id, payload)
-          : await showtimesService.create(payload);
+          : await showtimesService.create(payload)
       }
       
-      closeModal();
-      await fetchAllData(); // Recarga la lista automáticamente
+      closeModal()
+      await refreshActiveTab()
       
-      // Abrimos modal de éxito
       openModal("success", { 
         title: "¡Operación Exitosa!", 
-        message: "La cartelera ha sido actualizada correctamente." 
-      });
+        message: "El registro ha sido actualizado correctamente." 
+      })
     } catch (error) {
-      console.error("Error al guardar:", error);
-      alert(error.response?.data?.message || "Error al conectar con el servidor");
+      console.error("Error al guardar:", error)
+      toast.error(error.response?.data?.message || "Error al conectar con el servidor")
     } finally {
-      hideLoader();
+      hideLoader()
     }
-  };
+  }
 
-  // Función para Eliminar (DELETE)
   const handleDelete = async () => {
-    showLoader();
+    if (!modal.data?.id) return
+    
+    showLoader()
     try {
       if (activeTab === "movies") {
-        await moviesService.delete(modal.data.id);
+        await deleteMovie(modal.data.id)
       } else {
-        await showtimesService.delete(modal.data.id);
+        await showtimesService.delete(modal.data.id)
       }
-      closeModal();
-      await fetchAllData();
+      
+      closeModal()
+      await refreshActiveTab()
+      
+      openModal("success", { 
+        title: "Eliminado", 
+        message: "El registro ha sido removido exitosamente." 
+      })
+    } catch (error) {
+      console.error("Error al eliminar:", error)
+      toast.error(error.response?.data?.message || "Error al conectar con el servidor")
     } finally {
-      hideLoader();
+      hideLoader()
     }
-  };
-
-  const handleDeleteConfirm = async () => {
-  if (!modal.data?.id) return;
-  
-  showLoader();
-  try {
-    if (activeTab === "movies") {
-      await moviesService.delete(modal.data.id);
-    } else {
-      await showtimesService.delete(modal.data.id);
-    }
-    
-    closeModal();
-    await fetchAllData();
-    
-    openModal("success", { 
-      title: "Eliminado", 
-      message: "El registro ha sido removido" 
-    });
-  } catch (error) {
-    console.error("Error al eliminar:", error);
-    alert(error.response?.data?.message || "Error al conectar con el servidor");
-  } finally {
-    hideLoader();
   }
-};
+
+  // Filtro de búsqueda en tiempo real sobre los datos locales de la página
+  const filteredMovies = movies.filter((m) =>
+    m.title?.toLowerCase().includes(search.toLowerCase())
+  )
 
   return (
     
@@ -178,8 +299,9 @@ export default function ExhibitionPage() {
         {activeTab === "movies" && (
           <MoviesTab 
             data={movies} 
-            onEdit={openModal} 
-            onDelete={openModal} 
+            onEdit={(type, item) => handleOpenEditModal(type, item)} 
+            onDelete={(type, item) => openModal(type, item)}
+            
           />
         )}
 
@@ -187,38 +309,95 @@ export default function ExhibitionPage() {
         {activeTab === "showtimes" && (
           <ShowtimesTab 
             data={showtimes} 
-            onEdit={openModal} 
-            onDelete={openModal} 
+            onEdit={(type, item) => openModal(type, item)} 
+            onDelete={(type, item) => openModal(type, item)} 
           />
         )}
 
+        {/* CONTROLES DE PAGINACIÓN */}
+        <div className="flex items-center justify-between px-6 py-4 bg-white border border-gray-100 rounded-cineflix shadow-sm">
+          <div>
+            <p className="text-xs text-gray-500 font-medium">
+              Mostrando {" "}
+              <span className="font-bold text-brand-primary">
+                {activeTab === "movies" 
+                  ? (moviesMetadata.total === 0 ? 0 : (moviesPage - 1) * moviesMetadata.per_page + 1) 
+                  : (showtimesMetadata.total === 0 ? 0 : (showtimesPage - 1) * showtimesMetadata.per_page + 1)}
+              </span>{" "}
+              a{" "}
+              <span className="font-bold text-brand-primary">
+                {activeTab === "movies"
+                  ? Math.min(moviesPage * moviesMetadata.per_page, moviesMetadata.total)
+                  : Math.min(showtimesPage * showtimesMetadata.per_page, showtimesMetadata.total)}
+              </span>{" "}
+              de <span className="font-bold text-brand-primary">{activeTab === "movies" ? moviesMetadata.total : showtimesMetadata.total}</span> resultados
+            </p>
+          </div>
+
+          <div>
+            <nav className="inline-flex -space-x-px rounded-xl shadow-sm overflow-hidden border border-gray-200" aria-label="Pagination">
+              <button
+                onClick={() => {
+                  if (activeTab === "movies") {
+                    if (moviesMetadata.prev_page > 0) setMoviesPage(moviesMetadata.prev_page);
+                  } else {
+                    if (showtimesMetadata.prev_page > 0) setShowtimesPage(showtimesMetadata.prev_page);
+                  }
+                }}
+                disabled={activeTab === "movies" ? !moviesMetadata.prev_page : !showtimesMetadata.prev_page}
+                className="relative inline-flex items-center px-3 py-2 text-gray-400 bg-white hover:bg-gray-50 disabled:bg-gray-50 disabled:text-gray-300 disabled:cursor-not-allowed transition-all border-r border-gray-200"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              
+              <div className="relative inline-flex items-center px-4 py-2 text-xs font-bold text-brand-primary bg-white min-w-[120px] justify-center tracking-wider uppercase font-montserrat">
+                Página {activeTab === "movies" ? moviesMetadata.current_page : showtimesMetadata.current_page} de {activeTab === "movies" ? moviesMetadata.total_pages : showtimesMetadata.total_pages}
+              </div>
+
+              <button
+                onClick={() => {
+                  activeTab === "movies"
+                    ? setMoviesPage(moviesMetadata.next_page)
+                    : setShowtimesPage(showtimesMetadata.next_page);
+                }}
+                disabled={activeTab === "movies" ? !moviesMetadata.next_page : !showtimesMetadata.next_page}
+                className="relative inline-flex items-center px-3 py-2 text-gray-400 bg-white hover:bg-gray-50 disabled:bg-gray-50 disabled:text-gray-300 disabled:cursor-not-allowed transition-all border-l border-gray-200"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </nav>
+          </div>
+        </div>
+
         {/* --- MODALES CENTRALIZADOS --- */}
        {/* Formulario de Películas */}
-       {modal.isOpen && modal.type === "movieForm"&& (
+       
         <MovieForm
-          open={true}
+          open={modal.isOpen && modal.type === "movieForm"}
           initialData={modal.data}
           onClose={closeModal}
           onSuccess={handleSave} 
           lifecycleStatesList={MOCK_LIFECYCLE}
           genresList={MOCK_GENRES}
-        />)}
+        />
 
 
         {/* Formulario de Funciones */}
+        
         <ShowtimeForm
           open={modal.isOpen && modal.type === "showtimeForm"}
           initialData={modal.data}
           onClose={closeModal}
           onSave={handleSave}    
           movies={movies}
-          rooms={rooms}         
+          rooms={MOCK_ROOMS}   
         />
+ 
 
         <DeleteConfirmModal 
           isOpen={modal.isOpen && modal.type === "delete"}
           onClose={closeModal}
-          onConfirm={handleDeleteConfirm}
+          onConfirm={handleDelete}
           itemName={activeTab === "movies" ? modal.data?.title : "esta función"}
         />
 

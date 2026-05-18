@@ -50,7 +50,7 @@ const CinemaPage = () => {
       console.error("Error al cargar sucursales:", error);
       setBranches([]);
     } finally {
-      hideLoader();
+      hideLoader(); 
     }
   };
 
@@ -58,6 +58,8 @@ const CinemaPage = () => {
   useEffect(() => {
     fetchBranches(currentPage);
   }, [currentPage]);
+
+
 
   // NAVEGACIÓN DE PÁGINAS
   const handlePageChange = (newPage) => {

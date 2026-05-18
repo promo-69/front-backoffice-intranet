@@ -37,7 +37,8 @@ export function AuthProvider({ children }) {
         }
       } catch (error) {
         // Fallo de red o servidor caído
-        setUser(null);
+        console.error( "Error al verificar sesión:", error);
+        //setUser(null);
       } finally {
         hideLoader();
       }
@@ -73,9 +74,13 @@ export function AuthProvider({ children }) {
     showLoader();
     try {
       await logoutRequest();
-      localStorage.removeItem("user");
-      setUser(null);
+    }
+    catch (error) {
+      console.error("Error al revocar token en servidor, limpiando local de igual forma", error);
+     
     } finally {
+       localStorage.removeItem("user");
+      setUser(null);
       hideLoader();
     }
   };
