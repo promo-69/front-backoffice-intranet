@@ -6,8 +6,10 @@ import Exhibition from "@/pages/admin/exhibition/exhibition2";
 import SellTickets from "../pages/ticketOffice/sellTickets";
 import AuthLayout from "../layouts/AuthLayout";
 import AdminLayout from "../layouts/AdminLayout";
-import Users from "../pages/admin/users/users";
+import Personal from "../pages/admin/personal/personalPage";
 import CinemasPage from "../pages/admin/cinemas/cinemas";
+import CatalogsPage from "../pages/admin/catalogs/catalogs";
+import ProductsPage from "../pages/admin/inventory/products";
 import PrivateRoute from "./PrivateRoute";
 import GlobalLoader from "../components/ui/GlobalLoader";
 import { useLoading } from "../context/LoadingContext";
@@ -61,6 +63,17 @@ function AppRoute() {
         />
 
         <Route
+          path="/admin/catalogo"
+          element={
+            <PrivateRoute permission="catalog">
+              <AdminLayout>
+                <CatalogsPage />
+              </AdminLayout>
+            </PrivateRoute>
+          }
+        />
+
+        <Route
           path="/admin/sucursales"
           element={
             <PrivateRoute permission="cinemas">
@@ -72,11 +85,11 @@ function AppRoute() {
         />
 
         <Route
-          path="/admin/users"
+          path="/admin/personal"
           element={
-            <PrivateRoute permission="users">
+            <PrivateRoute permission="personal">
               <AdminLayout>
-                <Users />
+                <Personal />
               </AdminLayout>
             </PrivateRoute>
           }
@@ -98,7 +111,7 @@ function AppRoute() {
           element={
             <PrivateRoute permission="inventory">
               <AdminLayout>
-                <div className="p-4">Próximamente: Inventario</div>
+                <ProductsPage />
               </AdminLayout>
             </PrivateRoute>
           }

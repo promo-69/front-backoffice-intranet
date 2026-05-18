@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"; // Importación corregida
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 
+
 export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
