@@ -54,24 +54,6 @@ export function Navbar({ sectionTitle }) {
 
           {/* Lado Derecho: Acciones y Perfil */}
           <div className="ml-auto flex items-center gap-2">
-            {/* Notificaciones */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-gray-500 hover:text-brand-primary relative"
-            >
-              <Bell className="h-6 w-6" />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-brand-gold rounded-full border-2 border-white" />
-            </Button>
-
-            {/* Configuración */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-gray-500 hover:text-brand-primary"
-            >
-              <Settings className="h-8 w-8" />
-            </Button>
 
             <Separator orientation="vertical" className="mx-2 h-8" />
 
