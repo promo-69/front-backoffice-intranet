@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
-import { Wrench, Grid3X3, Accessibility, Info } from 'lucide-react';
+import { Wrench, Grid3X3, Accessibility, Armchair } from 'lucide-react';
 
 export default function SeatGridDesigner({ 
   onValidationChange, 
   initialLayout, 
   externalFormData, 
-  setExternalFormData 
+  setExternalFormData,
+  isEdit = false 
 }) {
   if (!externalFormData) return null;
 
@@ -45,7 +46,6 @@ export default function SeatGridDesigner({
     });
   }, [externalFormData.rows, externalFormData.cols]);
 
-
   useEffect(() => {
     if (internalMap.length === 0) return;
 
@@ -64,11 +64,25 @@ export default function SeatGridDesigner({
     const nextMap = internalMap.map((row, rIdx) => 
       rIdx === rowIndex ? row.map((seat, cIdx) => {
         if (cIdx !== colIndex) return seat;
+        
+        // Modo Estructura (Pasillo / Silla / Mantenimiento si aplica)
         if (editMode) {
-          let nextCond = seat.condition === 1 ? 2 : seat.condition === 2 ? 3 : 1;
-          return { ...seat, condition: nextCond, type: nextCond === 3 ? 'empty' : 'active' };
+          let nextCond;
+          if (isEdit) {
+            nextCond = seat.condition === 1 ? 2 : seat.condition === 2 ? 3 : 1;
+          } else {
+            nextCond = seat.condition === 1 ? 3 : 1;
+          }
+          
+          return { 
+            ...seat, 
+            condition: nextCond, 
+            type: nextCond === 3 ? 'empty' : 'active' 
+          };
         }
-        if (seat.condition === 3) return seat;
+        
+        // Modo Categoría (General / Discapacidad)
+        if (seat.condition === 3) return seat; // No se puede categorizar un pasillo vacio
         return { ...seat, category: seat.category === 1 ? 2 : 1 };
       }) : row
     );
@@ -110,6 +124,7 @@ export default function SeatGridDesigner({
         </div>
       </div>
 
+      {/* Cuadrícula de Asientos */}
       <div className="flex justify-center overflow-x-auto pb-6">
         <div 
           className="grid gap-2 p-4 bg-slate-50 rounded-xl border border-slate-100"
@@ -138,7 +153,8 @@ export default function SeatGridDesigner({
         </div>
       </div>
 
-      <div className="mt-8 flex justify-center gap-3 p-1.5 bg-slate-100 rounded-2xl w-fit mx-auto border border-slate-200">
+      {/* Menú de Modos de Edición */}
+      <div className="mt-4 flex justify-center gap-3 p-1.5 bg-slate-100 rounded-2xl w-fit mx-auto border border-slate-200">
         <button
           type="button" onClick={() => setEditMode(true)}
           className={`px-6 py-2 rounded-xl text-xs font-bold transition-all ${editMode ? 'bg-white shadow-sm text-brand-primary' : 'text-slate-500'}`}
@@ -147,6 +163,40 @@ export default function SeatGridDesigner({
           type="button" onClick={() => setEditMode(false)}
           className={`px-6 py-2 rounded-xl text-xs font-bold transition-all ${!editMode ? 'bg-white shadow-sm text-brand-primary' : 'text-slate-500'}`}
         >Categoría</button>
+      </div>
+
+      <hr className="my-6 border-slate-100" />
+
+      {/* Leyenda Dinámica Inteligente con Iconos */}
+      <div className="flex flex-wrap justify-center gap-6 text-xs text-slate-600 font-medium">
+        <div className="flex items-center gap-2">
+          <div className="w-5 h-5 bg-brand-primary rounded-t-md border-b-2 border-brand-primary/80 flex items-center justify-center text-white">
+            <Armchair className="w-3 h-3" />
+          </div>
+          <span>Silla Disponible</span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className="w-5 h-5 bg-blue-600 rounded-t-md border-b-2 border-blue-800 flex items-center justify-center text-white">
+            <Accessibility className="w-3 h-3" />
+          </div>
+          <span>Discapacidad (VIP/Accesible)</span>
+        </div>
+
+        {/* Mantenimiento oculto de forma estricta en el panel de creación */}
+        {isEdit && (
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 bg-orange-500 rounded-t-md border-b-2 border-orange-700 flex items-center justify-center text-white">
+              <Wrench className="w-3 h-3" />
+            </div>
+            <span>En Mantenimiento</span>
+          </div>
+        )}
+
+        <div className="flex items-center gap-2">
+          <div className="w-5 h-5 bg-white border border-dashed border-slate-300 rounded-t-md" />
+          <span>Pasillo (Vacío)</span>
+        </div>
       </div>
     </div>
   );
