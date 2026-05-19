@@ -9,32 +9,71 @@ const api = axios.create({
   },
 });
 
+// Variables para controlar el refresco concurrente
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
 // INTERCEPTOR DE RESPUESTA
 api.interceptors.response.use(
-  (response) => response, // Si la respuesta es exitosa (200-299), no hacemos nada
+  (response) => response, 
   async (error) => {
     const originalRequest = error.config;
 
-    // Si el error es 401 y la petición NO es al endpoint de refresh (para evitar bucles)
     if (error.response?.status === 401 && !originalRequest._retry) {
       
-      // Si ya falló el refresh una vez, no reintentes más (prevenir bucle infinito)
       if (originalRequest.url === "/auth/refresh") {
         return Promise.reject(error);
       }
 
-      originalRequest._retry = true; // Marcamos la petición para no reintentarla más de una vez
+      // Si ya se está ejecutando un refresh, mandamos esta petición a la cola de espera
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then(() => {
+            return api(originalRequest);
+          })
+          .catch((err) => {
+            return Promise.reject(err);
+          });
+      }
+
+      originalRequest._retry = true; 
+      isRefreshing = true; // Bloqueamos el paso para las demás peticiones
 
       try {
-        // Intentamos renovar la sesión
+        // Intentamos renovar la sesión una única vez para todo el sistema
         await api.post("/auth/refresh");
         
-        // Si el refresh fue exitoso, reintentamos la petición original con la nueva cookie
+        // Desbloqueamos y procesamos todas las peticiones que quedaron esperando
+        processQueue(null);
+        isRefreshing = false;
+
+        // Reintentamos la petición que inició el refresco
         return api(originalRequest);
       } catch (refreshError) {
-        // Si el refresh también falla, es que la sesión expiró de verdad
-        // Aquí podrías forzar un logout o simplemente limpiar el localStorage
+        // Si falla, cancelamos toda la cola y limpiamos sesión
+        processQueue(refreshError, null);
+        isRefreshing = false;
+
         localStorage.removeItem("user");
+        
+        // Opcional: Redirigir al login de forma limpia si estás en el navegador
+        if (typeof window !== "undefined") {
+          window.location.href = "/login"; 
+        }
+
         return Promise.reject(refreshError);
       }
     }
