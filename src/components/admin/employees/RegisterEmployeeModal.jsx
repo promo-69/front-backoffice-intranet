@@ -36,7 +36,7 @@ export default function RegisterEmployeeModal({ open, onClose }) {
   const loadCinemas = async () => {
     try {
       const data = await getCinemas();
-      setCinemas(data);
+      setCinemas(data.data);
     } catch (error) {
       console.error("Error cargando sucursales:", error);
     }
@@ -135,7 +135,7 @@ export default function RegisterEmployeeModal({ open, onClose }) {
     ) : null;
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose(false)}>
+    <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-md bg-white rounded-cineflix p-6 shadow-2xl border-none">
         <button
           onClick={() => onClose(false)}

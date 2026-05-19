@@ -28,7 +28,7 @@ export default function EditEmployeeModal({ open, onClose, employee }) {
   const loadCinemas = async () => {
     try {
       const data = await getCinemas();
-      setCinemas(data);
+      setCinemas(data.data);
     } catch (error) {
       console.error("Error cargando sucursales:", error);
     }
