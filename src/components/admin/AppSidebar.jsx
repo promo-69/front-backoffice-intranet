@@ -1,4 +1,4 @@
-import { LayoutDashboard, Film, MapPin, Users, Receipt, Package, BarChart3, LogOut, TicketIcon } from "lucide-react"
+import { LayoutDashboard, Film, MapPin, Users, Receipt, Package, BarChart3, LogOut, TicketIcon, BookOpen } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -27,6 +27,13 @@ const navItems = [
     icon: LayoutDashboard,
   },
   {
+    id: "catalog",
+    title: "Maestros",
+    tooltip: "Catalogos o clasificacion Base del software",
+    url: "/admin/catalogo",
+    icon: BookOpen,
+  },
+  {
     id: "exhibition",
     title: "Cartelera",
     url: "/admin/exhibition",
@@ -38,9 +45,9 @@ const navItems = [
     url: "/admin/sucursales",
     icon: MapPin,
   },
-  { id: "users",
-    title: "Usuarios",
-    url: "/admin/users",
+  { id: "personal",
+    title: "Personal",
+    url: "/admin/personal",
     icon: Users },
   {
     id: "transactions",
@@ -54,10 +61,12 @@ const navItems = [
     url: "/admin/inventario",
     icon: Package,
   },
-  { id: "reports", 
-    title: "Reportes", 
-    url: "/admin/reports", 
-    icon: BarChart3 },
+  {
+    id: "reports",
+    title: "Reportes",
+    url: "/admin/reports",
+    icon: BarChart3
+  },
   {
     id: "dashboard_cashier",
     title: "Dashboard Cajero",
@@ -116,7 +125,7 @@ export function AppSidebar({ className, ...props }) {
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton
                     asChild
-                    tooltip={item.title}
+                    tooltip={item.tooltip || item.title}
                     className="hover:bg-white/10 hover:text-white py-6 px-6 group transition-colors"
                   >
                     <Link to={item.url}>
