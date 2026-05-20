@@ -11,7 +11,7 @@ import {
   SidebarGroupLabel,
   SidebarGroupContent,
 } from "@/components/ui/sidebar"
-import LogoCineflix from "@/assets/images/logotype/logoCiineflix.png"
+import LogoCineflix from "@/assets/images/logotype/logoCiineflix1.png"
 import { Link } from "react-router-dom"
 import { cn } from "@/lib/utils";
 
