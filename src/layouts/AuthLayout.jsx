@@ -1,4 +1,4 @@
-import imageninit from "../assets/images/fondoinit.png";
+import imageninit from "../assets/images/fondoinit.webp";
 import logotipo from "../assets/images/logotype/logoCiineflix.webp";
 
 export default function AuthLayout({ children }) {

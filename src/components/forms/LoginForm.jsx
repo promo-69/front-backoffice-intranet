@@ -2,7 +2,7 @@ import React, { useState, useContext } from "react";
 import { useForm } from "react-hook-form";
 import { AiFillEye, AiFillEyeInvisible } from "react-icons/ai";
 import { validateEmail, validatePassword } from "../../validators/authValidators";
-import { Button } from "@/components/ui/button"; // Importación corregida
+import { Button } from "@/components/ui/button"; 
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 
