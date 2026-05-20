@@ -68,24 +68,23 @@ export default function LoginForm() {
             type={showPassword ? "text" : "password"}
             placeholder="Contraseña"
             {...register("password", { validate: (v) => validatePassword(v) === true || validatePassword(v) })}
-            className="w-full bg-transparent border-0 border-b-2 border-white text-white placeholder-white focus:outline-none focus:border-white font-montserrat pr-10"
+            className="w-full bg-transparent border-0 border-b-2 border-white text-white placeholder-white focus:outline-none focus:border-white font-montserrat pr-10 py-1"
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-0 top-1/2 -translate-y-1/2 text-white text-xl opacity-80 hover:opacity-100"
+            className="absolute right-0 top-1 text-white text-xl opacity-80 hover:opacity-100"
           >
             {showPassword ? <AiFillEyeInvisible /> : <AiFillEye />}
           </button>
           {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>}
         </div>
-
-        {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
-
-        <a href="/forgot-password" size="sm" className="text-brand-gold text-sm opacity-80 hover:opacity-100">
-          ¿Olvidaste tu contraseña?
-        </a>
       </div>
+
+        {/* EN REVISION SI DEJAR ESTE APARTADO*/}
+        {/*<a href="/forgot-password" size="sm" className="text-brand-gold text-sm opacity-80 hover:opacity-100">
+        //*  ¿Olvidaste tu contraseña?
+        </a>*/}
 
       {/* Contenedor de Botones */}
       <div className="w-full flex items-center justify-center gap-3 pt-4">
