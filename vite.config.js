@@ -15,8 +15,8 @@ export default defineConfig({
   
   server: {
     https: true,
-    host: false, // Desactiva la exposición por IP (vuelve a localhost)
-    port: 3000,  // Forzamos el puerto 3000 aquí
+    host: false,
+    port: 3000,  
   },
 
   resolve: {
@@ -29,6 +29,7 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: "./src/setupTests.js",
+    exclude: ['node_modules', 'dist', '.idea', '.git', '.cache', 'tests/**'],
   },
 
   build: {

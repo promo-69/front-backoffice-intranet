@@ -1,6 +1,6 @@
 import { AiOutlineUser } from "react-icons/ai";
 import Menu from "./Menu";
-import Logo from "../../assets/images/logotype/logoCiineflix.png";
+import Logo from "../../assets/images/logotype/logoCiineflix.webp";
 
 export default function HeaderCashier({ title }) {
   const menuItems = [
