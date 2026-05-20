@@ -53,6 +53,14 @@ export default function LoginForm() {
       
       {/* Contenedor de Inputs */}
       <div className="flex flex-col gap-8 items-center">
+        
+        {/* 💡 CORRECCIÓN VISUAL: Alertas globales de la API */}
+        {error && (
+          <div className="w-80 text-center bg-red-500/10 border border-red-500 text-red-500 text-sm py-2 px-3 rounded font-montserrat animate-fade-in">
+            {error}
+          </div>
+        )}
+
         <div className="w-80">
           <input
             type="email"
@@ -83,13 +91,7 @@ export default function LoginForm() {
         </div>
       </div>
 
-
-        {/* EN REVISION SI DEJAR ESTE APARTADO*/}
-        {/*<a href="/forgot-password" size="sm" className="text-brand-gold text-sm opacity-80 hover:opacity-100">
-        //*  ¿Olvidaste tu contraseña?
-        </a>*/}
-
-      {/*  HAY QUE DEFINIR SI DEBE EXISTIR ESTE BOTON*/}
+      {/* Contenedor de Botones */}
       <div className="w-full flex items-center justify-center gap-3 pt-4">
         <Button
           type="button"
