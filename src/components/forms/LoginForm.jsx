@@ -67,13 +67,15 @@ export default function LoginForm() {
           <input
             type={showPassword ? "text" : "password"}
             placeholder="Contraseña"
+            id="password"
             {...register("password", { validate: (v) => validatePassword(v) === true || validatePassword(v) })}
             className="w-full bg-transparent border-0 border-b-2 border-white text-white placeholder-white focus:outline-none focus:border-white font-montserrat pr-10 py-1"
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-0 top-1 text-white text-xl opacity-80 hover:opacity-100"
+            className="absolute right-[-8px] top-[-4px] p-2 text-white text-xl opacity-80 hover:opacity-100 focus:outline-none"
+            aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
           >
             {showPassword ? <AiFillEyeInvisible /> : <AiFillEye />}
           </button>
@@ -81,25 +83,27 @@ export default function LoginForm() {
         </div>
       </div>
 
+
         {/* EN REVISION SI DEJAR ESTE APARTADO*/}
         {/*<a href="/forgot-password" size="sm" className="text-brand-gold text-sm opacity-80 hover:opacity-100">
         //*  ¿Olvidaste tu contraseña?
         </a>*/}
 
-      {/* Contenedor de Botones */}
+      {/*  HAY QUE DEFINIR SI DEBE EXISTIR ESTE BOTON*/}
       <div className="w-full flex items-center justify-center gap-3 pt-4">
         <Button
           type="button"
           variant="ghost"
-          className="text-white hover:bg-white/10"
+          className="text-white hover:bg-white"
           onClick={() => window.history.back()}
           disabled={isSubmitting}
         >
           Cancelar
         </Button>
+
         <Button
           type="submit"
-          className="bg-brand-gold hover:bg-brand-gold/90 text-white font-bold px-8 rounded-cineflix"
+          className="bg-[#b07c28] hover:bg-[#8B6600] text-white font-bold px-8 rounded-cineflix tracking-wide"
           disabled={isSubmitting}
         >
           Iniciar sesión
