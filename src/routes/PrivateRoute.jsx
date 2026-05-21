@@ -1,19 +1,23 @@
 import { Navigate } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/context/AuthContext"; // <-- ¡REVISA QUE ESTA LÍNEA ESTÉ EXACTAMENTE ASÍ!
 import { PERMISSIONS } from "@/lib/permissions";
 
 export default function PrivateRoute({ children, permission }) {
   const { user } = useAuth();
+  
+  const savedUser = localStorage.getItem("user");
+  const parsedUser = savedUser ? JSON.parse(savedUser) : null;
 
-  // Si no hay usuario → fuera
-  if (!user) return <Navigate to="/login" />;
+  if (!user && !parsedUser) {
+    return <Navigate to="/login" replace />;
+  }
 
-  // Permisos del rol actual
-  const allowed = PERMISSIONS[user.roleCode] || [];
+  const currentUser = user || parsedUser;
 
-  // Si la ruta requiere un permiso y el usuario no lo tiene → fuera
+  const allowed = PERMISSIONS[currentUser?.roleCode] || [];
+
   if (permission && !allowed.includes(permission)) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/login" replace />;
   }
 
   return children;

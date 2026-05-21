@@ -1,9 +1,10 @@
 export const PERMISSIONS = {
   SUPER_ADMIN: [
     "dashboard",
+    "catalog",
     "exhibition",
     "cinemas",
-    "users",
+    "personal",
     "transactions",
     "inventory",
     "reports",

@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import { LayoutDashboard, Film, MapPin, Users, Receipt, Package, BarChart3, LogOut, TicketIcon, ShoppingBag } from "lucide-react"
+=======
+import { LayoutDashboard, Film, MapPin, Users, Receipt, Package, BarChart3, LogOut, TicketIcon, BookOpen } from "lucide-react"
+>>>>>>> e2e990f19bad52b98dd88e6f9dc640dda76facf0
 import {
   Sidebar,
   SidebarContent,
@@ -11,7 +15,7 @@ import {
   SidebarGroupLabel,
   SidebarGroupContent,
 } from "@/components/ui/sidebar"
-import LogoCineflix from "@/assets/images/logotype/logoCiineflix.png"
+import LogoCineflix from "@/assets/images/logotype/logoCiineflix1.png"
 import { Link } from "react-router-dom"
 import { cn } from "@/lib/utils";
 
@@ -26,38 +30,48 @@ const navItems = [
     url: "/admin/dashboard",
     icon: LayoutDashboard,
   },
+
+    {
+    id: "cinemas",
+    title: "Sucursales",
+    url: "/admin/sucursales",
+    icon: MapPin,
+  },
+
+  { id: "personal",
+    title: "Personal",
+    url: "/admin/personal",
+    icon: Users 
+  },
+
   {
     id: "exhibition",
     title: "Cartelera",
     url: "/admin/exhibition",
     icon: Film,
   },
-  {
-    id: "cinemas",
-    title: "Sucursales",
-    url: "/admin/sucursales",
-    icon: MapPin,
-  },
-  { id: "users",
-    title: "Usuarios",
-    url: "/admin/users",
-    icon: Users },
-  {
-    id: "transactions",
-    title: "Transacciones",
-    url: "/admin/transacciones",
-    icon: Receipt,
-  },
+  
   {
     id: "inventory",
     title: "Inventario",
     url: "/admin/inventario",
     icon: Package,
   },
-  { id: "reports", 
-    title: "Reportes", 
-    url: "/admin/reports", 
-    icon: BarChart3 },
+
+  {
+    id: "catalog",
+    title: "Maestros",
+    tooltip: "Catalogos o clasificacion Base del software",
+    url: "/admin/catalogo",
+    icon: BookOpen,
+  },
+
+  {
+    id: "reports",
+    title: "Reportes",
+    url: "/admin/reports",
+    icon: BarChart3
+  },
   {
     id: "dashboard_cashier",
     title: "Dashboard Cajero",
@@ -122,7 +136,7 @@ export function AppSidebar({ className, ...props }) {
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton
                     asChild
-                    tooltip={item.title}
+                    tooltip={item.tooltip || item.title}
                     className="hover:bg-white/10 hover:text-white py-6 px-6 group transition-colors"
                   >
                     <Link to={item.url}>

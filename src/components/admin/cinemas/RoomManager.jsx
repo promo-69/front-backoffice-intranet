@@ -1,281 +1,319 @@
 import { useState, useEffect } from "react";
-import { Presentation, Plus, Square, Trash2 } from "lucide-react";
+import { Plus, Square, Trash2, CheckCircle2, Pencil, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import DeleteConfirmModal from "@/components/ui/DialogConfirmModal";
 import SuccessModal from "@/components/ui/SuccessModal";
 import SeatGridDesigner from "./SeatGridDesigner";
+import { useLoading } from "../../../context/LoadingContext";
+import { 
+  getRoomsByCinema, 
+  deleteRoom, 
+  saveRoom, 
+  createRoomSeats, 
+  getSeatsByRoom 
+} from "../../../services/room.service";
 
 export default function RoomManager({ branch, externalIsAdding, setExternalIsAdding }) {
+  const { showLoader, hideLoader } = useLoading();
+  const [rooms, setRooms] = useState([]);
+  
+  const [successConfig, setSuccessConfig] = useState({ open: false, title: "", message: "" });
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [roomToDelete, setRoomToDelete] = useState(null);
   const [editingRoomId, setEditingRoomId] = useState(null);
+
   const [isLayoutValid, setIsLayoutValid] = useState(false);
   const [roomLayout, setRoomLayout] = useState([]);
-
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isSuccessOpen, setIsSuccessOpen] = useState(false);
-  const [roomToDelete, setRoomToDelete] = useState(null);
-
-
-  const [rooms, setRooms] = useState([
-    { id: 1, name: "Sala 1 - IMAX", capacity: 200, status: "Activa", rows: 10, cols: 20 },
-    { id: 2, name: "Sala 2 - VIP", capacity: 50, status: "Activa", rows: 5, cols: 10 },
-    { id: 3, name: "Sala 3", capacity: 150, status: "Activa", rows: 10, cols: 15 },
-  ]);
-
   const [formData, setFormData] = useState({
     name: "",
-    capacity: "",
-    rows: "",
-    cols: "",
-    status: "Activa"
+    rows: "8",
+    cols: "12",
+    projectionType: "1",
   });
 
-  // Limpiar el formulario y avisar al padre que ya no estamos agregando
+  const theoreticalCapacity = (parseInt(formData.rows) || 0) * (parseInt(formData.cols) || 0);
+
+  const fetchRooms = async () => {
+    if (!branch?.id) return;
+    try {
+      showLoader();
+      const data = await getRoomsByCinema(branch.id);
+      setRooms(data);
+    } catch (error) {
+      console.error("Error al obtener salas:", error);
+    } finally {
+      hideLoader();
+    }
+  };
+
+  useEffect(() => {
+    if (branch?.id) fetchRooms();
+  }, [branch?.id]);
+
+  const handleEditClick = async (room) => {
+    try {
+      showLoader();
+      const rows = parseInt(room.grid_rows) || 8;
+      const cols = parseInt(room.grid_columns) || 12;
+
+      const savedSeatsResponse = await getSeatsByRoom(room.id);
+      const seatsArray = savedSeatsResponse?.data?.rows || [];
+
+      const newLayout = Array.from({ length: rows }, () =>
+        Array.from({ length: cols }, () => ({
+          type: "active",
+          category: 1,
+          condition: 1,
+        }))
+      );
+
+      seatsArray.forEach((seat) => {
+        const rowIndex = seat.row_identifier.toUpperCase().charCodeAt(0) - 65;
+        const colIndex = parseInt(seat.column_number) - 1;
+        if (newLayout[rowIndex] && newLayout[rowIndex][colIndex]) {
+          newLayout[rowIndex][colIndex] = {
+            type: seat.seat_condition === 3 ? "empty" : "active",
+            category: seat.seat_category || 1,
+            condition: seat.seat_condition || 1,
+          };
+        }
+      });
+
+      setFormData({
+        name: room.name || "",
+        rows: String(rows),
+        cols: String(cols),
+        projectionType: String(room.projection_types?.[0]?.id || "1"),
+      });
+      setRoomLayout(newLayout);
+      setEditingRoomId(room.id);
+      setExternalIsAdding(true);
+    } catch (error) {
+      console.error("Error al cargar sala:", error);
+    } finally {
+      hideLoader();
+    }
+  };
+
   const resetForm = () => {
     setExternalIsAdding(false);
     setEditingRoomId(null);
-    setFormData({ name: "", capacity: "", rows: "", cols: "", status: "Activa" });
-    setIsLayoutValid(false);
+    setFormData({ name: "", rows: "8", cols: "12", projectionType: "1" });
     setRoomLayout([]);
   };
 
-  const handleEditRoom = (room) => {
-    setFormData({
-      name: room.name,
-      capacity: room.capacity.toString(),
-      rows: room.rows ? room.rows.toString() : "",
-      cols: room.cols ? room.cols.toString() : "",
-      status: room.status
-    });
-    setRoomLayout(room.layout || []);
-    setIsLayoutValid(true); 
-    setEditingRoomId(room.id);
-    setExternalIsAdding(true); // Abrimos el formulario mediante el estado del padre
-  };
+  const handleProcessChain = async () => {
+    if (!formData.name) return alert("Asigna un nombre.");
+    try {
+      showLoader();
+      const roomPayload = {
+        name: formData.name,
+        projectionTypes: [parseInt(formData.projectionType)],
+        gridRows: parseInt(formData.rows),
+        gridColumns: parseInt(formData.cols),
+        totalCapacity: theoreticalCapacity
+      };
 
-  const handleSaveRoom = () => {
-    if (!formData.name) {
-      alert("Por favor, ingresa al menos el nombre de la sala.");
-      return;
-    }
+      const response = await saveRoom(branch.id, roomPayload);
+      const newRoomId = response?.data?.id || response?.id || response?.data?.room_id;
 
-    const newRoom = {
-      id: editingRoomId ? editingRoomId : Date.now(),
-      name: formData.name,
-      capacity: parseInt(formData.capacity) || 0,
-      status: formData.status,
-      rows: parseInt(formData.rows) || 0,
-      cols: parseInt(formData.cols) || 0,
-      layout: roomLayout
-    };
+      if (!newRoomId) throw new Error("ID de sala no generado");
 
-    if (editingRoomId) {
-      setRooms(rooms.map(r => r.id === editingRoomId ? newRoom : r));
-    } else {
-      setRooms([...rooms, newRoom]);
-    }
+      const seatsToCreate = [];
+      roomLayout.forEach((row, rowIndex) => {
+        row.forEach((seat, colIndex) => {
+          seatsToCreate.push({
+            rowIdentifier: String.fromCharCode(65 + rowIndex),
+            columnNumber: colIndex + 1,
+            seatCategory: Number(seat.category),
+            seatCondition: seat.type === 'empty' ? 3 : Number(seat.condition)
+          });
+        });
+      });
 
-    resetForm();
-  };
-
-  /*const handleDeleteRoom = (id, name) => {
-    const confirmMessage = `¿Estás seguro de que deseas eliminar la ${name}?`;
-    if (window.confirm(confirmMessage)) {
-      setRooms(rooms.filter(room => room.id !== id));
-      if (editingRoomId === id) {
-        resetForm();
+      for (const seatData of seatsToCreate) {
+        await createRoomSeats(newRoomId, seatData);
       }
-    }
-  };*/
 
-  const handleDeleteRoom = (id, name) => {
-    setRoomToDelete({ id, name });
-    setIsDeleteModalOpen(true);
-  };
-
-  const handleConfirmDeleteRoom = () => {
-    if (!roomToDelete) return;
-
-    // Filtrar la lista de salas
-    const updatedRooms = rooms.filter(r => r.id !== roomToDelete.id);
-    setRooms(updatedRooms);
-
-    // Cerrar confirmación y abrir éxito
-    setIsDeleteModalOpen(false);
-    setIsSuccessOpen(true);
-    
-    // Si estas editando la sala que se borro, reseteamos el form
-    if (editingRoomId === roomToDelete.id) {
+      setSuccessConfig({
+        open: true,
+        title: "¡Guardado!",
+        message: editingRoomId ? "La sala se ha actualizado correctamente." : "La sala se ha registrado con éxito."
+      });
       resetForm();
-  }
+      fetchRooms();
+    } catch (error) {
+      console.error("Error en proceso:", error);
+    } finally {
+      hideLoader();
+    }
   };
 
-  const getIdentifier = (name) => {
-    return name.toLowerCase().replace('sala', '').split('-')[0].trim();
+  const handleConfirmDeleteRoom = async () => {
+    if (!roomToDelete) return;
+    try {
+      showLoader();
+      await deleteRoom(roomToDelete.id);
+      setIsDeleteModalOpen(false);
+      setSuccessConfig({
+        open: true,
+        title: "Eliminado",
+        message: `La sala "${roomToDelete.name}" ha sido eliminada.`
+      });
+      fetchRooms();
+    } catch (error) { 
+      console.error(error); 
+    } finally { 
+      hideLoader(); 
+      setRoomToDelete(null); 
+    }
   };
-
-  const currentId = getIdentifier(formData.name);
-  const isDuplicateName = currentId !== "" && rooms.some(room => room.id !== editingRoomId && getIdentifier(room.name) === currentId);
 
   return (
     <div className="bg-white p-6 rounded-cineflix border border-gray-100 shadow-sm min-h-[400px]">
-      
-      {/* ELIMINADO EL BOTÓN ANTERIOR: Ahora el control vive en CinemaPage */}
-
-      {externalIsAdding ? (
-        <div className="bg-gray-50 p-6 rounded-cineflix border border-gray-200 shadow-inner">
-          <div className="flex items-center gap-2 mb-6 border-b border-gray-200 pb-3">
-            <Square className="text-orange-500 h-6 w-6 fill-orange-500" />
-            <h3 className="text-lg font-montserrat font-bold text-gray-800">
-              {editingRoomId ? "Editar Sala" : "Registrar Nueva Sala"}
-            </h3>
+      {!externalIsAdding ? (
+        <>
+          <div className="flex justify-between items-center border-b border-gray-100 pb-6 mb-6">
+            <div>
+              <h3 className="text-lg font-montserrat font-bold text-brand-primary">Salas Registradas</h3>
+              <p className="text-[11px] text-muted-foreground font-medium">Gestión de aforo y tecnología por sala</p>
+            </div>
+            <button
+              onClick={() => setExternalIsAdding(true)}
+              className="bg-brand-primary text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-[11px] font-black uppercase font-montserrat"
+            >
+              <Plus className="w-4 h-4 text-brand-gold" /> Añadir Sala
+            </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700">Nombre de la sala</label>
-              <input
-                type="text"
-                placeholder="Ej: Sala 1"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className={`border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 ${isDuplicateName ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
-              />
-              {isDuplicateName && (
-                <span className="text-xs text-red-600 font-medium mt-1"> Ya existe una sala con este nombre.</span>
-              )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {rooms.length > 0 ? (
+              rooms.map((room) => (
+                <div key={room.id} className="border border-slate-100 p-4 rounded-2xl flex justify-between items-center bg-white shadow-sm hover:border-brand-primary/20 transition-all">
+                  <div>
+                    <h4 className="font-bold text-brand-primary font-montserrat text-sm">{room.name}</h4>
+                    <p className="text-[10px] text-slate-400 uppercase font-bold mt-1">
+                      ID: {room.id} | Capacidad: {room.total_capacity || (room.grid_rows * room.grid_columns) || 0}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    {/* Botón de edición comentado temporalmente por discrepancia de datos en Backend */}
+                    {/* 
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      onClick={() => handleEditClick(room)} 
+                      className="h-8 w-8 text-brand-primary bg-brand-primary/5 hover:bg-brand-primary hover:text-white rounded-lg transition-all"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button> 
+                    */}
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      onClick={() => { setRoomToDelete(room); setIsDeleteModalOpen(true); }} 
+                      className="h-8 w-8 text-red-500 bg-red-50 hover:bg-red-500 hover:text-white rounded-lg transition-all"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="col-span-full py-12 flex flex-col items-center justify-center border-2 border-dashed border-slate-100 rounded-3xl bg-slate-50/30">
+                <div className="bg-white p-4 rounded-full shadow-sm mb-4">
+                  <Square className="w-8 h-8 text-slate-200" />
+                </div>
+                <h4 className="text-slate-500 font-bold text-sm font-montserrat">No hay salas registradas</h4>
+                <p className="text-slate-400 text-[11px] mt-1">Comienza añadiendo una nueva sala para gestionar el aforo.</p>
+              </div>
+            )}
+          </div>
+        </>
+      ) : (
+        <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-500">
+          <div className="bg-slate-50/50 p-6 rounded-2xl border border-slate-100">
+            <div className="flex justify-between items-center mb-4">
+               <h3 className="text-[11px] font-black uppercase text-brand-primary flex items-center gap-2">
+                <Square className="w-4 h-4 fill-brand-primary" /> 
+                {editingRoomId ? "Editando Configuración" : "Nueva Sala"}
+              </h3>
+              <Button variant="ghost" size="sm" onClick={resetForm} className="h-8 w-8 p-0 text-slate-400">
+                <X className="w-4 h-4" />
+              </Button>
             </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700">Capacidad Total</label>
-              <input
-                type="number"
-                placeholder="Ej: 100"
-                value={formData.capacity}
-                onChange={(e) => setFormData({ ...formData, capacity: e.target.value })}
-                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700">Filas</label>
-              <input
-                type="number"
-                placeholder="Ej: 10"
-                value={formData.rows}
-                onChange={(e) => setFormData({ ...formData, rows: e.target.value })}
-                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700">Columnas</label>
-              <input
-                type="number"
-                placeholder="Ej: 10"
-                value={formData.cols}
-                onChange={(e) => setFormData({ ...formData, cols: e.target.value })}
-                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-              />
-            </div>
-            <div className="flex flex-col gap-1 md:col-span-2">
-              <label className="text-sm font-medium text-gray-700">Estado</label>
-              <select
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-orange-500"
-              >
-                <option value="Activa">Activa</option>
-                <option value="Inactiva">Inactiva</option>
-                <option value="Mantenimiento">Mantenimiento</option>
-              </select>
+            
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+              <div className="md:col-span-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1 mb-1 block">Nombre</label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full border border-slate-200 p-2 rounded-xl text-sm outline-none focus:border-brand-primary"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1 mb-1 block">Proyección</label>
+                <select
+                  value={formData.projectionType}
+                  onChange={(e) => setFormData({ ...formData, projectionType: e.target.value })}
+                  className="w-full border border-slate-200 p-2 rounded-xl text-sm bg-white"
+                >
+                  <option value="1">2D Digital</option>
+                  <option value="2">3D Digital</option>
+                  <option value="3">IMAX</option>
+                </select>
+              </div>
+              <div className="bg-white border p-2 rounded-xl text-center">
+                <span className="text-[9px] block font-bold text-slate-300 uppercase">Grid</span>
+                <span className="font-bold text-slate-600 text-xs">{formData.rows}x{formData.cols}</span>
+              </div>
+              <div className="bg-brand-primary/5 border border-brand-primary/10 p-2 rounded-xl text-center">
+                <span className="text-[9px] block font-bold text-brand-primary uppercase">Capacidad</span>
+                <span className="font-black text-brand-primary text-xs">{theoreticalCapacity}</span>
+              </div>
             </div>
           </div>
 
           <SeatGridDesigner
-            key={editingRoomId || "new"}
-            rows={formData.rows}
-            cols={formData.cols}
-            totalCapacity={formData.capacity}
-            initialLayout={editingRoomId ? rooms.find(r => r.id === editingRoomId)?.layout : null}
+            key={editingRoomId || 'new-room'}
+            externalFormData={formData}
+            setExternalFormData={setFormData}
+            initialLayout={roomLayout} 
             onValidationChange={(isValid, layout) => {
               setIsLayoutValid(isValid);
               setRoomLayout(layout);
             }}
           />
- 
 
-          <div className="flex justify-end gap-3 mt-8">
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-50">
+            <Button variant="outline" onClick={resetForm} className="rounded-xl px-6">Cancelar</Button>
             <Button
-              variant="outline"
-              onClick={resetForm}
-              className="border-gray-300 text-gray-700 hover:bg-gray-100"
+              onClick={handleProcessChain}
+              disabled={!isLayoutValid || !formData.name}
+              className="bg-brand-primary text-white rounded-xl px-8 font-bold"
             >
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleSaveRoom}
-              disabled={!isLayoutValid || isDuplicateName}
-              className={`text-white shadow-md ${!isLayoutValid || isDuplicateName ? "bg-gray-400 cursor-not-allowed" : "bg-orange-500 hover:bg-orange-600"}`}
-            >
-              {editingRoomId ? "Actualizar Sala" : "Guardar Sala"}
+              <CheckCircle2 className="w-4 h-4 mr-2" /> 
+              {editingRoomId ? "Actualizar" : "Guardar"}
             </Button>
           </div>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 border-gray-300">
-          {rooms.map((room) => (
-            <div key={room.id} className="border border-gray-300 p-4 rounded-cineflix flex justify-between items-center hover:shadow-md transition-shadow group">
-              <div className="flex items-center gap-3">
-                <div className="bg-purple-100/50 p-2 rounded-lg text-brand-primary group-hover:bg-brand-primary group-hover:text-brand-gold transition-colors">
-                  <Presentation className="h-5 w-5" />
-                </div>
-                <div>
-                  <h4 className="font-bold text-sm text-brand-primary">{room.name}</h4>
-                  <p className="text-xs text-gray-500">
-                    Capacidad: <span className="font-medium text-gray-700">{room.capacity}</span> | Tipo: <span className="font-medium text-gray-700">{room.status}</span>
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleEditRoom(room)}
-                  className="text-brand-primary text-xs bg-yellow-300 hover:bg-yellow-400 rounded-lg"
-                >
-                  Editar
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleDeleteRoom(room.id, room.name)}
-                  className="h-8 w-8 text-white bg-red-500 hover:bg-red-600 rounded-lg"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-
-                 {/* Modales */}
-                <DeleteConfirmModal 
-                  isOpen={isDeleteModalOpen}
-                  onClose={() => {
-                    setIsDeleteModalOpen(false);
-                  }}
-                  onConfirm={handleConfirmDeleteRoom}
-                  itemName={roomToDelete?.name} 
-                />
-
-                {/* MODAL DE ÉXITO */}
-                <SuccessModal 
-                  isOpen={isSuccessOpen} 
-                  onClose={() => {
-                    setIsSuccessOpen(false);
-                    setRoomToDelete(null);
-                  }}
-                  title="¡Sala Eliminada!"
-                  message={`La sala ha sido removida de la sucursal ${branch.name} exitosamente.`}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
       )}
+
+      <DeleteConfirmModal 
+        isOpen={isDeleteModalOpen} 
+        onClose={() => setIsDeleteModalOpen(false)} 
+        onConfirm={handleConfirmDeleteRoom} 
+        itemName={roomToDelete?.name} 
+      />
+      
+      <SuccessModal 
+        isOpen={successConfig.open} 
+        onClose={() => setSuccessConfig({ ...successConfig, open: false })} 
+        title={successConfig.title} 
+        message={successConfig.message} 
+      />
     </div>
   );
 }

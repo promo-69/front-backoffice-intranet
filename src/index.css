@@ -52,6 +52,19 @@
 
   body {
     @apply font-montserrat bg-background text-foreground;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  body::-webkit-scrollbar {
+    display: none;
+  }
+
+  [data-sidebar] {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  [data-sidebar]::-webkit-scrollbar {
+    display: none;
   }
 }
 

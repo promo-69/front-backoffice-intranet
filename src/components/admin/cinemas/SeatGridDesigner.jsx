@@ -1,148 +1,201 @@
-import { useState, useEffect } from 'react';
-import { MonitorPlay, Wrench } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Wrench, Grid3X3, Accessibility, Armchair } from 'lucide-react';
 
-export default function SeatGridDesigner({ rows, cols, totalCapacity, onValidationChange, initialLayout }) {
-  // Estado para guardar el mapa de asientos. True = Asiento activo, False = Pasillo/Espacio vacío
-  const [seatMap, setSeatMap] = useState([]);
+export default function SeatGridDesigner({ 
+  onValidationChange, 
+  initialLayout, 
+  externalFormData, 
+  setExternalFormData,
+  isEdit = false 
+}) {
+  if (!externalFormData) return null;
 
-  // Inicializar o redimensionar la cuadrícula cuando cambian las filas o columnas
+  const [internalMap, setInternalMap] = useState([]);
+  const [editMode, setEditMode] = useState(true);
+  
+  const lastEmittedMap = useRef(""); 
+
   useEffect(() => {
-    const numRows = parseInt(rows) || 0;
-    const numCols = parseInt(cols) || 0;
+    const targetRows = parseInt(externalFormData.rows) || 5;
+    const targetCols = parseInt(externalFormData.cols) || 5;
+
+    const newGrid = Array.from({ length: targetRows }, (_, rIdx) =>
+      Array.from({ length: targetCols }, (_, cIdx) => {
+        if (initialLayout && initialLayout[rIdx] && initialLayout[rIdx][cIdx]) {
+          return initialLayout[rIdx][cIdx];
+        }
+        return { category: 1, condition: 1, type: 'active' };
+      })
+    );
+    setInternalMap(newGrid);
+  }, [initialLayout]); 
+
+  useEffect(() => {
+    const r = parseInt(externalFormData.rows) || 1;
+    const c = parseInt(externalFormData.cols) || 1;
     
-    if (numRows > 0 && numCols > 0) {
-      // Si tenemos un layout inicial y sus dimensiones coinciden, lo usamos
-      if (initialLayout && initialLayout.length === numRows && initialLayout[0] && initialLayout[0].length === numCols) {
-        setSeatMap(initialLayout);
-      } else {
-        // Creamos una nueva matriz llena de "active" (todos son asientos por defecto)
-        const newMap = Array(numRows).fill().map(() => Array(numCols).fill('active'));
-        setSeatMap(newMap);
-      }
-    } else {
-      setSeatMap([]);
+    setInternalMap(current => {
+      if (current.length === r && (current[0]?.length || 0) === c) return current;
+      
+      return Array.from({ length: r }, (_, ri) =>
+        Array.from({ length: c }, (_, ci) => {
+          if (current[ri] && current[ri][ci]) return current[ri][ci];
+          return { category: 1, condition: 1, type: 'active' };
+        })
+      );
+    });
+  }, [externalFormData.rows, externalFormData.cols]);
+
+  useEffect(() => {
+    if (internalMap.length === 0) return;
+
+    const currentMapString = JSON.stringify(internalMap);
+
+    if (lastEmittedMap.current !== currentMapString) {
+      const hasActiveSeats = internalMap.flat().some(s => s.type !== 'empty');
+      
+      onValidationChange(hasActiveSeats, internalMap);
+      
+      lastEmittedMap.current = currentMapString;
     }
-  }, [rows, cols, initialLayout]);
+  }, [internalMap, onValidationChange]); 
 
-  // Contar cuántos asientos están activos actualmente
-  const activeSeatsCount = seatMap.flat().filter(seat => seat === true || seat === 'active').length;
-  const maintenanceSeatsCount = seatMap.flat().filter(seat => seat === 'maintenance').length;
-  const targetCapacity = parseInt(totalCapacity) || 0;
-
-  // Validar si el diseño cumple con la capacidad y notificar al padre
-  useEffect(() => {
-    // Ahora permite guardar si los asientos activos son menores o iguales a la capacidad (por los que están en mantenimiento o pasillos extra)
-    const isValid = activeSeatsCount <= targetCapacity && activeSeatsCount > 0;
-    onValidationChange(isValid, seatMap);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSeatsCount, targetCapacity, seatMap]);
-
-  // Función para cambiar el estado de un asiento (3 estados: activo -> pasillo -> mantenimiento -> activo)
-  const toggleSeat = (rowIndex, colIndex) => {
-    const newMap = [...seatMap];
-    newMap[rowIndex] = [...newMap[rowIndex]];
-    
-    const currentState = newMap[rowIndex][colIndex];
-    let nextState;
-    
-    if (currentState === true || currentState === 'active') nextState = 'empty';
-    else if (currentState === false || currentState === 'empty') nextState = 'maintenance';
-    else nextState = 'active';
-
-    newMap[rowIndex][colIndex] = nextState;
-    setSeatMap(newMap);
+  const handleSeatClick = (rowIndex, colIndex) => {
+    const nextMap = internalMap.map((row, rIdx) => 
+      rIdx === rowIndex ? row.map((seat, cIdx) => {
+        if (cIdx !== colIndex) return seat;
+        
+        // Modo Estructura (Pasillo / Silla / Mantenimiento si aplica)
+        if (editMode) {
+          let nextCond;
+          if (isEdit) {
+            nextCond = seat.condition === 1 ? 2 : seat.condition === 2 ? 3 : 1;
+          } else {
+            nextCond = seat.condition === 1 ? 3 : 1;
+          }
+          
+          return { 
+            ...seat, 
+            condition: nextCond, 
+            type: nextCond === 3 ? 'empty' : 'active' 
+          };
+        }
+        
+        // Modo Categoría (General / Discapacidad)
+        if (seat.condition === 3) return seat; // No se puede categorizar un pasillo vacio
+        return { ...seat, category: seat.category === 1 ? 2 : 1 };
+      }) : row
+    );
+    setInternalMap(nextMap);
   };
 
-  if (!rows || !cols || rows <= 0 || cols <= 0) {
-    return null; // No mostramos nada si no hay dimensiones válidas
-  }
-
-  const isOverCapacity = activeSeatsCount > targetCapacity;
-  const isUnderCapacity = activeSeatsCount < targetCapacity;
+  const activeCount = internalMap.flat().filter(s => s.type !== 'empty' && s.condition === 1).length;
 
   return (
     <div className="mt-6 border border-gray-200 rounded-cineflix p-6 bg-white shadow-sm">
-      <div className="flex justify-between items-end mb-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
-          <h3 className="text-lg font-montserrat font-bold text-gray-800">Diseñador de Sala</h3>
-          <p className="text-sm text-gray-500">Haz clic en los cuadros para eliminar asientos y crear pasillos.</p>
+          <h3 className="text-lg font-montserrat font-bold text-gray-800 flex items-center gap-2">
+            <Grid3X3 className="w-5 h-5 text-brand-primary" /> Distribución de Sala
+          </h3>
+          <p className="text-[11px] text-slate-500 mt-1 italic">
+             Gestionando el aforo para la Promo 69.
+          </p>
         </div>
-        
-        {/* Marcador de estado */}
-        <div className={`px-4 py-2 rounded-lg border flex flex-col items-center ${
-          activeSeatsCount <= targetCapacity ? 'bg-green-50 border-green-200 text-green-700' : 
-          'bg-red-50 border-red-200 text-red-700'
-        }`}>
-          <span className="text-xs font-bold uppercase tracking-wider opacity-80">Asientos Activos</span>
-          <span className="text-xl font-black font-montserrat">
-            {activeSeatsCount} <span className="text-sm font-normal">/ {targetCapacity}</span>
-          </span>
-          {isOverCapacity && <span className="text-xs font-medium">Límite excedido por {activeSeatsCount - targetCapacity}</span>}
-          {maintenanceSeatsCount > 0 && <span className="text-xs font-medium text-orange-600 mt-1">{maintenanceSeatsCount} en mantenimiento</span>}
-        </div>
-      </div>
 
-      {/* Pantalla (Screen) */}
-      <div className="w-full max-w-2xl mx-auto mb-8 flex flex-col items-center opacity-70">
-        <div className="w-full h-8 bg-gradient-to-t from-gray-200 to-gray-50 rounded-t-[50%] border-t-4 border-gray-300 shadow-inner flex items-center justify-center">
-          <MonitorPlay className="w-4 h-4 text-gray-400 mr-2" />
-          <span className="text-xs font-bold text-gray-400 tracking-widest uppercase">Pantalla</span>
-        </div>
-      </div>
-
-      {/* Cuadrícula interactiva */}
-      <div className="flex justify-center overflow-x-auto pb-4">
-        <div 
-          className="grid gap-2" 
-          style={{ 
-            gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-            // Limitamos el ancho máximo de cada asientito para que no sea gigante
-            maxWidth: '100%' 
-          }}
-        >
-          {seatMap.map((row, rowIndex) => (
-            row.map((seatState, colIndex) => {
-              const isActive = seatState === true || seatState === 'active';
-              const isMaintenance = seatState === 'maintenance';
-              
-              return (
-                <button
-                  key={`${rowIndex}-${colIndex}`}
-                  onClick={() => toggleSeat(rowIndex, colIndex)}
-                  className={`
-                    w-8 h-8 rounded-t-lg rounded-b-sm transition-all duration-200 flex items-center justify-center text-[10px] font-bold shadow-sm
-                    ${isActive 
-                      ? 'bg-brand-primary hover:bg-brand-primary/80 text-white border-b-4 border-brand-primary/90 hover:-translate-y-1' 
-                      : isMaintenance
-                      ? 'bg-red-500 hover:bg-red-600 text-white border-b-4 border-red-700'
-                      : 'bg-gray-100 hover:bg-gray-200 border border-gray-200 text-gray-300 shadow-inner'
-                    }
-                  `}
-                  title={`Fila ${rowIndex + 1}, Columna ${colIndex + 1} - ${isActive ? 'Activo' : isMaintenance ? 'Mantenimiento' : 'Pasillo'}`}
-                >
-                  {isActive ? '' : isMaintenance ? <Wrench className="w-3 h-3" /> : 'X'}
-                </button>
-              );
-            })
+        <div className="flex gap-3">
+          {['rows', 'cols'].map(key => (
+            <div key={key} className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold text-gray-400 uppercase">
+                {key === 'rows' ? 'Filas' : 'Cols'}
+              </span>
+              <input
+                type="number" min="1" max="25"
+                value={externalFormData[key]}
+                onChange={(e) => setExternalFormData(prev => ({ ...prev, [key]: e.target.value }))}
+                className="w-16 border border-gray-200 rounded px-2 py-1 text-sm outline-none focus:border-brand-primary"
+              />
+            </div>
           ))}
+          <div className="bg-brand-primary/5 border border-brand-primary/20 px-4 py-1 rounded flex flex-col items-center min-w-[100px]">
+            <span className="text-[10px] font-bold text-brand-primary uppercase">Capacidad</span>
+            <span className="text-lg font-black text-brand-primary leading-none">{activeCount}</span>
+          </div>
         </div>
       </div>
-      
-      {/* Leyenda */}
-      <div className="flex justify-center gap-6 mt-8 pt-4 border-t border-gray-100">
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-brand-primary rounded-sm"></div>
-          <span className="text-xs text-gray-600">Asiento Activo</span>
+
+      {/* Cuadrícula de Asientos */}
+      <div className="flex justify-center overflow-x-auto pb-6">
+        <div 
+          className="grid gap-2 p-4 bg-slate-50 rounded-xl border border-slate-100"
+          style={{ gridTemplateColumns: `repeat(${externalFormData.cols}, 40px)` }}
+        >
+          {internalMap.map((row, ri) => row.map((seat, ci) => (
+            <button
+              key={`${ri}-${ci}`} type="button"
+              onClick={() => handleSeatClick(ri, ci)}
+              className={`w-10 h-10 rounded-t-xl transition-all flex items-center justify-center text-[9px] font-bold
+                ${seat.condition === 3 ? 'bg-white border border-dashed border-slate-300 text-slate-300' : 
+                  seat.condition === 2 ? 'bg-orange-500 text-white border-b-4 border-orange-700' :
+                  seat.category === 2 ? 'bg-blue-600 text-white border-b-4 border-blue-800' : 
+                  'bg-brand-primary text-white border-b-4 border-brand-primary/80'}
+              `}
+            >
+              {seat.condition !== 3 && (
+                <div className="flex flex-col items-center">
+                  <span>{String.fromCharCode(65 + ri)}{ci + 1}</span>
+                  {seat.category === 2 && <Accessibility className="w-3 h-3" />}
+                  {seat.condition === 2 && <Wrench className="w-3 h-3" />}
+                </div>
+              )}
+            </button>
+          )))}
         </div>
+      </div>
+
+      {/* Menú de Modos de Edición */}
+      <div className="mt-4 flex justify-center gap-3 p-1.5 bg-slate-100 rounded-2xl w-fit mx-auto border border-slate-200">
+        <button
+          type="button" onClick={() => setEditMode(true)}
+          className={`px-6 py-2 rounded-xl text-xs font-bold transition-all ${editMode ? 'bg-white shadow-sm text-brand-primary' : 'text-slate-500'}`}
+        >Estructura</button>
+        <button
+          type="button" onClick={() => setEditMode(false)}
+          className={`px-6 py-2 rounded-xl text-xs font-bold transition-all ${!editMode ? 'bg-white shadow-sm text-brand-primary' : 'text-slate-500'}`}
+        >Categoría</button>
+      </div>
+
+      <hr className="my-6 border-slate-100" />
+
+      {/* Leyenda Dinámica Inteligente con Iconos */}
+      <div className="flex flex-wrap justify-center gap-6 text-xs text-slate-600 font-medium">
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-red-500 flex items-center justify-center rounded-sm">
-            <Wrench className="w-2 h-2 text-white" />
+          <div className="w-5 h-5 bg-brand-primary rounded-t-md border-b-2 border-brand-primary/80 flex items-center justify-center text-white">
+            <Armchair className="w-3 h-3" />
           </div>
-          <span className="text-xs text-gray-600">En Mantenimiento</span>
+          <span>Silla Disponible</span>
         </div>
+
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-gray-100 border border-gray-200 rounded-sm flex items-center justify-center text-[8px] text-gray-400 font-bold">X</div>
-          <span className="text-xs text-gray-600">Pasillo / Vacío</span>
+          <div className="w-5 h-5 bg-blue-600 rounded-t-md border-b-2 border-blue-800 flex items-center justify-center text-white">
+            <Accessibility className="w-3 h-3" />
+          </div>
+          <span>Discapacidad (VIP/Accesible)</span>
+        </div>
+
+        {/* Mantenimiento oculto de forma estricta en el panel de creación */}
+        {isEdit && (
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 bg-orange-500 rounded-t-md border-b-2 border-orange-700 flex items-center justify-center text-white">
+              <Wrench className="w-3 h-3" />
+            </div>
+            <span>En Mantenimiento</span>
+          </div>
+        )}
+
+        <div className="flex items-center gap-2">
+          <div className="w-5 h-5 bg-white border border-dashed border-slate-300 rounded-t-md" />
+          <span>Pasillo (Vacío)</span>
         </div>
       </div>
     </div>
