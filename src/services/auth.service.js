@@ -8,7 +8,7 @@ export const loginRequest = async (data) => {
 /*
 export const refreshSession = async () => {
   try {
-    await api.post("/auth/refresh");
+    await api.post("auth/refresh");
     return true;
   } catch (error) {
     // Si es 401, es un resultado "esperado" (sesión expirada), no un error crítico
