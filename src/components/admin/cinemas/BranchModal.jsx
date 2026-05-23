@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -7,15 +7,15 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { InputForm } from "@/components/ui/inputForm";
 import { useLoading } from "../../../context/LoadingContext";
 import api from '../../../api/axios';
 
 function ErrorMessage({ message }) {
   return message ? <p className="text-[10px] text-red-500 mt-1 ml-1 font-medium italic">{message}</p> : null;
 }
+
+import { InputForm } from "@/components/ui/inputForm";
 
 const emptyBranchForm = { 
   name: "", 
@@ -25,6 +25,9 @@ const emptyBranchForm = {
   closingTime: "" 
 };
 
+const HOURS_12 = Array.from({ length: 12 }, (_, i) => String(i === 0 ? 12 : i).padStart(2, "0"));
+const MINUTES = ["00", "15", "30", "45"]; 
+
 export default function BranchModal({ open, onClose, initialData }) {
   const isEdit = !!initialData;
   const { showLoader, hideLoader } = useLoading();
@@ -32,23 +35,66 @@ export default function BranchModal({ open, onClose, initialData }) {
   const [formData, setFormData] = useState(emptyBranchForm);
   const [errors, setErrors] = useState({});
 
+  const [opening, setOpening] = useState({ hour: "", minute: "", ampm: "AM" });
+  const [closing, setClosing] = useState({ hour: "", minute: "", ampm: "PM" });
+
+  const parse24to12 = (timeString) => {
+    if (!timeString) return { hour: "", minute: "", ampm: "AM" };
+    const [hStr, mStr] = timeString.split(":");
+    let hour = parseInt(hStr, 10);
+    const minute = mStr.slice(0, 2);
+    const ampm = hour >= 12 ? "PM" : "AM";
+    
+    hour = hour % 12;
+    hour = hour === 0 ? 12 : hour; 
+    
+    return {
+      hour: String(hour).padStart(2, "0"),
+      minute,
+      ampm
+    };
+  };
+
+  const convert12to24 = ({ hour, minute, ampm }) => {
+    if (!hour || !minute) return "";
+    let h = parseInt(hour, 10);
+    if (ampm === "PM" && h !== 12) h += 12;
+    if (ampm === "AM" && h === 12) h = 0;
+    return `${String(h).padStart(2, "0")}:${minute}`;
+  };
+
   useEffect(() => {
     if (open) {
       if (initialData) {
-        // Mapeo desde la base de datos al estado del formulario
+        const opTime = initialData.openingTime || initialData.opening_time || "";
+        const clTime = initialData.closingTime || initialData.closing_time || "";
+
         setFormData({
           name: initialData.name || "",
           address: initialData.address || "",
           phone: initialData.phone || "",
-          openingTime: initialData.openingTime || initialData.opening_time || "", 
-          closingTime: initialData.closingTime || initialData.closing_time || "", 
+          openingTime: opTime,
+          closingTime: clTime,
         });
+
+        setOpening(parse24to12(opTime));
+        setClosing(parse24to12(clTime));
       } else {
         setFormData(emptyBranchForm);
+        setOpening({ hour: "", minute: "", ampm: "AM" });
+        setClosing({ hour: "", minute: "", ampm: "PM" });
       }
       setErrors({});
     }
   }, [open, initialData]);
+
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      openingTime: convert12to24(opening),
+      closingTime: convert12to24(closing)
+    }));
+  }, [opening, closing]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -62,13 +108,6 @@ export default function BranchModal({ open, onClose, initialData }) {
       const phoneRegex = /^[0-9\s-]+$/;
       if (value && !phoneRegex.test(value)) {
         error = "El teléfono solo debe contener números.";
-      }
-    }
-
-    if (name === "openingTime" || name === "closingTime") {
-      const time24hRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
-      if (value && !time24hRegex.test(value)) {
-        error = "Formato 24h inválido (Ej: 14:30).";
       }
     }
     return error;
@@ -95,7 +134,6 @@ export default function BranchModal({ open, onClose, initialData }) {
     showLoader();
 
     try {
-      // El servidor espera camelCase según el error 400 detectado
       const payload = {
         name: formData.name.trim(),
         address: formData.address.trim(),
@@ -104,8 +142,6 @@ export default function BranchModal({ open, onClose, initialData }) {
         closingTime: formData.closingTime, 
         status: 1 
       };
-      
-      console.log("Enviando a DB:", payload);
 
       if (isEdit) {
         await api.put(`/cinemas/${initialData.id}`, payload);
@@ -115,30 +151,98 @@ export default function BranchModal({ open, onClose, initialData }) {
       onClose(true);
     } catch (error) {
       const status = error.response?.status;
-      const serverData = error.response?.data;
-
       if (status === 400) {
-        console.log("Detalles del error 400:", serverData); //
-        setErrors((prev) => ({
-          ...prev,
-          general: "Datos inválidos. Revisa el formato de los campos."
-        }));
+        setErrors((prev) => ({ ...prev, general: "Datos inválidos. Revisa los campos." }));
       } else if (status === 409) {
-        setErrors((prev) => ({
-          ...prev,
-          name: "Ya existe una sucursal con este nombre."
-        }));
+        setErrors((prev) => ({ ...prev, name: "Ya existe una sucursal con este nombre." }));
       } else {
-        setErrors((prev) => ({
-          ...prev,
-          general: "Error al guardar. Intente de nuevo."
-        }));
+        setErrors((prev) => ({ ...prev, general: "Error al guardar. Intente de nuevo." }));
       }
     } finally {
       hideLoader();
       setIsSubmitting(false);
     }
   };
+
+  // Subcomponente Dropdown estilizado con Scroll limitado estricto
+  const CustomDropdown = ({ value, placeholder, options, onChange }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const containerRef = useRef(null);
+
+    useEffect(() => {
+      const handleClickOutside = (event) => {
+        if (containerRef.current && !containerRef.current.contains(event.target)) {
+          setIsOpen(false);
+        }
+      };
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    return (
+      <div ref={containerRef} className="relative w-full">
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="w-full flex justify-between items-center rounded-md border border-slate-200 bg-white p-2 text-sm shadow-sm focus:border-brand-primary focus:outline-none text-left"
+        >
+          <span className={value ? "text-slate-900" : "text-slate-400"}>
+            {value || placeholder}
+          </span>
+          <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        {isOpen && (
+          <div className="absolute z-50 mt-1 w-full rounded-md border border-slate-200 bg-white shadow-lg max-h-32 overflow-y-auto custom-scrollbar">
+            {options.map((opt) => (
+              <div
+                key={opt}
+                onClick={() => {
+                  onChange(opt);
+                  setIsOpen(false);
+                }}
+                className="cursor-pointer p-2 text-sm hover:bg-slate-100 text-slate-700 transition-colors"
+              >
+                {opt}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const TimePicker12h = ({ label, state, setState, error }) => (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-xs font-semibold text-slate-700">{label}</label>
+      <div className="flex gap-1">
+        
+        <CustomDropdown 
+          value={state.hour} 
+          placeholder="Hora" 
+          options={HOURS_12} 
+          onChange={(val) => setState(prev => ({ ...prev, hour: val }))} 
+        />
+
+        <CustomDropdown 
+          value={state.minute} 
+          placeholder="Min" 
+          options={MINUTES} 
+          onChange={(val) => setState(prev => ({ ...prev, minute: val }))} 
+        />
+
+        <CustomDropdown 
+          value={state.ampm} 
+          placeholder="AM/PM" 
+          options={["AM", "PM"]} 
+          onChange={(val) => setState(prev => ({ ...prev, ampm: val }))} 
+        />
+      </div>
+      <ErrorMessage message={error} />
+    </div>
+  );
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose(false)}>
@@ -169,15 +273,20 @@ export default function BranchModal({ open, onClose, initialData }) {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <InputForm label="Apertura (HH:mm)" name="openingTime" value={formData.openingTime} onChange={handleChange} placeholder="11:00" />
-              <ErrorMessage message={errors.openingTime} />
-            </div>
-            <div>
-              <InputForm label="Cierre (HH:mm)" name="closingTime" value={formData.closingTime} onChange={handleChange} placeholder="22:30" />
-              <ErrorMessage message={errors.closingTime} />
-            </div>
+            <TimePicker12h 
+              label="Apertura" 
+              state={opening} 
+              setState={setOpening} 
+              error={errors.openingTime} 
+            />
+            <TimePicker12h 
+              label="Cierre" 
+              state={closing} 
+              setState={setClosing} 
+              error={errors.closingTime} 
+            />
           </div>
+          
           {errors.general && (
             <p className="text-red-500 text-xs text-center font-bold mt-2">
               {errors.general}

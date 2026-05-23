@@ -11,7 +11,7 @@ import {
   SidebarGroupLabel,
   SidebarGroupContent,
 } from "@/components/ui/sidebar"
-import LogoCineflix from "@/assets/images/logotype/logoCiineflix.png"
+import LogoCineflix from "@/assets/images/logotype/logoCiineflix1.png"
 import { Link } from "react-router-dom"
 import { cn } from "@/lib/utils";
 
@@ -26,6 +26,34 @@ const navItems = [
     url: "/admin/dashboard",
     icon: LayoutDashboard,
   },
+
+    {
+    id: "cinemas",
+    title: "Sucursales",
+    url: "/admin/sucursales",
+    icon: MapPin,
+  },
+
+  { id: "personal",
+    title: "Personal",
+    url: "/admin/personal",
+    icon: Users 
+  },
+
+  {
+    id: "exhibition",
+    title: "Cartelera",
+    url: "/admin/exhibition",
+    icon: Film,
+  },
+  
+  {
+    id: "inventory",
+    title: "Inventario",
+    url: "/admin/inventario",
+    icon: Package,
+  },
+
   {
     id: "catalog",
     title: "Maestros",
@@ -33,34 +61,7 @@ const navItems = [
     url: "/admin/catalogo",
     icon: BookOpen,
   },
-  {
-    id: "exhibition",
-    title: "Cartelera",
-    url: "/admin/exhibition",
-    icon: Film,
-  },
-  {
-    id: "cinemas",
-    title: "Sucursales",
-    url: "/admin/sucursales",
-    icon: MapPin,
-  },
-  { id: "personal",
-    title: "Personal",
-    url: "/admin/personal",
-    icon: Users },
-  {
-    id: "transactions",
-    title: "Transacciones",
-    url: "/admin/transacciones",
-    icon: Receipt,
-  },
-  {
-    id: "inventory",
-    title: "Inventario",
-    url: "/admin/inventario",
-    icon: Package,
-  },
+
   {
     id: "reports",
     title: "Reportes",
