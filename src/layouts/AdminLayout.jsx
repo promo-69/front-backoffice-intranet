@@ -30,7 +30,7 @@ function AdminLayoutContent({ location, children }) {
       "/admin/dashboard": "Dashboard",
       "/admin/exhibition": "Gestión de Cartelera",
       "/admin/sucursales": "Gestión de Sucursales y Salas",
-      "/admin/users": "Gestión de Usuarios",
+      "/admin/personal": "Gestión de Personal",
       "/admin/transacciones": "Registro de Transacciones",
       "/admin/inventario": "Control de Inventario",
       "/admin/reports": "Reportes",
