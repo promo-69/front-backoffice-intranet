@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from "react"
 import { useModal } from "@/hooks/useModal"
 import { MoviesTab } from "@/components/admin/exhibition/movies/MoviesTab2"
@@ -10,13 +9,13 @@ import MovieForm from "@/components/admin/exhibition/movies/MovieForm"
 import { TabsCustom } from "@/components/ui/TabsCustom";
 import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { useLoading } from "@/context/LoadingContext";
+
 import { getMovies, createMovie, updateMovie, deleteMovie } from "@/services/movie.service";
 import { showtimesService } from "@/services/showtime.service";
+import { getCinemas } from "@/services/cinema.service"; 
 import { toast } from "sonner";
 
 export default function ExhibitionPage() {
-  console.log("!!! EL COMPONENTE EXHBTIONPAGE SE ACABA DE MONTAR O RE-RENDERIZAR !!!");
-  
   const [activeTab, setActiveTab] = useState("movies");
   const tabs = [
     { id: "movies", label: "Películas" },
@@ -26,14 +25,17 @@ export default function ExhibitionPage() {
   const { modal, openModal, closeModal } = useModal();
   const { showLoader, hideLoader } = useLoading();
   
-  // Estados de películas
+  // Catálogos auxiliares estables para los Comboboxes del formulario
+  const [cinemas, setCinemas] = useState([]);
+
+  // Estados locales de películas
   const [movies, setMovies] = useState([]);
   const [moviesPage, setMoviesPage] = useState(1);
   const [moviesMetadata, setMoviesMetadata] = useState({
     total: 0, per_page: 10, current_page: 1, total_pages: 1, next_page: null, prev_page: null
   });
 
-  // Estados de funciones
+  // Estados locales de funciones
   const [showtimes, setShowtimes] = useState([]);
   const [showtimesPage, setShowtimesPage] = useState(1);
   const [showtimesMetadata, setShowtimesMetadata] = useState({
@@ -42,68 +44,55 @@ export default function ExhibitionPage() {
 
   const [search, setSearch] = useState("");
 
-  // ==========================================
-// MÉTODO UNIFICADO DE CARGA (Similar a fetchCatalogs)
-// ==========================================
-const fetchDataForTab = useCallback(async (tab, page = 1) => {
-  showLoader();
-  try {
-    if (tab === "movies") {
-      console.log("🎬 Cargando películas. Página:", page);
-      const response = await getMovies({ page, per_page: 10 });
-      setMovies(response.data || []);
-      if (response.metadata) setMoviesMetadata(response.metadata);
-    } 
-    
-    else if (tab === "showtimes") {
-      console.log("🍿 Cargando funciones. Página:", page);
-      // Aquí usamos tu servicio de showtimes (pasándole la página si tu backend lo soporta)
-      const response = await showtimesService.getAll({ page, per_page: 10 });
-      setShowtimes(response.data || []);
-      if (response.metadata) setShowtimesMetadata(response.metadata);
-    }
-  } catch (error) {
-    console.error(`Error al cargar datos de ${tab}:`, error);
-    const messageError = error.response?.data?.message || "Error al conectar con el servidor";
-    toast.error(messageError);
-    
-    // Limpieza en caso de error para no mostrar datos viejos
-    if (tab === "movies") setMovies([]);
-    if (tab === "showtimes") setShowtimes([]);
-  } finally {
-    hideLoader();
-  }
-}, [showLoader, hideLoader]);
+  // Carga inicial y asíncrona de catálogos fijos para los modales
+  useEffect(() => {
+    const fetchFormCatalogs = async () => {
+      try {
+        const cinemasRes = await getCinemas();
+        setCinemas(cinemasRes || []);
+      } catch (error) {
+        console.error("Error al pre-cargar catálogos de sucursales:", error);
+      }
+    };
+    fetchFormCatalogs();
+  }, []);
 
-// ==========================================
-// UN SOLO EFFECT PARA CONTROLAR EL LAZY LOADING
-// (Igual al de CatalogsPage: Escucha los cambios de Tab y Páginas)
-// ==========================================
-useEffect(() => {
-  if (activeTab === "movies") {
-    fetchDataForTab("movies", moviesPage);
-  } else if (activeTab === "showtimes") {
-    fetchDataForTab("showtimes", showtimesPage);
-  }
-// 💡 ESCUCHA ÚNICAMENTE LOS CAMBIOS DE PESTAÑA Y PÁGINAS
-// eslint-disable-next-line react-hooks/exhaustive-deps
-}, [activeTab, moviesPage, showtimesPage]);
-  // ==========================================
-  // MANEJADORES DE ACCIONES Y MUTACIONES
-  // ==========================================
- const refreshActiveTab = async () => {
-  if (activeTab === "movies") {
-    await fetchDataForTab("movies", moviesPage);
-  } else {
-    await fetchDataForTab("showtimes", showtimesPage);
-  }
-};
+  // MÉTODO UNIFICADO DE CARGA (Lazy Loading según la Pestaña Activa)
+  const fetchDataForTab = useCallback(async (tab, page = 1) => {
+    showLoader();
+    try {
+      if (tab === "movies") {
+        const response = await getMovies({ page, per_page: 10 });
+        setMovies(response.data || []);
+        if (response.metadata) setMoviesMetadata(response.metadata);
+      } 
+      else if (tab === "showtimes") {
+        const response = await showtimesService.getAll({ page, per_page: 10 });
+        setShowtimes(response.data || []);
+        if (response.metadata) setShowtimesMetadata(response.metadata);
+      }
+    } catch (error) {
+      console.error(`Error al cargar datos de ${tab}:`, error);
+      toast.error(error.response?.data?.message || "Error al conectar con el servidor");
+      if (tab === "movies") setMovies([]);
+      if (tab === "showtimes") setShowtimes([]);
+    } finally {
+      hideLoader();
+    }
+  }, [showLoader, hideLoader]);
+
+  useEffect(() => {
+    fetchDataForTab(activeTab, activeTab === "movies" ? moviesPage : showtimesPage);
+  }, [activeTab, moviesPage, showtimesPage, fetchDataForTab]);
+
+  const refreshActiveTab = async () => {
+    await fetchDataForTab(activeTab, activeTab === "movies" ? moviesPage : showtimesPage);
+  };
 
   const handleOpenEditModal = (type, item) => {
     if (type === "movieForm") {
       const genreIds = item._MovieGenres?.map(g => g.genre) || [];
-      const mappedMovie = { ...item, genres: genreIds };
-      openModal("movieForm", mappedMovie);
+      openModal("movieForm", { ...item, genres: genreIds });
     } else {
       openModal(type, item);
     }
@@ -131,11 +120,11 @@ useEffect(() => {
       
       openModal("success", { 
         title: "¡Operación Exitosa!", 
-        message: "El registro ha sido actualizado correctamente." 
+        message: "Los cambios han sido impactados en el sistema correctamente." 
       });
     } catch (error) {
-      console.error("Error al guardar:", error);
-      toast.error(error.response?.data?.message || "Error al conectar con el servidor");
+      console.error("Error al ejecutar guardado:", error);
+      toast.error(error.response?.data?.message || "Error al procesar la solicitud");
     } finally {
       hideLoader();
     }
@@ -143,7 +132,6 @@ useEffect(() => {
 
   const handleDelete = async () => {
     if (!modal.data?.id) return;
-    
     showLoader();
     try {
       if (activeTab === "movies") {
@@ -151,17 +139,12 @@ useEffect(() => {
       } else {
         await showtimesService.delete(modal.data.id);
       }
-      
       closeModal();
       await refreshActiveTab();
-      
-      openModal("success", { 
-        title: "Eliminado", 
-        message: "El registro ha sido removido exitosamente." 
-      });
+      openModal("success", { title: "Eliminado", message: "El registro ha sido removido exitosamente." });
     } catch (error) {
-      console.error("Error al eliminar:", error);
-      toast.error(error.response?.data?.message || "Error al conectar con el servidor");
+      console.error(error);
+      toast.error("No se pudo eliminar el registro seleccionado");
     } finally {
       hideLoader();
     }
@@ -174,7 +157,7 @@ useEffect(() => {
   return (
     <div className="max-w-7xl mx-auto font-montserrat space-y-6">
       
-      {/* HEADER DINÁMICO */}
+      {/* HEADER PRINCIPAL */}
       <header className="flex justify-between items-center bg-white p-6 rounded-cineflix border border-gray-100 shadow-sm">
         <div>
           <h3 className="text-lg font-bold text-brand-primary leading-tight">
@@ -203,18 +186,10 @@ useEffect(() => {
         </div>
       </header>
 
-      {/* COMPONENTE DE TABS GENÉRICO */}
-     <TabsCustom 
-  tabs={tabs} 
-  activeTab={activeTab} 
-  onChange={(tabId) => {
-    setActiveTab(tabId);
-    // Opcional: puedes resetear las páginas al cambiar de tab si quieres evitar desfases
-    // if (tabId === "movies") setMoviesPage(1);
-    // if (tabId === "showtimes") setShowtimesPage(1);
-  }} 
-/>
-      {/* RENDERIZADO CONDICIONAL DE TABS (LAZY LOADING EN UI) */}
+      {/* TABS */}
+      <TabsCustom tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+
+      {/* RENDER TAB CONTENIDO */}
       {activeTab === "movies" && (
         <MoviesTab 
           data={filteredMovies} 
@@ -226,69 +201,48 @@ useEffect(() => {
       {activeTab === "showtimes" && (
         <ShowtimesTab 
           data={showtimes} 
-          onEdit={(type, item) => openModal(type, item)} 
+          onEdit={(type, item) => handleOpenEditModal(type, item)} 
           onDelete={(type, item) => openModal(type, item)} 
         />
       )}
 
-      {/* CONTROLES DE PAGINACIÓN */}
+      {/* CONTROLES PAGINACIÓN */}
       <div className="flex items-center justify-between px-6 py-4 bg-white border border-gray-100 rounded-cineflix shadow-sm">
-        <div>
-          <p className="text-xs text-gray-500 font-medium">
-            Mostrando {" "}
-            <span className="font-bold text-brand-primary">
-              {activeTab === "movies" 
-                ? (moviesMetadata.total === 0 ? 0 : (moviesPage - 1) * moviesMetadata.per_page + 1) 
-                : (showtimesMetadata.total === 0 ? 0 : (showtimesPage - 1) * showtimesMetadata.per_page + 1)}
-            </span>{" "}
-            a{" "}
-            <span className="font-bold text-brand-primary">
-              {activeTab === "movies"
-                ? Math.min(moviesPage * moviesMetadata.per_page, moviesMetadata.total)
-                : Math.min(showtimesPage * showtimesMetadata.per_page, showtimesMetadata.total)}
-            </span>{" "}
-            de <span className="font-bold text-brand-primary">{activeTab === "movies" ? moviesMetadata.total : showtimesMetadata.total}</span> resultados
-          </p>
-        </div>
+        <p className="text-xs text-gray-500 font-medium">
+          Mostrando {" "}
+          <span className="font-bold text-brand-primary">
+            {activeTab === "movies" 
+              ? (moviesMetadata.total === 0 ? 0 : (moviesPage - 1) * moviesMetadata.per_page + 1) 
+              : (showtimesMetadata.total === 0 ? 0 : (showtimesPage - 1) * showtimesMetadata.per_page + 1)}
+          </span> al <span className="font-bold text-brand-primary">
+            {activeTab === "movies"
+              ? Math.min(moviesPage * moviesMetadata.per_page, moviesMetadata.total)
+              : Math.min(showtimesPage * showtimesMetadata.per_page, showtimesMetadata.total)}
+          </span> de <span className="font-bold text-brand-primary">{activeTab === "movies" ? moviesMetadata.total : showtimesMetadata.total}</span> resultados
+        </p>
 
-        <div>
-          <nav className="inline-flex -space-x-px rounded-xl shadow-sm overflow-hidden border border-gray-200" aria-label="Pagination">
-            <button
-              onClick={() => {
-                if (activeTab === "movies") {
-                  if (moviesMetadata.prev_page > 0) setMoviesPage(moviesMetadata.prev_page);
-                } else {
-                  if (showtimesMetadata.prev_page > 0) setShowtimesPage(showtimesMetadata.prev_page);
-                }
-              }}
-              disabled={activeTab === "movies" ? !moviesMetadata.prev_page : !showtimesMetadata.prev_page}
-              className="relative inline-flex items-center px-3 py-2 text-gray-400 bg-white hover:bg-gray-50 disabled:bg-gray-50 disabled:text-gray-300 disabled:cursor-not-allowed transition-all border-r border-gray-200"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            
-            <div className="relative inline-flex items-center px-4 py-2 text-xs font-bold text-brand-primary bg-white min-w-[120px] justify-center tracking-wider uppercase">
-              Página {activeTab === "movies" ? moviesMetadata.current_page : showtimesMetadata.current_page} de {activeTab === "movies" ? moviesMetadata.total_pages : showtimesMetadata.total_pages}
-            </div>
-
-            <button
-              onClick={() => {
-                if (activeTab === "movies") {
-                  if (moviesMetadata.next_page > 0) setMoviesPage(moviesMetadata.next_page);
-                } else {
-                  if (showtimesMetadata.next_page > 0) setShowtimesPage(showtimesMetadata.next_page);
-                }
-              }}
-              disabled={activeTab === "movies" ? !moviesMetadata.next_page : !showtimesMetadata.next_page}
-              className="relative inline-flex items-center px-3 py-2 text-gray-400 bg-white hover:bg-gray-50 disabled:bg-gray-50 disabled:text-gray-300 disabled:cursor-not-allowed transition-all border-l border-gray-200"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </nav>
-        </div>
+        <nav className="inline-flex -space-x-px rounded-xl shadow-sm overflow-hidden border border-gray-200">
+          <button
+            onClick={() => activeTab === "movies" ? setMoviesPage(p => Math.max(p - 1, 1)) : setShowtimesPage(p => Math.max(p - 1, 1))}
+            disabled={activeTab === "movies" ? !moviesMetadata.prev_page : !showtimesMetadata.prev_page}
+            className="px-3 py-2 text-gray-400 bg-white hover:bg-gray-50 disabled:opacity-50 border-r"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <div className="px-4 py-2 text-xs font-bold text-brand-primary bg-white min-w-[120px] text-center uppercase tracking-wider">
+            Página {activeTab === "movies" ? moviesMetadata.current_page : showtimesMetadata.current_page} de {activeTab === "movies" ? moviesMetadata.total_pages : showtimesMetadata.total_pages}
+          </div>
+          <button
+            onClick={() => activeTab === "movies" ? setMoviesPage(p => p + 1) : setShowtimesPage(p => p + 1)}
+            disabled={activeTab === "movies" ? !moviesMetadata.next_page : !showtimesMetadata.next_page}
+            className="px-3 py-2 text-gray-400 bg-white hover:bg-gray-50 disabled:opacity-50 border-l"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </nav>
       </div>
 
-      {/* --- MODALES CENTRALIZADOS --- */}
+      {/* MODALES CONFIGURADOS */}
       <MovieForm
         open={modal.isOpen && modal.type === "movieForm"}
         initialData={modal.data}
@@ -303,8 +257,8 @@ useEffect(() => {
         initialData={modal.data}
         onClose={closeModal}
         onSave={handleSave}    
-        movies={movies}
-        rooms={MOCK_ROOMS}   
+        movies={movies} // Manda las películas del estado actual
+        cinemas={cinemas} // Manda las sucursales cargadas al montar la app
       />
 
       <DeleteConfirmModal 
@@ -324,8 +278,6 @@ useEffect(() => {
   );
 }
 
-// ... Mocks de configuración al final del archivo permanecen iguales
-const MOCK_ROOMS = [{ id: 1, descripton: "Sala 1" }, { id: 2, descripton: "Sala 2" }];
 const MOCK_LIFECYCLE = [
   { id: 1, description: 'Próximamente' }, { id: 2, description: 'En Cartelera (Estreno)'},
   { id: 3, description: 'En Cartelera (Regular)'}, { id: 4, description: 'Últimos Días'}, { id: 5, description: 'Fuera de Cartelera'}
