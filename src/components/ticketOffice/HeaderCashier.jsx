@@ -6,6 +6,7 @@ export default function HeaderCashier({ title }) {
   const menuItems = [
     { label: "Dashboard", path: "/ticketOffice/dashboard" },
     { label: "Venta de boletos por taquilla", path: "/ticketOffice/sell" },
+    { label: "Confitería", path: "/ticketOffice/candy" },
     { label: "SALIR", path: "/login" },
   ];
   return (
