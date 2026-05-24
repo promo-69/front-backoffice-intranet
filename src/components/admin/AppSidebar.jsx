@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-import { LayoutDashboard, Film, MapPin, Users, Receipt, Package, BarChart3, LogOut, TicketIcon, ShoppingBag } from "lucide-react"
-=======
-import { LayoutDashboard, Film, MapPin, Users, Receipt, Package, BarChart3, LogOut, TicketIcon, BookOpen } from "lucide-react"
->>>>>>> e2e990f19bad52b98dd88e6f9dc640dda76facf0
+import { LayoutDashboard, Film, MapPin, Users, Receipt, Package, BarChart3, LogOut, TicketIcon, ShoppingBag, BookOpen } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
