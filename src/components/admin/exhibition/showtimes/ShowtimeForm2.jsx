@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect} from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ export function ShowtimeForm({
   onSave, 
   initialData, 
   movies = [], 
-  bookingsList = [], 
+  bookingsList = [],
   projectionTypes = [],
   currenciesList = []
 }) {
@@ -28,6 +28,7 @@ export function ShowtimeForm({
     }
   });
 
+  // Optimizamos usando useWatch para aislar los re-renders del cambio de moneda
   const watchCurrency = useWatch({
     control,
     name: "currency",
@@ -38,7 +39,7 @@ export function ShowtimeForm({
     if (!open) return;
 
     if (initialData) {
-    
+      // Ajuste del precio inicial según la moneda que traiga de la BD
       const basePrice = parseFloat(initialData.price).toFixed(2);
       const currentCurrency = initialData.currency;
       
@@ -62,7 +63,7 @@ export function ShowtimeForm({
   const handleFormSubmit = (data) => {
     let cleanPrice = data.price;
     if (typeof cleanPrice === "string") {
-      cleanPrice = cleanPrice.replace(",", "."); 
+      cleanPrice = cleanPrice.replace(",", "."); // Sanitización para VES
     }
 
     const payload = {
@@ -90,12 +91,12 @@ export function ShowtimeForm({
         </DialogHeader>
 
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4 mt-4 text-left">
-          <SelectForm label="Película" error={errors.movie?.message} {...register("movie", { required: "Este campo es obligatorio" })}>
+          <SelectForm label="Película" error={errors.movie?.message} {...register("movie", { required: "Obligatorio" })}>
             <option value="">Seleccionar película...</option>
             {movies.map(m => <option key={m.id} value={m.id}>{m.title}</option>)}
           </SelectForm>
 
-          <SelectForm label="Bloque de Reserva (Sala)" error={errors.booking?.message} {...register("booking", { required: "Este campo es obligatorio" })}>
+          <SelectForm label="Bloque de Reserva (Sala)" error={errors.booking?.message} {...register("booking", { required: "Obligatorio" })}>
             <option value="">Seleccionar horario y sala...</option>
             {bookingsList.map(b => (
               <option key={b.id} value={b.id}>
@@ -105,12 +106,12 @@ export function ShowtimeForm({
           </SelectForm>
 
           <div className="grid grid-cols-2 gap-4">
-            <SelectForm label="Tipo Proyección" error={errors.projection_type?.message} {...register("projection_type", { required: "Este campo es obligatorio" })}>
+            <SelectForm label="Tipo Proyección" error={errors.projection_type?.message} {...register("projection_type", { required: "Obligatorio" })}>
               <option value="">Seleccionar...</option>
               {projectionTypes.map(p => <option key={p.id} value={p.id}>{p.description}</option>)}
             </SelectForm>
 
-            <SelectForm label="Moneda" error={errors.currency?.message} {...register("currency", { required: "Este campo es obligatorio" })}>
+            <SelectForm label="Moneda" error={errors.currency?.message} {...register("currency", { required: "Obligatorio" })}>
               <option value="">Seleccionar...</option>
               {currenciesList.map(c => <option key={c.id} value={c.id}>{`${c.description} (${c.symbol})`}</option>)}
             </SelectForm>
@@ -123,7 +124,13 @@ export function ShowtimeForm({
               placeholder="0.00"
               error={errors.price?.message}
               {...register("price", {
-                required: "Este campo es obligatorio",
+                required: "Obligatorio",
+                validate: {
+                  minPrice: (val) => {
+                    const normalized = typeof val === "string" ? val.replace(",", ".") : val;
+                    return parseFloat(normalized) >= 0 || "El precio mínimo es 0.00";
+                  }
+                },
                 onChange: (e) => {
                   const rawValue = e.target.value.replace(/\D/g, "");
                   if (!rawValue) { e.target.value = ""; return; }
@@ -138,7 +145,9 @@ export function ShowtimeForm({
               label="Puntos Lealtad" 
               type="number" 
               error={errors.earned_loyalty_points?.message}
-              {...register("earned_loyalty_points")} 
+              {...register("earned_loyalty_points", {
+                min: { value: 0, message: "Mínimo 0 puntos" }
+              })} 
             />
           </div>
 

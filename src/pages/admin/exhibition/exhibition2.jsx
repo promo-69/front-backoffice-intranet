@@ -12,11 +12,12 @@ import { useLoading } from "@/context/LoadingContext";
 
 import { getMovies, createMovie, updateMovie, deleteMovie } from "@/services/movie.service";
 import { showtimesService } from "@/services/showtime.service";
-import { getCinemas } from "@/services/cinema.service"; 
-import { getCatalogRecords } from "@/services/catalog.service";
+import { getCatalogRecords } from "@/services/catalog.service"; 
 import { toast } from "sonner";
 
 export default function ExhibitionPage() {
+  console.log("!!! EL COMPONENTE EXHBTIONPAGE SE ACABA DE MONTAR O RE-RENDERIZAR !!!");
+  
   const [activeTab, setActiveTab] = useState("movies");
   const tabs = [
     { id: "movies", label: "Películas" },
@@ -26,11 +27,15 @@ export default function ExhibitionPage() {
   const { modal, openModal, closeModal } = useModal();
   const { showLoader, hideLoader } = useLoading();
   
-  // Estados de Catálogos Asíncronos del Backend
-  const [cinemas, setCinemas] = useState([]);
+  // Catálogos Asíncronos del Backend (Películas)
   const [genres, setGenres] = useState([]);
   const [ageClassifications, setAgeClassifications] = useState([]);
   const [lifecycleStates, setLifecycleStates] = useState([]);
+
+  // Catálogos Asíncronos Nuevos del Backend (Showtimes / Funciones)
+  const [projectionTypes, setProjectionTypes] = useState([]);
+  const [currencies, setCurrencies] = useState([]);
+  const [roomBookings, setRoomBookings] = useState([]);
 
   // Estados locales de películas
   const [movies, setMovies] = useState([]);
@@ -48,24 +53,41 @@ export default function ExhibitionPage() {
 
   const [search, setSearch] = useState("");
 
-  // Carga asíncrona paralela de todos los catálogos del sistema al montar la vista
+  // Carga asíncrona paralela de TODOS los catálogos del sistema
   useEffect(() => {
     const fetchFormCatalogs = async () => {
       try {
-        const [cinemasRes, genresRes, classificationsRes, lifecyclesRes] = await Promise.all([
-          getCinemas(),
+        const [
+          genresRes, 
+          classificationsRes, 
+          lifecyclesRes,
+          projectionTypesRes,
+          currenciesRes,
+          bookingsRes
+        ] = await Promise.all([
           getCatalogRecords("genres"),
           getCatalogRecords("age-classifications"),
-          getCatalogRecords("lifecycle-states")
+          getCatalogRecords("lifecycle-states"),
+          getCatalogRecords("projection-types"), 
+          getCatalogRecords("currencies"),         
+          getCatalogRecords("room-bookings")       
         ]);
 
-        setCinemas(cinemasRes || []);
         setGenres(genresRes.data || genresRes || []);
         setAgeClassifications(classificationsRes.data || classificationsRes || []);
         setLifecycleStates(lifecyclesRes.data || lifecyclesRes || []);
+        
+        setProjectionTypes(projectionTypesRes.data || projectionTypesRes || MOCK_PROJECTION_TYPES);
+        setCurrencies(currenciesRes.data || currenciesRes || MOCK_CURRENCIES);
+        setRoomBookings(bookingsRes.data || bookingsRes || MOCK_ROOM_BOOKINGS);
       } catch (error) {
         console.error("Error al pre-cargar catálogos dinámicos desde la API:", error);
         toast.error("Error al inicializar catálogos del sistema");
+        
+        // Carga de Fallbacks (Mocks) en caso de que las rutas de catálogos aún no estén expuestas
+        setProjectionTypes(MOCK_PROJECTION_TYPES);
+        setCurrencies(MOCK_CURRENCIES);
+        setRoomBookings(MOCK_ROOM_BOOKINGS);
       }
     };
     fetchFormCatalogs();
@@ -123,6 +145,7 @@ export default function ExhibitionPage() {
           ? await updateMovie(modal.data.id, finalPayload)
           : await createMovie(finalPayload);
       } else {
+        // Enviar payload sanitizado (sin strings con comas traicioneras en el precio)
         modal.data?.id
           ? await showtimesService.update(modal.data.id, payload)
           : await showtimesService.create(payload);
@@ -133,7 +156,7 @@ export default function ExhibitionPage() {
       
       openModal("success", { 
         title: "¡Operación Exitosa!", 
-        message: "Los cambios han sido impactados en el sistema correctamente." 
+        message: "Los cambios se guardaron correctamente." 
       });
     } catch (error) {
       console.error("Error al ejecutar guardado:", error);
@@ -176,7 +199,7 @@ export default function ExhibitionPage() {
             {activeTab === "movies" ? "Gestión de Catálogo" : "Gestión de Funciones"}
           </h3>
           <p className="text-xs text-muted-foreground">
-            {activeTab === "movies" ? "Administra las películas" : "Organiza horarios, salas y precios"}
+            {activeTab === "movies" ? "Administra las películas" : "Organiza horarios, reservas de sala y precios locales"}
           </p>
         </div>
 
@@ -252,7 +275,7 @@ export default function ExhibitionPage() {
         </nav>
       </div>
 
-      {/* MODAL DE PELÍCULAS ALIMENTADO DINÁMICAMENTE */}
+      {/* MODAL DE PELÍCULAS */}
       <MovieForm
         open={modal.isOpen && modal.type === "movieForm"}
         initialData={modal.data}
@@ -263,14 +286,16 @@ export default function ExhibitionPage() {
         ageClassificationsList={ageClassifications}
       />
 
-      {/* MODAL DE HORARIOS CON DOBLE CASCADA OPTIMIZADA */}
+      {/* MODAL DE FUNCIONES*/}
       <ShowtimeForm
         open={modal.isOpen && modal.type === "showtimeForm"}
         initialData={modal.data}
         onClose={closeModal}
         onSave={handleSave}    
         movies={movies} 
-        branches={cinemas} 
+        bookingsList={roomBookings}           // Envía los bloques/reservas de salas físicos
+        projectionTypes={projectionTypes}    // Envía catálogo de 2D, 3D, IMAX, 4DX
+        currenciesList={currencies}          // Envía catálogo de USD y VES
       />
 
       <DeleteConfirmModal 
@@ -289,3 +314,26 @@ export default function ExhibitionPage() {
     </div>
   );
 }
+
+// ============================================================================
+// MOCKS DE SEGURIDAD / FALLBACKS (Catalogos)
+// ============================================================================
+
+const MOCK_PROJECTION_TYPES = [
+  { id: 1, description: '2D Digital' },
+  { id: 2, description: '3D Digital' },
+  { id: 3, description: 'IMAX' },
+  { id: 4, description: '4DX' }
+];
+
+const MOCK_CURRENCIES = [
+  { id: 1, code: 'USD', description: 'Dólar Estadounidense', symbol: '$' },
+  { id: 2, code: 'VES', description: 'Bolívar Soberano', symbol: 'Bs.' }
+];
+
+// Mock de Reservas de Salas enriquecido con su tipo (Módulo de booking_types)
+const MOCK_ROOM_BOOKINGS = [
+  { id: 101, room_id: 1, start_time: "2026-05-24T14:00:00.000Z", type_id: 1, type_description: "Película" },
+  { id: 102, room_id: 2, start_time: "2026-05-24T18:30:00.000Z", type_id: 2, type_description: "Evento Alternativo" },
+  { id: 103, room_id: 3, start_time: "2026-05-25T21:00:00.000Z", type_id: 3, type_description: "Alquiler Privado" }
+];
