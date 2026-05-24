@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { useModal } from "@/hooks/useModal";
+import { useNavigate } from "react-router-dom";
 
 import Employees from "@/pages/admin/employees/employees";
 import Users from "@/pages/admin/users/users";
@@ -9,10 +10,10 @@ import Roles from "@/pages/admin/personal/rolesPage";
 
 import RegisterEmployeeModal from "@/components/admin/employees/RegisterEmployeeModal";
 import RegisterUserModal from "@/components/admin/users/RegisterUserModal";
-import CreateRolePage from "@/pages/admin/personal/createRolePage";
 
 export default function PersonalPage() {
   const { modal, openModal, closeModal } = useModal();
+  const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState("employees");
   const [search, setSearch] = useState("");
@@ -29,7 +30,6 @@ export default function PersonalPage() {
     users: "Gestión de Usuarios",
     clients: "Gestión de Clientes",
     roles: "Gestión de Roles",
-    createRole: "Crear Rol",
   };
 
   const descriptions = {
@@ -37,7 +37,6 @@ export default function PersonalPage() {
     users: "Administra los usuarios del sistema",
     clients: "Administra los clientes registrados",
     roles: "Administra los roles del sistema",
-    createRole: "Configura el nombre y permisos del nuevo rol",
   };
 
   const placeholders = {
@@ -45,14 +44,13 @@ export default function PersonalPage() {
     users: "Buscar usuario...",
     clients: "Buscar cliente...",
     roles: "Buscar rol...",
-    createRole: "",
   };
 
   const modalTypes = {
     employees: "employeeForm",
     users: "userForm",
     clients: null,
-    roles: null, // YA NO USA MODAL
+    roles: null,
   };
 
   return (
@@ -70,22 +68,20 @@ export default function PersonalPage() {
 
         {/* ⭐ BUSCADOR + BOTÓN */}
         <div className="flex items-center gap-4">
-          {activeTab !== "createRole" && (
-            <input
-              type="text"
-              placeholder={placeholders[activeTab]}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-64 px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-brand-primary/20 outline-none transition-all"
-            />
-          )}
+          <input
+            type="text"
+            placeholder={placeholders[activeTab]}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-64 px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-brand-primary/20 outline-none transition-all"
+          />
 
           {/* ⭐ BOTÓN DINÁMICO */}
-          {activeTab !== "clients" && activeTab !== "createRole" && (
+          {activeTab !== "clients" && (
             <button
               onClick={() => {
                 if (activeTab === "roles") {
-                  setActiveTab("createRole");
+                  navigate("/admin/personal/create-role");
                 } else {
                   openModal(modalTypes[activeTab]);
                 }
@@ -106,34 +102,28 @@ export default function PersonalPage() {
         </div>
       </header>
 
-      {activeTab !== "createRole" && (
-        <div className="flex gap-4 border-b pb-2">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              className={`text-xs font-montserrat uppercase tracking-wide pb-1 border-b-2 transition-colors ${
-                activeTab === tab.id
-                  ? "font-bold text-brand-gold border-brand-gold"
-                  : "text-muted-foreground border-transparent hover:text-brand-primary"
-              }`}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      )}
+      {/* ⭐ TABS */}
+      <div className="flex gap-4 border-b pb-2">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            className={`text-xs font-montserrat uppercase tracking-wide pb-1 border-b-2 transition-colors ${
+              activeTab === tab.id
+                ? "font-bold text-brand-gold border-brand-gold"
+                : "text-muted-foreground border-transparent hover:text-brand-primary"
+            }`}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
       {/* ⭐ CONTENIDO DINÁMICO */}
       {activeTab === "employees" && <Employees search={search} />}
       {activeTab === "users" && <Users search={search} />}
       {activeTab === "clients" && <Clients search={search} />}
       {activeTab === "roles" && <Roles search={search} />}
-
-      {/* ⭐ VISTA COMPLETA: CREAR ROL */}
-      {activeTab === "createRole" && (
-        <CreateRolePage onBack={() => setActiveTab("roles")} />
-      )}
 
       {/* ⭐ MODALES */}
       {modal.isOpen && modal.type === "employeeForm" && (
