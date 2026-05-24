@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { SelectForm } from "@/components/ui/SelectForm";
 import { InputForm } from "@/components/ui/inputForm";
 
-import { updateEmployeePosition } from "@/services/employees.service";
+import { changeEmployeePosition } from "@/services/employees.service";
 import { getCinemas } from "@/services/cinema.service";
 
 export default function EditEmployeeModal({ open, onClose, employee }) {
@@ -60,7 +60,7 @@ export default function EditEmployeeModal({ open, onClose, employee }) {
         salaryBase: Number(form.salaryBase),
       };
 
-      await updateEmployeePosition(employee.id, payload);
+      await changeEmployeePosition(employee.id, payload);
 
       onClose(true);
     } catch (error) {
