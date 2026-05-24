@@ -13,6 +13,7 @@ import { useLoading } from "@/context/LoadingContext";
 import { getMovies, createMovie, updateMovie, deleteMovie } from "@/services/movie.service";
 import { showtimesService } from "@/services/showtime.service";
 import { getCinemas } from "@/services/cinema.service"; 
+import { getCatalogRecords } from "@/services/catalog.service";
 import { toast } from "sonner";
 
 export default function ExhibitionPage() {
@@ -25,8 +26,11 @@ export default function ExhibitionPage() {
   const { modal, openModal, closeModal } = useModal();
   const { showLoader, hideLoader } = useLoading();
   
-  // Catálogos auxiliares estables para los Comboboxes del formulario
+  // Estados de Catálogos Asíncronos del Backend
   const [cinemas, setCinemas] = useState([]);
+  const [genres, setGenres] = useState([]);
+  const [ageClassifications, setAgeClassifications] = useState([]);
+  const [lifecycleStates, setLifecycleStates] = useState([]);
 
   // Estados locales de películas
   const [movies, setMovies] = useState([]);
@@ -44,20 +48,29 @@ export default function ExhibitionPage() {
 
   const [search, setSearch] = useState("");
 
-  // Carga inicial y asíncrona de catálogos fijos para los modales
+  // Carga asíncrona paralela de todos los catálogos del sistema al montar la vista
   useEffect(() => {
     const fetchFormCatalogs = async () => {
       try {
-        const cinemasRes = await getCinemas();
+        const [cinemasRes, genresRes, classificationsRes, lifecyclesRes] = await Promise.all([
+          getCinemas(),
+          getCatalogRecords("genres"),
+          getCatalogRecords("age-classifications"),
+          getCatalogRecords("lifecycle-states")
+        ]);
+
         setCinemas(cinemasRes || []);
+        setGenres(genresRes.data || genresRes || []);
+        setAgeClassifications(classificationsRes.data || classificationsRes || []);
+        setLifecycleStates(lifecyclesRes.data || lifecyclesRes || []);
       } catch (error) {
-        console.error("Error al pre-cargar catálogos de sucursales:", error);
+        console.error("Error al pre-cargar catálogos dinámicos desde la API:", error);
+        toast.error("Error al inicializar catálogos del sistema");
       }
     };
     fetchFormCatalogs();
   }, []);
 
-  // MÉTODO UNIFICADO DE CARGA (Lazy Loading según la Pestaña Activa)
   const fetchDataForTab = useCallback(async (tab, page = 1) => {
     showLoader();
     try {
@@ -157,7 +170,6 @@ export default function ExhibitionPage() {
   return (
     <div className="max-w-7xl mx-auto font-montserrat space-y-6">
       
-      {/* HEADER PRINCIPAL */}
       <header className="flex justify-between items-center bg-white p-6 rounded-cineflix border border-gray-100 shadow-sm">
         <div>
           <h3 className="text-lg font-bold text-brand-primary leading-tight">
@@ -186,10 +198,8 @@ export default function ExhibitionPage() {
         </div>
       </header>
 
-      {/* TABS */}
       <TabsCustom tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
 
-      {/* RENDER TAB CONTENIDO */}
       {activeTab === "movies" && (
         <MoviesTab 
           data={filteredMovies} 
@@ -206,7 +216,7 @@ export default function ExhibitionPage() {
         />
       )}
 
-      {/* CONTROLES PAGINACIÓN */}
+      {/* PAGINACIÓN */}
       <div className="flex items-center justify-between px-6 py-4 bg-white border border-gray-100 rounded-cineflix shadow-sm">
         <p className="text-xs text-gray-500 font-medium">
           Mostrando {" "}
@@ -242,23 +252,25 @@ export default function ExhibitionPage() {
         </nav>
       </div>
 
-      {/* MODALES CONFIGURADOS */}
+      {/* MODAL DE PELÍCULAS ALIMENTADO DINÁMICAMENTE */}
       <MovieForm
         open={modal.isOpen && modal.type === "movieForm"}
         initialData={modal.data}
         onClose={closeModal}
         onSuccess={handleSave} 
-        lifecycleStatesList={MOCK_LIFECYCLE}
-        genresList={MOCK_GENRES}
+        lifecycleStatesList={lifecycleStates}
+        genresList={genres}
+        ageClassificationsList={ageClassifications}
       />
 
+      {/* MODAL DE HORARIOS CON DOBLE CASCADA OPTIMIZADA */}
       <ShowtimeForm
         open={modal.isOpen && modal.type === "showtimeForm"}
         initialData={modal.data}
         onClose={closeModal}
         onSave={handleSave}    
-        movies={movies} // Manda las películas del estado actual
-        cinemas={cinemas} // Manda las sucursales cargadas al montar la app
+        movies={movies} 
+        branches={cinemas} 
       />
 
       <DeleteConfirmModal 
@@ -277,12 +289,3 @@ export default function ExhibitionPage() {
     </div>
   );
 }
-
-const MOCK_LIFECYCLE = [
-  { id: 1, description: 'Próximamente' }, { id: 2, description: 'En Cartelera (Estreno)'},
-  { id: 3, description: 'En Cartelera (Regular)'}, { id: 4, description: 'Últimos Días'}, { id: 5, description: 'Fuera de Cartelera'}
-];
-const MOCK_GENRES = [
-  { id: 1, description: 'Acción'}, { id: 2, description: 'Comedia' }, { id: 3, description: 'Drama' },
-  { id: 4, description: 'Ciencia Ficción'}, { id: 5, description: 'Terror / Suspenso'}, { id: 6, description: 'Animación / Infantil'}
-];
