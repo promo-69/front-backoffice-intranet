@@ -35,6 +35,8 @@ function AdminLayoutContent({ location, children }) {
       "/admin/inventario": "Control de Inventario",
       "/admin/reports": "Reportes",
       "/admin/catalogo": "Gestión de Maestros",
+      "/ticketOffice/sell": "Boletos",
+      "/ticketOffice/candy": "Carameleria",
     };
     return titles[pathname] || "Dashboard";
   };
