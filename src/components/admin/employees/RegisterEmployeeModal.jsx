@@ -14,6 +14,7 @@ import { SelectForm } from "@/components/ui/SelectForm";
 
 import { createEmployee } from "@/services/employees.service";
 import { getCinemas } from "@/services/cinema.service";
+import { AiFillEye, AiFillEyeInvisible } from "react-icons/ai";
 
 
 export default function RegisterEmployeeModal({ open, onClose }) {
@@ -27,8 +28,11 @@ export default function RegisterEmployeeModal({ open, onClose }) {
     cinema: "",
     startDate: "",
     salaryBase: "",
-    status: "1",
+    email: "",
+    password: "",
   });
+
+  const [showPassword, setShowPassword] = useState(false);
 
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -58,7 +62,8 @@ export default function RegisterEmployeeModal({ open, onClose }) {
         cinema: "",
         startDate: "",
         salaryBase: "",
-        status: "1",
+        email: "",
+        password: "",
       });
       setErrors({});
       setIsSubmitting(false);
@@ -77,6 +82,14 @@ export default function RegisterEmployeeModal({ open, onClose }) {
 
     if (name === "salaryBase" && Number(value) <= 0)
       return "El salario debe ser mayor a 0.";
+
+    if (name === "email") {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(value)) return "Correo inválido.";
+    }
+
+    if (name === "password" && value.length < 8)
+      return "La contraseña debe tener al menos 8 caracteres.";
 
     return "";
   };
@@ -115,7 +128,8 @@ export default function RegisterEmployeeModal({ open, onClose }) {
         cinema: Number(employeeData.cinema),
         startDate: employeeData.startDate,
         salaryBase: Number(employeeData.salaryBase),
-        status: Number(employeeData.status),
+        email: employeeData.email.trim(),
+        password: employeeData.password,
       };
 
       await createEmployee(payload);
@@ -136,7 +150,7 @@ export default function RegisterEmployeeModal({ open, onClose }) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md bg-white rounded-cineflix p-6 shadow-2xl border-none">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto bg-white rounded-cineflix p-6 shadow-2xl border-none">
         <button
           onClick={() => onClose(false)}
           className="absolute top-3 right-3 text-gray-400 hover:text-brand-primary transition"
@@ -173,6 +187,7 @@ export default function RegisterEmployeeModal({ open, onClose }) {
                 name="firstName"
                 value={employeeData.firstName}
                 onChange={handleChange}
+                placeholder="Ej: Maria"
               />
               <ErrorMsg message={errors.firstName} />
             </div>
@@ -183,6 +198,7 @@ export default function RegisterEmployeeModal({ open, onClose }) {
                 name="lastName"
                 value={employeeData.lastName}
                 onChange={handleChange}
+                placeholder="Ej: Pérez"
               />
               <ErrorMsg message={errors.lastName} />
             </div>
@@ -245,17 +261,39 @@ export default function RegisterEmployeeModal({ open, onClose }) {
           />
           <ErrorMsg message={errors.salaryBase} />
 
-          {/* ESTADO */}
-          <SelectForm
-            label="Estado"
-            name="status"
-            value={employeeData.status}
-            onChange={handleChange}
-          >
-            <option value="1">Activo</option>
-            <option value="0">Inactivo</option>
-          </SelectForm>
-          <ErrorMsg message={errors.status} />
+          {/* EMAIL */}
+          <div>
+            <InputForm
+              label="Correo electrónico"
+              name="email"
+              value={employeeData.email}
+              onChange={handleChange}
+              placeholder="Ej: usuario@cineflix.com"
+            />
+            <ErrorMsg message={errors.email} />
+          </div>
+
+          {/* PASSWORD */}
+          <div className="relative">
+            <InputForm
+              label="Contraseña"
+              name="password"
+              type={showPassword ? "text" : "password"}
+              value={employeeData.password}
+              onChange={handleChange}
+              placeholder="Mínimo 8 caracteres"
+            />
+
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-9 -translate-y-1/2 text-gray-600 text-xl opacity-80 hover:opacity-100"
+            >
+              {showPassword ? <AiFillEyeInvisible /> : <AiFillEye />}
+            </button>
+
+            <ErrorMsg message={errors.password} />
+          </div>
         </div>
 
         <DialogFooter className="mt-6 flex justify-end gap-3">
