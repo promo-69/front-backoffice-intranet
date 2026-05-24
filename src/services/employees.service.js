@@ -16,8 +16,8 @@ export const getEmployeeById = async (id) => {
   return res.data.data;
 };
 
-export const updateEmployeePosition = async (id, payload) => {
-  return api.put(`/employees/${id}/positions`, payload);
+export const changeEmployeePosition = async (id, payload) => {
+  return api.patch(`/employees/${id}/position`, payload);
 };
 
 export const deleteEmployee = async (id) => {

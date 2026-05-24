@@ -14,6 +14,7 @@ import ProductsPage from "../pages/admin/inventory/products";
 import PrivateRoute from "./PrivateRoute";
 import GlobalLoader from "../components/ui/GlobalLoader";
 import { useLoading } from "../context/LoadingContext";
+import CreateRolePage from "@/pages/admin/personal/createRolePage";
 
 function AppRoute() {
   const { loading } = useLoading();
@@ -89,12 +90,13 @@ function AppRoute() {
           path="/admin/personal"
           element={
             <PrivateRoute permission="personal">
-              <AdminLayout>
-                <Personal />
-              </AdminLayout>
+              <AdminLayout />
             </PrivateRoute>
           }
-        />
+        >
+          <Route index element={<Personal />} />
+          <Route path="create-role" element={<CreateRolePage />} />
+        </Route>
 
         <Route
           path="/admin/transacciones"

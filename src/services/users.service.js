@@ -6,14 +6,13 @@ export const createUser = async (payload) => {
   return res.data;
 };
 
-
 export const getUsers = async () => {
   const res = await api.get("/users");
   return res.data?.data || [];
 };
 
 export const updateUserEmail = async (id, email) => {
-  return api.patch("/users/security", {
+  return api.patch("/users/me/security", {
     user: id,
     email,
     currentPassword: "dummy"
