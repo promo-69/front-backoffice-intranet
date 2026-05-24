@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 
 import Employees from "@/pages/admin/employees/employees";
 import Users from "@/pages/admin/users/users";
-import Clients from "@/pages/admin/users/clientsTab";
+import Clients from "@/pages/admin/personal/clients";
 import Roles from "@/pages/admin/personal/rolesPage";
 
 import RegisterEmployeeModal from "@/components/admin/employees/RegisterEmployeeModal";
