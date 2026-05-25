@@ -1,6 +1,7 @@
 import { createContext, useState, useContext, useEffect } from "react";
 import {
   loginRequest,
+  loginAdminRequest,
   refreshSession,
   logoutRequest,
 } from "../services/auth.service";
@@ -70,6 +71,32 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const loginAdmin = async (credentials) => {
+    showLoader();
+    try {
+      // Consumimos el servicio especializado del backend administrativo
+      const data = await loginAdminRequest(credentials);
+
+      // Validación de seguridad de negocio a nivel de frontend
+      if (!data || !data.roleCode) {
+        return { success: false, message: "Acceso denegado: El usuario no posee un rol válido" };
+      }
+
+      // Almacenamos el payload del administrador de la misma forma estructurada
+      localStorage.setItem("user", JSON.stringify(data));
+      setUser(data);
+
+      return { success: true, user: data };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Credenciales administrativas incorrectas",
+      };
+    } finally {
+      hideLoader();
+    }
+  };
+
   const logout = async () => {
     showLoader();
     try {
@@ -86,7 +113,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, loginAdmin, logout }}>
       {children}
     </AuthContext.Provider>
   );
