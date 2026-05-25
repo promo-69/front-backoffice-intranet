@@ -109,35 +109,8 @@ export const getCatalogRecords = async (catalogName, page = 1) => {
 };
 
 export const getCatalogByName = async (catalogName) => {
-  try {
-    // 1. Determinar la ruta correcta (si es genérica o mapeada a otra entidad)
-    const targetRoute = CATALOG_API_ROUTES[catalogName] || `/catalogs/${catalogName}`;
-
-    // 2. Realizar la petición HTTP al servidor de Render
-    const response = await api.get(targetRoute);
-
-    // 3. Desenvolver los datos limpios de la respuesta
-    // Contempla si tu API responde con { data: [...] } o con paginación { data: { data: [...] } }
-    const cleanData = response.data?.data || response.data;
-
-    // 4. Si el backend devolvió datos reales en un array, los priorizamos
-    if (Array.isArray(cleanData) && cleanData.length > 0) {
-      return cleanData;
-    }
-
-    // 5. Si vino vacío por error lógico, usamos el fallback preventivo de negocio
-    return CATALOG_FALLBACKS[catalogName] || [];
-
-  } catch (error) {
-    // Reportamos bajo advertencia el error de red para auditoría en consola de desarrollo
-    console.warn(
-      `⚠️ Capa de infraestructura de Render inestable para el catálogo [${catalogName}]. Activando Degradación Grácil con respaldo local.`
-    );
-    
-    // Retornamos inmediatamente el mock local. Al ser un array idéntico,
-    // garantizamos que las funciones síncronas de la UI (.map, .find) sigan funcionando.
-    return CATALOG_FALLBACKS[catalogName] || [];
-  }
+  const response = await api.get(`/catalogs/${catalogName}?page=1&per-page=100`);
+  return response.data.data;
 };
 
 // Obtener la metadata de un catálogo específico (para saber qué campos tiene)
