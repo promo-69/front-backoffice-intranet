@@ -1,12 +1,15 @@
 import { Pencil, Trash2, Clock, Calendar } from "lucide-react";
 
 export function ShowtimesTab({ 
-  data, 
+  data = [], 
   onEdit, 
-  onDelete,
-  moviesList = [],
+  onDelete, 
+  moviesList = [],    // Lista de películas de la BD
+  bookingsList = [],  // Lista de room_bookings (las dueñas del tiempo)
+  roomsList = []      // Lista de salas del endpoint independiente /rooms
 }) {
   
+  // Helpers para dar formato legible a los datos ISO de la base de datos
   const formatTime = (dateStr) => {
     if (!dateStr) return "N/A";
     return new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -17,13 +20,14 @@ export function ShowtimesTab({
     return new Date(isoDate).toLocaleDateString();
   };
 
+  // UN SOLO RETURN PRINCIPAL PARA TODO EL COMPONENTE
   return (
     <div className="mt-4 overflow-hidden bg-surface-container rounded-cineflix border border-border shadow-sm">
       <table className="w-full text-left text-xs font-montserrat">
         <thead className="bg-gray-50 text-gray-600 uppercase tracking-wider border-b">
           <tr>
             <th className="py-4 px-4">Película</th>
-            <th className="py-4 px-4">Reserva de Sala / Proyección</th>
+            <th className="py-4 px-4">Sala / Horario de Proyección</th>
             <th className="py-4 px-4">Fecha</th>
             <th className="py-4 px-4">Horario</th>
             <th className="py-4 px-4">Precio</th>
@@ -38,55 +42,71 @@ export function ShowtimesTab({
               </td>
             </tr>
           ) : (
+            // Recorremos el JSON plano de funciones que nos dio el GET
             data.map((st) => {
-              // 2. BUSCAMOS LA COINCIDENCIA EN CALIENTE:
-              // Comparamos el ID que viene en la función (st.movie_id o st.movie) con nuestra lista
-              const targetMovieId = st.movie_id || st.movie;
-              const matchingMovie = moviesList.find(
-                (m) => String(m.id) === String(targetMovieId)
-              );
+              
+              // 1. PUENTE PELÍCULA: Buscamos el objeto película que coincida con st.movie
+              const movieMatch = moviesList.find(m => String(m.id) === String(st.movie));
+              
+              // 2. PUENTE RESERVA: Buscamos la reserva en room_bookings que coincida con st.booking
+              const bookingMatch = bookingsList.find(b => String(b.id) === String(st.booking));
+
+              // 3. IDENTIFICAR SALA: Extraemos el room_id que está guardado dentro de la reserva encontrada
+              const targetRoomId = bookingMatch?.room || bookingMatch?.room_id;
+
+              // 4. PUENTE SALA EXCLUSIVO: Buscamos en la lista de /rooms el nombre real de esa sala
+              const roomMatch = roomsList.find(r => String(r.id) === String(targetRoomId));
+
+              // Resolvemos el nombre de la sala (o mostramos el ID como salvavidas si la red está lenta)
+              const roomDisplayName = roomMatch 
+                ? (roomMatch.name || roomMatch.name_desc || `Sala ${roomMatch.number}`) 
+                : `Sala Num. #${targetRoomId || '?'}`;
 
               return (
                 <tr key={st.id} className="hover:bg-slate-50/50 transition-colors">
-                  {/* COLUMNA: PELÍCULA (Ajustada para renderizar el Título Real) */}
+                  
+                  {/* COLUMNA PELÍCULA */}
                   <td className="py-4 px-4 font-medium text-slate-700">
                     <div className="flex flex-col">
                       <span className="font-bold uppercase tracking-tight text-[11px]">
-                        {matchingMovie ? matchingMovie.title : `Película ID: #${targetMovieId}`}
+                        {movieMatch ? movieMatch.title : `Película ID: #${st.movie}`}
                       </span>
                       <span className="text-[9px] text-slate-400 mt-0.5">
-                        {matchingMovie?.durationMinutes ? `${matchingMovie.durationMinutes} min` : "Duración no esp."}
+                        {movieMatch?.duration_minutes ? `${movieMatch.duration_minutes} min` : "Duración no esp."}
                       </span>
                     </div>
                   </td>
 
-                  {/* RESERVA / PROYECCIÓN */}
+                  {/* COLUMNA SALA Y DETALLE DE PROYECCIÓN */}
                   <td className="py-4 px-4 text-slate-500">
-                    <div className="font-semibold text-slate-600">
-                      {st.booking_desc || `Sala Slot ID: ${st.booking}`}
+                    <div className="font-bold text-slate-700">
+                      {bookingMatch 
+                        ? `${roomDisplayName} (${formatTime(bookingMatch.start_time)} - ${formatTime(bookingMatch.end_time)})` 
+                        : `${roomDisplayName} (Sin horario reservado)`}
                     </div>
                     <div className="text-[10px] text-brand-primary font-bold uppercase tracking-wider mt-0.5">
-                      {st.projection_type_desc || `Código Tipo: ${st.projection_type}`}
+                      {/* projection_type suele venir como ID, dejamos un fallback descriptivo */}
+                      {st.projection_type_desc || `Tipo de Proyección ID: #${st.projection_type}`}
                     </div>
                   </td>
 
-                  {/* FECHA */}
+                  {/* COLUMNA FECHA (Extraída del start_time de la reserva) */}
                   <td className="py-4 px-4 text-slate-500">
                     <div className="flex items-center gap-1.5">
                       <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{formatDate(st.date || st.start_time)}</span>
+                      <span>{formatDate(bookingMatch?.start_time)}</span>
                     </div>
                   </td>
 
-                  {/* HORARIO */}
+                  {/* COLUMNA HORARIO DE INICIO */}
                   <td className="py-4 px-4 text-slate-500">
                     <div className="flex items-center gap-1.5 font-semibold text-slate-600">
                       <Clock className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{formatTime(st.start_time)}</span>
+                      <span>{formatTime(bookingMatch?.start_time)}</span>
                     </div>
                   </td>
 
-                  {/* PRECIO */}
+                  {/* COLUMNA PRECIO MONEDA LOCAL / EXTRANJERA */}
                   <td className="py-4 px-4 text-slate-600 font-medium">
                     <div className="font-bold">
                       {Number(st.currency) === 2 ? (
@@ -96,11 +116,11 @@ export function ShowtimesTab({
                       )}
                     </div>
                     <div className="text-[9px] text-slate-400 uppercase tracking-wider">
-                      {st.earned_loyalty_points ? `+ ${st.earned_loyalty_points} Pts fidelidad` : "No acumula puntos"}
+                      {st.earned_loyalty_points ? `+ ${st.earned_loyalty_points} Pts` : "0 Pts"}
                     </div>
                   </td>
 
-                  {/* ACCIONES */}
+                  {/* BOTONES DE ACCIONES */}
                   <td className="py-4 px-6">
                     <div className="flex justify-center gap-2">
                       <button 
@@ -117,6 +137,7 @@ export function ShowtimesTab({
                       </button>
                     </div>
                   </td>
+
                 </tr>
               );
             })

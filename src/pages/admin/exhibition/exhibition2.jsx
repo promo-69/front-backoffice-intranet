@@ -12,43 +12,43 @@ import DeleteConfirmModal from "@/components/ui/DialogConfirmModal";
 import { getMovies, deleteMovie } from "@/services/movie.service";
 import { showtimesService } from "@/services/showtime.service";
 import { getCatalogByName } from "@/services/catalog.service"; 
-import { getRoomByID } from "@/services/room.service"; 
+import { getRooms } from "@/services/room.service"; 
 
 // --- RESPALDOS ESTÁTICOS DE SEGURIDAD (FALLBACKS) ---
 // Evitan pantallas en blanco si el servidor está suspendido o colapsado
 const FALLBACKS = {
-  genres: [
+  genresData: [
     { id: 1, description: "Acción" },
     { id: 2, description: "Comedia" },
     { id: 3, description: "Drama" },
     { id: 4, description: "Ciencia Ficción" }
   ],
-  ageClassifications: [
+  classificationsData: [
     { id: 1, description: "A (Todo Público)" },
     { id: 2, description: "B (+12)" },
     { id: 3, description: "C (+15)" },
     { id: 4, description: "D (+18)" }
   ],
-  lifecycleStates: [
+  lifecyclesData: [
     { id: 1, description: "Próximamente" },
     { id: 2, description: "En Cartelera (Estreno)" },
     { id: 3, description: "En Cartelera (Regular)" },
     { id: 4, description: "Últimos Días" }
   ],
-  projectionTypes: [
+  projectionsData: [
     { id: 1, description: "2D Tradicional" },
     { id: 2, description: "3D Dolby Atmos" }
   ],
-  currencies: [
+  currenciesData: [
     { id: 1, description: "USD - Dólares", symbol: "$" },
     { id: 2, description: "VES - Bolívares", symbol: "Bs" }
   ],
-  roomBookings: [
-    { id: 1, description: "Sala 1 - Tradicional" },
-    { id: 2, description: "Sala 2 - 3D Dolby" },
-    { id: 3, description: "Sala 3 - VIP Premium" }
+  bookingsData: [
+  { id: 1, room: 1, start_time: "2026-05-25T14:00:00.000Z", end_time: "2026-05-25T16:30:00.000Z", booking_type: 1 },
+  { id: 2, room: 2, start_time: "2026-05-25T17:00:00.000Z", end_time: "2026-05-25T19:30:00.000Z", booking_type: 1 } 
   ]
 };
+
 
 const tabs = [
   { id: "movies", label: "Películas" },
@@ -87,9 +87,9 @@ export default function ExhibitionPage() {
   const safeFetchCatalog = async (catalogName) => {
     try {
       const response = await getCatalogByName (catalogName);
-      const cleanData = response?.data || response;
-      if (Array.isArray(cleanData) && cleanData.length > 0) {
-        return cleanData;
+      //const cleanData = response?.data || response;
+      if (Array.isArray(response) && response.length > 0) {
+        return response;
       }
       return FALLBACKS[catalogName] || [];
     } catch (error) {
@@ -150,6 +150,21 @@ export default function ExhibitionPage() {
     loadMovies();
   }, [moviesPage, activeTab]);
 
+
+useEffect(() => {
+  const fetchRoomsData = async () => {
+    try {
+      // Reemplaza esto por tu servicio o llamada axios real, ej: getRooms() o api.get('/rooms')
+      const response = await getRooms(); 
+      // Supongamos que la estructura de respuesta es la estándar de tu backend: response.data.data
+      setRooms(response.data.data); 
+    } catch (error) {
+      console.error("Error cargando el catálogo de salas independientes:", error);
+    }
+  };
+
+  fetchRoomsData();
+}, []);
 
 
   //EFECTO CARGA RECURSIVA EXCLUSIVA DE FUNCIONES ( paginación)
@@ -270,6 +285,9 @@ export default function ExhibitionPage() {
           currentPage={showtimesPage}
           onPageChange={setShowtimesPage}
           metadata={showtimesMetadata}
+          moviesList={movies}    
+          bookingsList={roomBookings}
+          roomsList={rooms}
           
         />
       )}
