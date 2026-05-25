@@ -15,6 +15,8 @@ import { SelectForm } from "@/components/ui/SelectForm";
 import { TextAreaCustom } from "@/components/ui/TextAreaCustom";
 import { ChipsSelectorForm } from "@/components/ui/ChipsSelectorForm";
 import { Label } from "@/components/ui/label";
+import { createMovie, updateMovie } from "@/services/movie.service";
+import { toast } from "sonner";
 
 export default function MovieForm({ 
   open, 
@@ -97,8 +99,9 @@ export default function MovieForm({
     if (bannerInputRef.current) bannerInputRef.current.value = ""; // Limpia el input nativo
   };
 
-  const onSubmit = (data) => {
-    const formData = new FormData();
+  const onSubmit = async (data) => {
+    try{
+      const formData = new FormData();
   
     formData.append('title', data.title);
     formData.append('durationMinutes', Number(data.durationMinutes)); 
@@ -125,8 +128,20 @@ export default function MovieForm({
     } else if (data.banner === null) {
       formData.append('banner', ''); 
     }
+    if (isEdit) {
+        await updateMovie(initialData.id, formData);
+        toast.success("Película actualizada de manera exitosa");
+      } else {
+        await createMovie(formData);
+        toast.success("Película creada en cartelera");
+      }
+      onSuccess();
 
-    onSuccess(formData);
+    }
+    catch (error) {
+      console.error("Error guardando película:", error);
+      toast.error("Error al procesar la operación en el servidor");
+    }
   };
 
   const posterRegister = register("poster", { 
