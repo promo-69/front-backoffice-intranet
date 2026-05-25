@@ -4,6 +4,7 @@ import Dashboard from "../pages/admin/dashboard";
 import DashboardCashier from "../pages/ticketOffice/dashboardCashier";
 import Exhibition from "@/pages/admin/exhibition/exhibition2";
 import SellTickets from "../pages/ticketOffice/sellTickets";
+import CandyBar from "../pages/ticketOffice/candyBar";
 import AuthLayout from "../layouts/AuthLayout";
 import AdminLayout from "../layouts/AdminLayout";
 import Personal from "../pages/admin/personal/personalPage";
@@ -13,6 +14,7 @@ import ProductsPage from "../pages/admin/inventory/products";
 import PrivateRoute from "./PrivateRoute";
 import GlobalLoader from "../components/ui/GlobalLoader";
 import { useLoading } from "../context/LoadingContext";
+import CreateRolePage from "@/pages/admin/personal/createRolePage";
 
 function AppRoute() {
   const { loading } = useLoading();
@@ -88,12 +90,13 @@ function AppRoute() {
           path="/admin/personal"
           element={
             <PrivateRoute permission="personal">
-              <AdminLayout>
-                <Personal />
-              </AdminLayout>
+              <AdminLayout />
             </PrivateRoute>
           }
-        />
+        >
+          <Route index element={<Personal />} />
+          <Route path="create-role" element={<CreateRolePage />} />
+        </Route>
 
         <Route
           path="/admin/transacciones"
@@ -146,6 +149,17 @@ function AppRoute() {
             <PrivateRoute permission="sell_tickets">
               <AdminLayout>
                 <SellTickets />
+              </AdminLayout>
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/ticketOffice/candy"
+          element={
+            <PrivateRoute permission="candy_bar">
+              <AdminLayout>
+                <CandyBar />
               </AdminLayout>
             </PrivateRoute>
           }
