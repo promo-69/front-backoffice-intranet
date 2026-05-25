@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import api from "@/api/axios";
 
-import { Plus, ChevronLeft, ChevronRight } from "lucide-react"; // Importamos iconos para los botones
+import { Plus, ChevronLeft, ChevronRight } from "lucide-react"; 
 import { getCinemas, deleteCinema } from "../../../services/cinema.service";
 import CinemaSearch from "../../../components/admin/cinemas/SearchBar";
 import CinemaTable from "../../../components/admin/cinemas/CinemaTable";
@@ -40,10 +40,11 @@ const CinemaPage = () => {
   
   const [isAddingRoom, setIsAddingRoom] = useState(false);
 
-  const fetchBranches = async (page = 1) => {
+  // MODIFICADO: Ahora acepta un objeto de parámetros dinámicos
+  const fetchBranches = async (params) => {
     try {
-      showLoader(); // Mostramos loader mientras esperamos los 10s o lo que tarde
-      const data = await getCinemas(page);
+      showLoader(); 
+      const data = await getCinemas(params);
       setBranches(data.data);
       setMetadata(data.metadata);
     } catch (error) {
@@ -54,23 +55,24 @@ const CinemaPage = () => {
     }
   };
 
-  // Efecto que reacciona al cambio de página
   useEffect(() => {
-    fetchBranches(currentPage);
-  }, [currentPage]);
+    if (searchTerm.trim() !== "") {
+      fetchBranches({ limit: -1, search: searchTerm });
+    } else {
+      fetchBranches({ page: currentPage });
+    }
+  }, [currentPage, searchTerm]); 
 
   // NAVEGACIÓN DE PÁGINAS
   const handlePageChange = (newPage) => {
-    if (newPage >= 1 && newPage <= pagination.total_pages) {
+    if (newPage >= 1 && newPage <= metadata.total_pages) {
       setCurrentPage(newPage);
     }
   };
 
-  // MANEJO DE EDICIÓN (Limpieza de horas)
   const handleOpenEditModal = (branch) => {
     const mappedData = {
       ...branch,
-      // Quitamos los segundos (:00) para que el input tipo HH:mm no falle
       openingTime: (branch.opening_time || "").slice(0, 5),
       closingTime: (branch.closing_time || "").slice(0, 5),
     };
@@ -81,7 +83,7 @@ const CinemaPage = () => {
   const handleCloseModal = (shouldRefresh) => {
     setIsModalOpen(false);
     if (shouldRefresh) {
-      fetchBranches(currentPage); // Refrescamos la página actual
+      fetchBranches({ page: currentPage });
       setSuccessConfig({
         title: branchToEdit ? "¡Cambios Guardados!" : "¡Registro Exitoso!",
         message: branchToEdit 
@@ -105,7 +107,7 @@ const CinemaPage = () => {
         message: `Se ha removido "${itemToDelete.name}" exitosamente.`
       });
       setIsSuccessOpen(true);
-      fetchBranches(currentPage);
+      fetchBranches({ page: currentPage });
     } catch (error) {
       console.error("Error al eliminar:", error);
     } finally {
@@ -113,10 +115,6 @@ const CinemaPage = () => {
       hideLoader();
     }
   };
-
-  const filteredBranches = branches.filter((b) =>
-    b.name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   const selectedBranch = branches.find(
     (b) => Number(b.id) === Number(selectedId)
@@ -142,7 +140,7 @@ const CinemaPage = () => {
 
       {/* TABLA DE DATOS */}
       <CinemaTable
-        data={filteredBranches}
+        data={branches} 
         selectedId={selectedId}
         onSelectBranch={(id) => { setSelectedId(id); setIsAddingRoom(false); }}
         onEdit={handleOpenEditModal}
@@ -153,59 +151,61 @@ const CinemaPage = () => {
         }}
       />
 
-      {/* CONTROLES DE PAGINACIÓN */}
-      <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6 rounded-b-xl shadow-sm">
-        <div className="flex justify-between flex-1 sm:hidden">
-          <button
-            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-            disabled={!metadata.prev_page}
-            className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
-          >
-            Anterior
-          </button>
-          <button
-            onClick={() => setCurrentPage(prev => prev + 1)}
-            disabled={!metadata.next_page}
-            className="relative ml-3 inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
-          >
-            Siguiente
-          </button>
-        </div>
-        <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm text-gray-700">
-              Mostrando <span className="font-medium">{(currentPage - 1) * metadata.per_page + 1}</span> a{" "}
-              <span className="font-medium">
-                {Math.min(currentPage * metadata.per_page, metadata.total)}
-              </span>{" "}
-              de <span className="font-medium">{metadata.total}</span> resultados
-            </p>
+      {/* CONTROLES DE PAGINACIÓN - SE OCULTAN SI SE ESTÁ BUSCANDO */}
+      {searchTerm.trim() === "" && (
+        <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6 rounded-b-xl shadow-sm animate-in fade-in">
+          <div className="flex justify-between flex-1 sm:hidden">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={!metadata.prev_page}
+              className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+            >
+              Anterior
+            </button>
+            <button
+              onClick={() => setCurrentPage(prev => prev + 1)}
+              disabled={!metadata.next_page}
+              className="relative ml-3 inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+            >
+              Siguiente
+            </button>
           </div>
-          <div>
-            <nav className="inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-              <button
-                onClick={() => setCurrentPage(metadata.prev_page)}
-                disabled={!metadata.prev_page}
-                className="relative inline-flex items-center px-2 py-2 text-gray-400 rounded-l-md border border-gray-300 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </button>
-              
-              <div className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-brand-primary border border-gray-300 bg-white">
-                Página {metadata.current_page} de {metadata.total_pages}
-              </div>
+          <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm text-gray-700">
+                Mostrando <span className="font-medium">{(currentPage - 1) * metadata.per_page + 1}</span> a{" "}
+                <span className="font-medium">
+                  {Math.min(currentPage * metadata.per_page, metadata.total)}
+                </span>{" "}
+                de <span className="font-medium">{metadata.total}</span> resultados
+              </p>
+            </div>
+            <div>
+              <nav className="inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                <button
+                  onClick={() => handlePageChange(metadata.prev_page)}
+                  disabled={!metadata.prev_page}
+                  className="relative inline-flex items-center px-2 py-2 text-gray-400 rounded-l-md border border-gray-300 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                
+                <div className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-brand-primary border border-gray-300 bg-white">
+                  Página {metadata.current_page} de {metadata.total_pages}
+                </div>
 
-              <button
-                onClick={() => setCurrentPage(metadata.next_page)}
-                disabled={!metadata.next_page}
-                className="relative inline-flex items-center px-2 py-2 text-gray-400 rounded-r-md border border-gray-300 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </button>
-            </nav>
+                <button
+                  onClick={() => handlePageChange(metadata.next_page)}
+                  disabled={!metadata.next_page}
+                  className="relative inline-flex items-center px-2 py-2 text-gray-400 rounded-r-md border border-gray-300 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              </nav>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* MODALES DE INTERACCIÓN */}
       <DeleteConfirmModal

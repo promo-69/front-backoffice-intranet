@@ -1,10 +1,9 @@
 import api from "@/api/axios";
 
 // Obtener todas las sucursales
-export const getCinemas = async (page = 1) => {
-  // CAMBIO AQUÍ: Usamos 'api' en lugar de 'axios'
+export const getCinemas = async (params = { page: 1 }) => {
   const response = await api.get('/cinemas', {
-    params: { page }
+    params: params 
   });
   return response.data;
 };
