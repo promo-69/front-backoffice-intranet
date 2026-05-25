@@ -18,7 +18,7 @@ export const createCinema = async (payload) => {
 
 // Actualizar una sucursal
 export const updateCinema = async (id, payload) => {
-  const response = await api.put(`/cinemas/${id}`, payload);
+  const response = await api.patch(`/cinemas/${id}`, payload);
   return response.data;
 };
 

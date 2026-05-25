@@ -144,7 +144,7 @@ export default function BranchModal({ open, onClose, initialData }) {
       };
 
       if (isEdit) {
-        await api.put(`/cinemas/${initialData.id}`, payload);
+        await api.patch(`/cinemas/${initialData.id}`, payload);
       } else {
         await api.post('/cinemas', payload);
       }

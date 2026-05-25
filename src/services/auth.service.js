@@ -10,7 +10,6 @@ export const refreshSession = async () => {
     await api.post("/auth/refresh");
     return true;
   } catch (error) {
-    // Si es 401, es un resultado "esperado" (sesión expirada), no un error crítico
     if (error.response?.status !== 401) {
       console.error("Error técnico en el servidor:", error);
     }

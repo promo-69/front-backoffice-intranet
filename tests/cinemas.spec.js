@@ -18,7 +18,7 @@ test('Crear sucursal - SUPERADMIN', async ({ page }) => {
 
   await page.getByRole('link', { name: 'Sucursales' }).click();
   await page.getByRole('button', { name: 'Nueva sucursal' }).click();
-  await page.getByPlaceholder('Ej: Cine Plaza').fill('Sucursal Prueba 3');
+  await page.getByPlaceholder('Ej: Cine Plaza').fill('Sucursal Prueba 2');
   await page.getByPlaceholder('Ej: Av. Principal 123').fill('Calle Falsa 123');
   await page.getByLabel('Teléfono').fill('0251 556 2546');
 
@@ -39,15 +39,14 @@ test('Crear sucursal - SUPERADMIN', async ({ page }) => {
   await page.getByRole('button', { name: 'Registrar' }).click();
 
   //ELIMINACION DE UNA SUCURSAL-----------------------------------------------
-/*
-  await page.getByRole('link', { name: 'Sucursales' }).click();
-  const sucursalAEliminar = 'Sucursal Prueba 3';
+
+  const sucursalAEliminar = 'Sucursal Prueba 2';
   const filaSucursal = page.locator('tr').filter({ hasText: sucursalAEliminar });
   await expect(filaSucursal).toBeVisible();
   const botonEliminar = filaSucursal.locator('button.text-red-500');
   await botonEliminar.click();
   const botonConfirmarBorrado = page.getByRole('button', { name: 'Confirmar' }); // o 'Sí, eliminar'
   await botonConfirmarBorrado.click();
-*/
+
 
 });
