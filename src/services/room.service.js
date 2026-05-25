@@ -6,6 +6,13 @@ export const getRoomsByCinema = async (cinemaId) => {
   return response.data.data || response.data || [];
 };
 
+export const getRooms = async () => {
+  const response = await api.get(`/rooms`);
+  return response.data;
+};
+
+
+
 // Guardar Sala 
 export const saveRoom = async (cinemaId, roomData, roomId = null) => {
   if (roomId) {
