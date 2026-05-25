@@ -52,7 +52,7 @@ import axios from "axios";
 const api = axios.create({
   baseURL: "https://backend-jog6.onrender.com/api/v1/test", // Tu URL de Render
   withCredentials: true, // Crucial para que viajen siempre las cookies SameSite=None
-  timeout: 50000,        // 30 segundos de margen para que Render se despierte si está dormido
+  timeout: 20000,        // 30 segundos de margen para que Render se despierte si está dormido
   headers: {
     "x-client-channel": "web", 
   },
