@@ -5,6 +5,11 @@ export const loginRequest = async (data) => {
   return response.data.data.user;
 };
 
+export const loginAdminRequest = async (data) => {
+  const response = await api.post("/auth/login/admin", data);
+  return response.data.data.user
+}
+
 /*
 export const refreshSession = async () => {
   try {

@@ -7,7 +7,7 @@ export const getMovies = async(params) => {
     return response.data;
   };*/
 
-  // Cambia esto en movie.service.js
+  /*
 export const getMovies = async (params) => {
   const response = await api.get('/movies', {
     params: {
@@ -16,8 +16,22 @@ export const getMovies = async (params) => {
     }
   }); 
   return response.data;
-};
+};*/
 
+export const getMovies = async (pageOrParams = 1, perPage = 10) => {
+  let queryParams = { page: 1, per_page: 10 };
+
+  if (typeof pageOrParams === 'object' && pageOrParams !== null) {
+    queryParams.page = String(pageOrParams.page || 1);
+    queryParams.per_page = String(pageOrParams.per_page || 10);
+  } else {
+    queryParams.page = String(pageOrParams);
+    queryParams.per_page = String(perPage);
+  }
+
+  const response = await api.get('/movies', { params: queryParams }); 
+  return response.data;
+};
 
 export const getMovieById = async (movieId) => {
     const response = await api.get(`/movies/${movieId}`);
@@ -28,6 +42,7 @@ export const createMovie = async (formData) => {
   // Aseguramos withCredentials síncronamente en la petición del formulario binario
   const response = await api.post("/movies", formData, {
     withCredentials: true,
+    timeout: 60000,
   });
   return response.data;
 };
