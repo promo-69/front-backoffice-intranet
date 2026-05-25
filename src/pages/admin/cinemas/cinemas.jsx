@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from "react";
-import api from "@/api/axios";
-
 import { Plus, ChevronLeft, ChevronRight } from "lucide-react"; // Importamos iconos para los botones
 import { getCinemas, deleteCinema } from "../../../services/cinema.service";
 import CinemaSearch from "../../../components/admin/cinemas/SearchBar";

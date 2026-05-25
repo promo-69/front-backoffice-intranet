@@ -12,7 +12,7 @@ export default function LoginForm() {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
-  const { login } = useContext(AuthContext);
+  const { loginAdmin } = useContext(AuthContext);
 
   const { register, handleSubmit, formState: { errors } } = useForm({ mode: "onBlur" });
 
@@ -22,7 +22,7 @@ export default function LoginForm() {
 
     try {
       const payload = { email: data.email.trim(), password: data.password };
-      const result = await login(payload);
+      const result = await loginAdmin(payload);
 
       if (result.success) {
         const role = result.user.roleCode;
@@ -54,7 +54,6 @@ export default function LoginForm() {
       {/* Contenedor de Inputs */}
       <div className="flex flex-col gap-8 items-center">
         
-        {/* 💡 CORRECCIÓN VISUAL: Alertas globales de la API */}
         {error && (
           <div className="w-80 text-center bg-red-500/10 border border-red-500 text-red-500 text-sm py-2 px-3 rounded font-montserrat animate-fade-in">
             {error}
