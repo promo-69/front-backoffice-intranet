@@ -6,13 +6,13 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 
-const ROLE_MAP = {
+/*const ROLE_MAP = {
   1: "SUPER_ADMIN",
   2: "GENERAL_MANAGER",
   3: "CINEMA_MANAGER",
   4: "CASHIER",
   5: "USHER",
-};
+};*/
 
 export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -32,8 +32,7 @@ export default function LoginForm() {
       const result = await login(payload);
 
       if (result.success) {
-        // Convertimos el número → string
-        const role = ROLE_MAP[result.user.roleCode];
+        const role = result.user.role;
 
         // Guardamos el usuario en el AuthContext
         setUser({

@@ -155,7 +155,7 @@ function AppRoute() {
         <Route
           path="/ticketOffice/dashboard"
           element={
-            <ProtectedRoute allowedRoles={["CASHIER"]}>
+            <ProtectedRoute allowedRoles={["SUPER_ADMIN", "CASHIER"]}>
               <AdminLayout>
                 <DashboardCashier />
               </AdminLayout>
@@ -166,7 +166,7 @@ function AppRoute() {
         <Route
           path="/ticketOffice/sell"
           element={
-            <ProtectedRoute allowedRoles={["CASHIER"]}>
+            <ProtectedRoute allowedRoles={["SUPER_ADMIN", "CASHIER"]}>
               <AdminLayout>
                 <SellTickets />
               </AdminLayout>
@@ -177,7 +177,7 @@ function AppRoute() {
         <Route
           path="/ticketOffice/candy"
           element={
-            <ProtectedRoute allowedRoles={["CASHIER"]}>
+            <ProtectedRoute allowedRoles={["SUPER_ADMIN", "CASHIER"]}>
               <AdminLayout>
                 <CandyBar />
               </AdminLayout>

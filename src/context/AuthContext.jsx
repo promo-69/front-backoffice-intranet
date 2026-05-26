@@ -8,13 +8,13 @@ import { useLoading } from "./LoadingContext";
 
 export const AuthContext = createContext();
 
-const ROLE_MAP = {
+/*const ROLE_MAP = {
   1: "SUPER_ADMIN",
   2: "GENERAL_MANAGER",
   3: "CINEMA_MANAGER",
   4: "CASHIER",
   5: "USHER",
-};
+};*/
 
 
 export function AuthProvider({ children }) {
@@ -66,7 +66,7 @@ export function AuthProvider({ children }) {
       //tomando los roles para guardar  
       const userData = {
         ...data,
-        role: ROLE_MAP[data.roleCode] || data.roleCode, 
+        role: data.roleCode, 
       };
 
       localStorage.setItem("user", JSON.stringify(userData));

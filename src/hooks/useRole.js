@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { AuthContext } from "../context/AuthContext";
+import { AuthContext } from "@/context/AuthContext";
 
 export function useRole() {
   const { user } = useContext(AuthContext);
@@ -8,13 +8,11 @@ export function useRole() {
 
   return {
     role,
-
     isSuperAdmin: role === "SUPER_ADMIN",
     isGeneralManager: role === "GENERAL_MANAGER",
     isCinemaManager: role === "CINEMA_MANAGER",
     isCashier: role === "CASHIER",
     isUsher: role === "USHER",
-
-    hasRole: (rolesArray) => rolesArray.includes(role),
+    hasRole: (roles) => roles.includes(role),
   };
 }
