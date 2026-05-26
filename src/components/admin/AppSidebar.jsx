@@ -1,4 +1,16 @@
-import { LayoutDashboard, Film, MapPin, Users, Receipt, Package, BarChart3, LogOut, TicketIcon, ShoppingBag, BookOpen } from "lucide-react"
+import {
+  LayoutDashboard,
+  Film,
+  MapPin,
+  Users,
+  Package,
+  BarChart3,
+  LogOut,
+  TicketIcon,
+  ShoppingBag,
+  BookOpen,
+} from "lucide-react";
+
 import {
   Sidebar,
   SidebarContent,
@@ -10,15 +22,15 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarGroupContent,
-} from "@/components/ui/sidebar"
-import LogoCineflix from "@/assets/images/logotype/logoCiineflix1.png"
-import { Link } from "react-router-dom"
+} from "@/components/ui/sidebar";
+
+import LogoCineflix from "@/assets/images/logotype/logoCiineflix1.png";
+import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
-import { useAuth } from "@/context/AuthContext";
-import { PERMISSIONS } from "@/lib/permissions";
+import { useRole } from "@/hooks/useRole";
 
-// Cada item tiene un "id" que coincide con los permisos
+// Menú base
 const navItems = [
   {
     id: "dashboard",
@@ -26,48 +38,29 @@ const navItems = [
     url: "/admin/dashboard",
     icon: LayoutDashboard,
   },
-
-    {
+  {
     id: "cinemas",
     title: "Sucursales",
     url: "/admin/sucursales",
     icon: MapPin,
   },
-
-  { id: "personal",
-    title: "Personal",
-    url: "/admin/personal",
-    icon: Users 
-  },
-
+  { id: "personal", title: "Personal", url: "/admin/personal", icon: Users },
   {
     id: "exhibition",
     title: "Cartelera",
     url: "/admin/exhibition",
     icon: Film,
   },
-  
   {
     id: "inventory",
     title: "Inventario",
     url: "/admin/inventario",
     icon: Package,
   },
+  { id: "catalog", title: "Maestros", url: "/admin/catalogo", icon: BookOpen },
+  { id: "reports", title: "Reportes", url: "/admin/reports", icon: BarChart3 },
 
-  {
-    id: "catalog",
-    title: "Maestros",
-    tooltip: "Catalogos o clasificacion Base del software",
-    url: "/admin/catalogo",
-    icon: BookOpen,
-  },
-
-  {
-    id: "reports",
-    title: "Reportes",
-    url: "/admin/reports",
-    icon: BarChart3
-  },
+  // Cajero
   {
     id: "dashboard_cashier",
     title: "Dashboard Cajero",
@@ -88,17 +81,44 @@ const navItems = [
   },
 ];
 
+// items por rol (solo ids)
+const ALLOWED_BY_ROLE = {
+  SUPER_ADMIN: [
+    "dashboard",
+    "cinemas",
+    "personal",
+    "exhibition",
+    "inventory",
+    "catalog",
+    "reports",
+    "dashboard_cashier",
+    "sell_tickets",
+    "candy_bar",
+  ],
+
+  GENERAL_MANAGER: [
+    "dashboard",
+    "cinemas",
+    "personal",
+    "exhibition",
+    "inventory",
+    "reports",
+  ],
+
+  CINEMA_MANAGER: ["dashboard", "cinemas", "personal", "exhibition"],
+
+  CASHIER: ["dashboard_cashier", "sell_tickets", "candy_bar"],
+
+  USHER: ["dashboard_cashier", "sell_tickets"],
+};
+
 export function AppSidebar({ className, ...props }) {
-  const { user } = useAuth();
+  const { role } = useRole();
 
-  // Si no hay usuario, no mostramos nada
-  if (!user) return null;
+  if (!role) return null;
 
-  // Permisos del rol actual
-  const allowed = PERMISSIONS[user.roleCode] || [];
-
-  // Filtrar menú según permisos
-  const visibleMenu = navItems.filter((item) => allowed.includes(item.id));
+  const allowedIds = ALLOWED_BY_ROLE[role] || [];
+  const visibleMenu = navItems.filter((item) => allowedIds.includes(item.id));
 
   return (
     <Sidebar
@@ -126,6 +146,7 @@ export function AppSidebar({ className, ...props }) {
           <SidebarGroupLabel className="text-gray-500 px-6 mb-2 font-bold">
             Menú Principal
           </SidebarGroupLabel>
+
           <SidebarGroupContent>
             <SidebarMenu>
               {visibleMenu.map((item) => (

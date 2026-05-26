@@ -6,13 +6,20 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 
+const ROLE_MAP = {
+  1: "SUPER_ADMIN",
+  2: "GENERAL_MANAGER",
+  3: "CINEMA_MANAGER",
+  4: "CASHIER",
+  5: "USHER",
+};
 
 export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
-  const { login } = useContext(AuthContext);
+  const { login, setUser } = useContext(AuthContext);
 
   const { register, handleSubmit, formState: { errors } } = useForm({ mode: "onBlur" });
 
@@ -25,11 +32,20 @@ export default function LoginForm() {
       const result = await login(payload);
 
       if (result.success) {
-        const role = result.user.roleCode;
+        // Convertimos el número → string
+        const role = ROLE_MAP[result.user.roleCode];
+
+        // Guardamos el usuario en el AuthContext
+        setUser({
+          ...result.user,
+          role,
+        });
+
+        // Navegación según rol
 
         if (
-          role === "ADMIN" ||
           role === "SUPER_ADMIN" ||
+          role === "GENERAL_MANAGER" ||
           role === "CINEMA_MANAGER" ||
           role === "USHER"
         ) {

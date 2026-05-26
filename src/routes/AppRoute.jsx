@@ -1,20 +1,26 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+
 import Login from "../pages/auth/login";
 import Dashboard from "../pages/admin/dashboard";
 import DashboardCashier from "../pages/ticketOffice/dashboardCashier";
 import Exhibition from "@/pages/admin/exhibition/exhibition2";
 import SellTickets from "../pages/ticketOffice/sellTickets";
 import CandyBar from "../pages/ticketOffice/candyBar";
+
 import AuthLayout from "../layouts/AuthLayout";
 import AdminLayout from "../layouts/AdminLayout";
+
 import Personal from "../pages/admin/personal/personalPage";
 import CinemasPage from "../pages/admin/cinemas/cinemas";
 import CatalogsPage from "../pages/admin/catalogs/catalogs";
 import ProductsPage from "../pages/admin/inventory/products";
-import PrivateRoute from "./PrivateRoute";
+
+import ProtectedRoute from "./ProtectedRoute";
 import GlobalLoader from "../components/ui/GlobalLoader";
 import { useLoading } from "../context/LoadingContext";
+
 import CreateRolePage from "@/pages/admin/personal/createRolePage";
+import NoAccess from "@/pages/noAccess";
 
 function AppRoute() {
   const { loading } = useLoading();
@@ -41,57 +47,80 @@ function AppRoute() {
           }
         />
 
-        {/* Rutas ADMIN basadas en permisos */}
+        <Route path="/no-access" element={<NoAccess />} />
+
+        {/* ============================
+            RUTAS ADMIN (roles altos)
+        ============================ */}
         <Route
           path="/admin/dashboard"
           element={
-            <PrivateRoute permission="dashboard">
+            <ProtectedRoute
+              allowedRoles={[
+                "SUPER_ADMIN",
+                "GENERAL_MANAGER",
+                "CINEMA_MANAGER",
+                "USHER",
+              ]}
+            >
               <AdminLayout>
                 <Dashboard />
               </AdminLayout>
-            </PrivateRoute>
+            </ProtectedRoute>
           }
         />
 
         <Route
           path="/admin/exhibition"
           element={
-            <PrivateRoute permission="exhibition">
+            <ProtectedRoute
+              allowedRoles={[
+                "SUPER_ADMIN",
+                "GENERAL_MANAGER",
+                "CINEMA_MANAGER",
+              ]}
+            >
               <AdminLayout>
                 <Exhibition />
               </AdminLayout>
-            </PrivateRoute>
+            </ProtectedRoute>
           }
         />
 
         <Route
           path="/admin/catalogo"
           element={
-            <PrivateRoute permission="catalog">
+            <ProtectedRoute allowedRoles={["SUPER_ADMIN", "GENERAL_MANAGER"]}>
               <AdminLayout>
                 <CatalogsPage />
               </AdminLayout>
-            </PrivateRoute>
+            </ProtectedRoute>
           }
         />
 
         <Route
           path="/admin/sucursales"
           element={
-            <PrivateRoute permission="cinemas">
+            <ProtectedRoute
+              allowedRoles={[
+                "SUPER_ADMIN",
+                "GENERAL_MANAGER",
+                "CINEMA_MANAGER",
+              ]}
+            >
               <AdminLayout>
                 <CinemasPage />
               </AdminLayout>
-            </PrivateRoute>
+            </ProtectedRoute>
           }
         />
 
         <Route
           path="/admin/personal"
           element={
-            <PrivateRoute permission="personal">
+            <ProtectedRoute allowedRoles={["SUPER_ADMIN", "GENERAL_MANAGER"]}>
               <AdminLayout />
-            </PrivateRoute>
+            </ProtectedRoute>
           }
         >
           <Route index element={<Personal />} />
@@ -99,69 +128,60 @@ function AppRoute() {
         </Route>
 
         <Route
-          path="/admin/transacciones"
-          element={
-            <PrivateRoute permission="transactions">
-              <AdminLayout>
-                <div className="p-4">Próximamente: Transacciones</div>
-              </AdminLayout>
-            </PrivateRoute>
-          }
-        />
-
-        <Route
           path="/admin/inventario"
           element={
-            <PrivateRoute permission="inventory">
+            <ProtectedRoute allowedRoles={["SUPER_ADMIN", "GENERAL_MANAGER"]}>
               <AdminLayout>
                 <ProductsPage />
               </AdminLayout>
-            </PrivateRoute>
+            </ProtectedRoute>
           }
         />
 
         <Route
           path="/admin/reports"
           element={
-            <PrivateRoute permission="reports">
+            <ProtectedRoute allowedRoles={["SUPER_ADMIN", "GENERAL_MANAGER"]}>
               <AdminLayout>
                 <div className="p-4">Próximamente: Reportes</div>
               </AdminLayout>
-            </PrivateRoute>
+            </ProtectedRoute>
           }
         />
 
-        {/* Rutas de Cajero */}
+        {/* ============================
+            RUTAS CAJERO
+        ============================ */}
         <Route
           path="/ticketOffice/dashboard"
           element={
-            <PrivateRoute permission="dashboard_cashier">
+            <ProtectedRoute allowedRoles={["CASHIER"]}>
               <AdminLayout>
                 <DashboardCashier />
               </AdminLayout>
-            </PrivateRoute>
+            </ProtectedRoute>
           }
         />
 
         <Route
           path="/ticketOffice/sell"
           element={
-            <PrivateRoute permission="sell_tickets">
+            <ProtectedRoute allowedRoles={["CASHIER"]}>
               <AdminLayout>
                 <SellTickets />
               </AdminLayout>
-            </PrivateRoute>
+            </ProtectedRoute>
           }
         />
 
         <Route
           path="/ticketOffice/candy"
           element={
-            <PrivateRoute permission="candy_bar">
+            <ProtectedRoute allowedRoles={["CASHIER"]}>
               <AdminLayout>
                 <CandyBar />
               </AdminLayout>
-            </PrivateRoute>
+            </ProtectedRoute>
           }
         />
       </Routes>

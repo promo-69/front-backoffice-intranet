@@ -8,6 +8,15 @@ import { useLoading } from "./LoadingContext";
 
 export const AuthContext = createContext();
 
+const ROLE_MAP = {
+  1: "SUPER_ADMIN",
+  2: "GENERAL_MANAGER",
+  3: "CINEMA_MANAGER",
+  4: "CASHIER",
+  5: "USHER",
+};
+
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem("user");
@@ -54,11 +63,16 @@ export function AuthProvider({ children }) {
       if (!data || !data.roleCode) {
         return { success: false, message: "El usuario no tiene rol asignado" };
       }
+      //tomando los roles para guardar  
+      const userData = {
+        ...data,
+        role: ROLE_MAP[data.roleCode] || data.roleCode, 
+      };
 
-      localStorage.setItem("user", JSON.stringify(data));
-      setUser(data);
+      localStorage.setItem("user", JSON.stringify(userData));
+      setUser(userData);
 
-      return { success: true, user: data };
+      return { success: true, user: userData };
     } catch (error) {
       return {
         success: false,
@@ -81,7 +95,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, setUser, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
