@@ -45,12 +45,12 @@ export default function EmployeeTable({ employees, onEdit, onDelete }) {
             <tr key={emp.id} className="hover:bg-gray-50 transition-colors">
               {/* ⭐ NOMBRE */}
               <td className="px-6 py-4 whitespace-nowrap text-sm font-montserrat text-gray-800">
-                {emp.people?.first_name} {emp.people?.last_name}
+                {emp.person?.first_name} {emp.person?.last_name}
               </td>
 
               {/* ⭐ DOCUMENTO */}
               <td className="px-6 py-4 whitespace-nowrap text-sm font-montserrat text-gray-700">
-                {emp.people?.document_number}
+                {emp.person?.document_number}
               </td>
 
               {/* ⭐ CARGO */}
