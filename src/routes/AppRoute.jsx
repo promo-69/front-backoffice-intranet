@@ -78,6 +78,7 @@ function AppRoute() {
                 "SUPER_ADMIN",
                 "GENERAL_MANAGER",
                 "CINEMA_MANAGER",
+                "CASHIER"
               ]}
             >
               <AdminLayout>
@@ -118,7 +119,7 @@ function AppRoute() {
         <Route
           path="/admin/personal"
           element={
-            <ProtectedRoute allowedRoles={["SUPER_ADMIN", "GENERAL_MANAGER"]}>
+            <ProtectedRoute allowedRoles={["SUPER_ADMIN", "GENERAL_MANAGER", "CINEMA_MANAGER"]}>
               <AdminLayout />
             </ProtectedRoute>
           }
@@ -141,7 +142,7 @@ function AppRoute() {
         <Route
           path="/admin/reports"
           element={
-            <ProtectedRoute allowedRoles={["SUPER_ADMIN", "GENERAL_MANAGER"]}>
+            <ProtectedRoute allowedRoles={["SUPER_ADMIN", "GENERAL_MANAGER", "CINEMA_MANAGER", "CASHIER"]}>
               <AdminLayout>
                 <div className="p-4">Próximamente: Reportes</div>
               </AdminLayout>
