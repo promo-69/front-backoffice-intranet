@@ -17,16 +17,29 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useAuth } from "@/context/AuthContext";
+
 
 export function Navbar({ sectionTitle }) {
+
+  const { user, logout } = useAuth();
+
+  const fullName = `${user?.firstName || ""} ${user?.lastName || ""}`.trim();
+  const email = user?.email || "";
+  const role = user?.role || "";
+
+  const formatRole = (role) =>
+    role
+      ?.toLowerCase()
+      .replace("_", " ")
+      .replace(/\b\w/g, (l) => l.toUpperCase());
+
   return (
-    <header
-      className="flex h-16 items-center gap-4 border-b bg-white px-6 fixed top-0 left-0 right-0 z-10 transition-all duration-300"
-    >
+    <header className="flex h-16 items-center gap-4 border-b bg-white px-6 fixed top-0 left-0 right-0 z-10 transition-all duration-300">
       <div
         className="flex items-center gap-2 w-full transition-all duration-300"
         style={{
-          marginLeft: open ? "215px" : "0px", 
+          marginLeft: open ? "215px" : "0px",
         }}
       >
         <SidebarTrigger className="-ml-1" />
@@ -54,7 +67,6 @@ export function Navbar({ sectionTitle }) {
 
           {/* Lado Derecho: Acciones y Perfil */}
           <div className="ml-auto flex items-center gap-2">
-
             <Separator orientation="vertical" className="mx-2 h-8" />
 
             {/* Perfil de Usuario */}
@@ -66,10 +78,10 @@ export function Navbar({ sectionTitle }) {
                 >
                   <div className="text-right hidden md:block">
                     <p className="text-xs font-bold leading-none text-brand-primary uppercase">
-                      Operador
+                      {fullName || email}
                     </p>
                     <p className="text-[10px] text-muted-foreground">
-                      Administrador
+                      {formatRole(role)}
                     </p>
                   </div>
                   <div className="w-9 h-9 rounded-full bg-brand-primary flex items-center justify-center text-white border-2 border-brand-gold/20 shadow-sm">
@@ -82,7 +94,10 @@ export function Navbar({ sectionTitle }) {
                 <DropdownMenuItem>Ver Perfil</DropdownMenuItem>
                 <DropdownMenuItem>Ajustes de Seguridad</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-status-error font-bold">
+                <DropdownMenuItem
+                  className="text-status-error font-bold"
+                  onClick={logout}
+                >
                   Cerrar Sesión
                 </DropdownMenuItem>
               </DropdownMenuContent>
