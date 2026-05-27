@@ -21,10 +21,10 @@ export const saveRoom = async (cinemaId, roomData, roomId = null) => {
 
 export const getSeatsByRoom = async (roomId) => {
   try {
-    // Endpoint basado en image_71b79e.png
-    const response = await api.get(`/rooms/${roomId}/seats`);
-    return response.data; 
-  } catch (error) {
+  const response = await api.get(`/rooms/${roomId}/seats?limit=-1`);
+  return response.data;
+  }  
+  catch (error) {
     console.error("Error al obtener el mapa de asientos:", error);
     throw error;
   }

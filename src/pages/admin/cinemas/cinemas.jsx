@@ -232,8 +232,12 @@ const CinemaPage = () => {
       {/* Sección de salas */}
       <div className="w-full pt-8 mt-4 border-t-2 border-dashed border-slate-200">
         {selectedBranch ? (
-          <div className="animate-in fade-in slide-in-from-bottom-4">
-             <RoomManager branch={selectedBranch} externalIsAdding={isAddingRoom} setExternalIsAdding={setIsAddingRoom} />
+          <div key={selectedBranch.id} className="animate-in fade-in slide-in-from-bottom-4">
+            <RoomManager 
+              branch={selectedBranch} 
+              externalIsAdding={isAddingRoom} 
+              setExternalIsAdding={setIsAddingRoom} 
+            />
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-20 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-300">

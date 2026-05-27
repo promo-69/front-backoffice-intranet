@@ -38,7 +38,8 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
     try {
       showLoader();
       const data = await getRoomsByCinema(branch.id);
-      setRooms(data);
+      const filteredRooms = data.filter(room => Number(room.cinema) === Number(branch.id));
+      setRooms(filteredRooms);
     } catch (error) {
       console.error("Error al obtener salas:", error);
     } finally {
@@ -47,7 +48,10 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
   };
 
   useEffect(() => {
-    if (branch?.id) fetchRooms();
+    if (branch?.id) {
+      setRooms([]);
+      fetchRooms();
+    }
   }, [branch?.id]);
 
   const handleEditClick = async (room) => {
@@ -106,44 +110,53 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
     if (!formData.name) return alert("Asigna un nombre.");
     try {
       showLoader();
-      const roomPayload = {
-        name: formData.name,
-        projectionTypes: [parseInt(formData.projectionType)],
-        gridRows: parseInt(formData.rows),
-        gridColumns: parseInt(formData.cols),
-        totalCapacity: theoreticalCapacity
-      };
 
-      const response = await saveRoom(branch.id, roomPayload);
-      const newRoomId = response?.data?.id || response?.id || response?.data?.room_id;
-
-      if (!newRoomId) throw new Error("ID de sala no generado");
-
-      const seatsToCreate = [];
+      const seatsArray = [];
       roomLayout.forEach((row, rowIndex) => {
         row.forEach((seat, colIndex) => {
-          seatsToCreate.push({
+          seatsArray.push({
+            row_identifier: String.fromCharCode(65 + rowIndex),
             rowIdentifier: String.fromCharCode(65 + rowIndex),
+            column_number: colIndex + 1,
             columnNumber: colIndex + 1,
+            seat_category: Number(seat.category),
             seatCategory: Number(seat.category),
+            seat_condition: seat.type === 'empty' ? 3 : Number(seat.condition),
             seatCondition: seat.type === 'empty' ? 3 : Number(seat.condition)
           });
         });
       });
 
-      for (const seatData of seatsToCreate) {
-        await createRoomSeats(newRoomId, seatData);
+      const roomPayload = {
+        name: formData.name,
+        projectionTypes: [parseInt(formData.projectionType)],
+        gridRows: parseInt(formData.rows),
+        gridColumns: parseInt(formData.cols),
+        totalCapacity: theoreticalCapacity,
+        seats: seatsArray 
+      };
+
+      const response = await saveRoom(branch.id, roomPayload, editingRoomId);
+      
+      const newRoomId = response?.data?.id || response?.id || response?.data?.room_id || response?.room?.id;
+      const targetRoomId = newRoomId || editingRoomId;
+      
+      if (targetRoomId) {
+        await createRoomSeats(targetRoomId, seatsArray);
+      } else {
+        console.error("Error crítico: El backend no retornó el ID identificador de la sala creada.");
       }
 
       setSuccessConfig({
         open: true,
         title: "¡Guardado!",
-        message: editingRoomId ? "La sala se ha actualizado correctamente." : "La sala se ha registrado con éxito."
+        message: editingRoomId ? "La sala y la distribución de asientos se actualizaron correctamente." : "La sala y sus asientos se registraron exitosamente."
       });
+      
       resetForm();
       fetchRooms();
     } catch (error) {
-      console.error("Error en proceso:", error);
+      console.error("Error en la transacción de guardado anidado:", error);
     } finally {
       hideLoader();
     }
@@ -197,17 +210,16 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    {/* Botón de edición comentado temporalmente por discrepancia de datos en Backend */}
-                    {/* 
+                    {/* Botón de Edición Habilitado */}
                     <Button 
                       size="icon" 
                       variant="ghost" 
                       onClick={() => handleEditClick(room)} 
-                      className="h-8 w-8 text-brand-primary bg-brand-primary/5 hover:bg-brand-primary hover:text-white rounded-lg transition-all"
+                      className="h-8 w-8 text-brand-primary bg-slate-50 hover:bg-brand-primary hover:text-white rounded-lg transition-all"
                     >
-                      <Pencil className="h-4 w-4" />
-                    </Button> 
-                    */}
+                      <Pencil className="h-4 h-4" />
+                    </Button>
+
                     <Button 
                       size="icon" 
                       variant="ghost" 
