@@ -11,10 +11,10 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
-  
+
   use: {
-    /* URL base de tu servidor local de Vite */
-    baseURL: 'https://localhost:5174/',
+    /* URL base - en CI usa el servidor preview (4173), en local usa vite dev (5174) */
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'https://localhost:5174/',
 
     /* Ignora errores de certificados SSL auto-firmados */
     ignoreHTTPSErrors: true,
