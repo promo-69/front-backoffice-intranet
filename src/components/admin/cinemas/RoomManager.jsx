@@ -9,8 +9,10 @@ import {
   getRoomsByCinema, 
   deleteRoom, 
   saveRoom, 
+  updateRoom,
   createRoomSeats, 
-  getSeatsByRoom 
+  getSeatsByRoom,
+  updateSeatIndividual
 } from "../../../services/room.service";
 
 export default function RoomManager({ branch, externalIsAdding, setExternalIsAdding }) {
@@ -24,6 +26,9 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
 
   const [isLayoutValid, setIsLayoutValid] = useState(false);
   const [roomLayout, setRoomLayout] = useState([]);
+  // Guardamos el estado inicial exacto de los asientos al entrar a editar
+  const [originalSeatsSnapshot, setOriginalSeatsSnapshot] = useState([]);
+  
   const [formData, setFormData] = useState({
     name: "",
     rows: "8",
@@ -76,6 +81,7 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
         const colIndex = parseInt(seat.column_number) - 1;
         if (newLayout[rowIndex] && newLayout[rowIndex][colIndex]) {
           newLayout[rowIndex][colIndex] = {
+            id: seat.id, 
             type: seat.seat_condition === 3 ? "empty" : "active",
             category: seat.seat_category || 1,
             condition: seat.seat_condition || 1,
@@ -89,7 +95,11 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
         cols: String(cols),
         projectionType: String(room.projection_types?.[0]?.id || "1"),
       });
+      
       setRoomLayout(newLayout);
+      // Guardamos una copia profunda limpia para comparar modificaciones después
+      setOriginalSeatsSnapshot(JSON.parse(JSON.stringify(newLayout)));
+      
       setEditingRoomId(room.id);
       setExternalIsAdding(true);
     } catch (error) {
@@ -104,6 +114,7 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
     setEditingRoomId(null);
     setFormData({ name: "", rows: "8", cols: "12", projectionType: "1" });
     setRoomLayout([]);
+    setOriginalSeatsSnapshot([]);
   };
 
   const handleProcessChain = async () => {
@@ -111,52 +122,95 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
     try {
       showLoader();
 
-      const seatsArray = [];
-      roomLayout.forEach((row, rowIndex) => {
-        row.forEach((seat, colIndex) => {
-          seatsArray.push({
-            row_identifier: String.fromCharCode(65 + rowIndex),
-            rowIdentifier: String.fromCharCode(65 + rowIndex),
-            column_number: colIndex + 1,
-            columnNumber: colIndex + 1,
-            seat_category: Number(seat.category),
-            seatCategory: Number(seat.category),
-            seat_condition: seat.type === 'empty' ? 3 : Number(seat.condition),
-            seatCondition: seat.type === 'empty' ? 3 : Number(seat.condition)
+      if (editingRoomId) {
+        // ==========================================
+        // FLUJO DE EDICIÓN (PATCH ANIDADO OPTIMIZADO)
+        // ==========================================
+        
+        const updatePayload = {
+          name: formData.name,
+          projectionTypes: [parseInt(formData.projectionType)],
+          totalCapacity: theoreticalCapacity
+        };
+
+        // 1. Actualizar metadatos de la sala
+        await updateRoom(editingRoomId, updatePayload);
+
+        // 2. Filtrar y enviar ÚNICAMENTE los asientos que cambiaron de estado o categoría
+        const seatUpdates = [];
+
+        roomLayout.forEach((row, rowIndex) => {
+          row.forEach((seat, colIndex) => {
+            const originalSeat = originalSeatsSnapshot[rowIndex]?.[colIndex];
+
+            if (originalSeat && seat.id) {
+              const currentCondition = seat.type === 'empty' ? 3 : Number(seat.condition);
+              const originalCondition = originalSeat.type === 'empty' ? 3 : Number(originalSeat.condition);
+              const currentCategory = Number(seat.category);
+              const originalCategory = Number(originalSeat.category);
+
+              // Dirty checking: ¿Hubo algún cambio real en este asiento específico?
+              if (currentCondition !== originalCondition || currentCategory !== originalCategory) {
+                const updateSeatPayload = {
+                  seatCategory: currentCategory,
+                  seatCondition: currentCondition
+                };
+                // Encolamos la promesa de actualización
+                seatUpdates.push(updateSeatIndividual(seat.id, updateSeatPayload));
+              }
+            }
           });
         });
-      });
 
-      const roomPayload = {
-        name: formData.name,
-        projectionTypes: [parseInt(formData.projectionType)],
-        gridRows: parseInt(formData.rows),
-        gridColumns: parseInt(formData.cols),
-        totalCapacity: theoreticalCapacity,
-        seats: seatsArray 
-      };
+        // Solo disparamos llamadas a la API si hay cambios reales en el diseño
+        if (seatUpdates.length > 0) {
+          await Promise.all(seatUpdates);
+        }
 
-      const response = await saveRoom(branch.id, roomPayload, editingRoomId);
-      
-      const newRoomId = response?.data?.id || response?.id || response?.data?.room_id || response?.room?.id;
-      const targetRoomId = newRoomId || editingRoomId;
-      
-      if (targetRoomId) {
-        await createRoomSeats(targetRoomId, seatsArray);
       } else {
-        console.error("Error crítico: El backend no retornó el ID identificador de la sala creada.");
+        // ==========================================
+        // FLUJO DE CREACIÓN
+        // ==========================================
+        const seatsArray = [];
+        roomLayout.forEach((row, rowIndex) => {
+          row.forEach((seat, colIndex) => {
+            seatsArray.push({
+              rowIdentifier: String.fromCharCode(65 + rowIndex),
+              columnNumber: colIndex + 1,
+              seatCategory: Number(seat.category),
+              seatCondition: seat.type === 'empty' ? 3 : Number(seat.condition),
+            });
+          });
+        });
+
+        const roomPayload = {
+          name: formData.name,
+          projectionTypes: [parseInt(formData.projectionType)],
+          gridRows: parseInt(formData.rows),
+          gridColumns: parseInt(formData.cols),
+          totalCapacity: theoreticalCapacity,
+        };
+
+        const response = await saveRoom(branch.id, { ...roomPayload, seats: seatsArray });
+        const newRoomId = response?.data?.id || response?.id || response?.data?.room_id || response?.room?.id;
+        
+        if (newRoomId) {
+          await createRoomSeats(newRoomId, seatsArray);
+        }
       }
 
       setSuccessConfig({
         open: true,
         title: "¡Guardado!",
-        message: editingRoomId ? "La sala y la distribución de asientos se actualizaron correctamente." : "La sala y sus asientos se registraron exitosamente."
+        message: editingRoomId 
+          ? "La sala y los asientos modificados se actualizaron correctamente." 
+          : "La sala y sus asientos se registraron exitosamente."
       });
       
       resetForm();
       fetchRooms();
     } catch (error) {
-      console.error("Error en la transacción de guardado anidado:", error);
+      console.error("Error en la transacción de guardado:", error);
     } finally {
       hideLoader();
     }
@@ -210,7 +264,6 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    {/* Botón de Edición Habilitado */}
                     <Button 
                       size="icon" 
                       variant="ghost" 
@@ -293,6 +346,7 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
             externalFormData={formData}
             setExternalFormData={setFormData}
             initialLayout={roomLayout} 
+            isEdit={!!editingRoomId} 
             onValidationChange={(isValid, layout) => {
               setIsLayoutValid(isValid);
               setRoomLayout(layout);
