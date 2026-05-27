@@ -5,7 +5,7 @@ test('Login exitoso - Credenciales correctas', async ({ page }) => {
   await page.goto('/login');
 
   await page.getByPlaceholder('Correo').fill('admin@cineflix.com');
-  await page.getByPlaceholder('Contraseña').fill('admin123456*');
+  await page.getByPlaceholder('Contraseña').fill('Admin123456*');
 
   const botonOjo = page.getByRole('button', { name: 'Mostrar contraseña' });
   await expect(botonOjo).toBeVisible();
@@ -29,7 +29,7 @@ test('Login Fallido - Credenciales incorrectas 1', async ({ page }) => {
 
   await expect(page).not.toHaveURL('/admin/dashboard');
 
-  await expect(page.getByText(/las credenciales no son válidas/i)).toBeVisible();
+  await expect(page.getByText(/Credenciales inválidas/i)).toBeVisible();
 });
 
 //Prueba de Login fallida con SUPERADMIN
@@ -43,5 +43,5 @@ test('Login Fallido - Credenciales incorrectas 2', async ({ page }) => {
 
   await expect(page).not.toHaveURL('/admin/dashboard');
 
-  await expect(page.getByText(/las credenciales no son válidas/i)).toBeVisible();
+  await expect(page.getByText(/Credenciales inválidas/i)).toBeVisible();
 });

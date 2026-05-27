@@ -7,10 +7,13 @@ import DeleteConfirmModal from "../../../components/ui/DialogConfirmModal";
 import SuccessModal from "../../../components/ui/SuccessModal";
 import { useLoading } from "../../../context/LoadingContext";
 import {
-  initLocalStore,
-  getProductCategories,
-  deleteProductCategory,
-} from "../../../services/localStore.service";
+  getCatalogRecords,
+  createCatalogRecord,
+  updateCatalogRecord,
+  deleteCatalogRecord,
+} from "../../../services/catalog.service";
+
+const CATALOG_NAME = "product-categories";
 
 const CategoriesPage = () => {
   const { showLoader, hideLoader } = useLoading();
@@ -26,12 +29,11 @@ const CategoriesPage = () => {
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
   const [successConfig, setSuccessConfig] = useState({ title: "", message: "" });
 
-  const fetchCategories = () => {
+  const fetchCategories = async () => {
     try {
       showLoader();
-      initLocalStore();
-      const data = getProductCategories();
-      setCategories(data);
+      const response = await getCatalogRecords(CATALOG_NAME);
+      setCategories(response.data || []);
     } catch (error) {
       console.error("Error al cargar categorías:", error);
     } finally {
@@ -63,10 +65,10 @@ const CategoriesPage = () => {
     setItemToEdit(null);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     try {
       showLoader();
-      deleteProductCategory(itemToDelete.id);
+      await deleteCatalogRecord(CATALOG_NAME, itemToDelete.id);
       setIsDeleteModalOpen(false);
       setSuccessConfig({
         title: "¡Categoría Eliminada!",
@@ -79,6 +81,14 @@ const CategoriesPage = () => {
     } finally {
       setItemToDelete(null);
       hideLoader();
+    }
+  };
+
+  const handleSaveCategory = async (payload) => {
+    if (payload.id) {
+      await updateCatalogRecord(CATALOG_NAME, payload.id, payload);
+    } else {
+      await createCatalogRecord(CATALOG_NAME, payload);
     }
   };
 
@@ -148,6 +158,7 @@ const CategoriesPage = () => {
         open={isModalOpen}
         onClose={handleCloseModal}
         initialData={itemToEdit}
+        onSave={handleSaveCategory}
       />
     </div>
   );

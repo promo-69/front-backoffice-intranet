@@ -13,33 +13,32 @@ export const getRooms = async () => {
 
 
 
-// Guardar Sala 
-export const saveRoom = async (cinemaId, roomData, roomId = null) => {
-  if (roomId) {
-    // PUT /rooms/{id}
-    const response = await api.put(`/rooms/${roomId}`, roomData);
-    return response.data;
-  } else {
-    // POST /cinemas/{cinemaId}/rooms
-    const response = await api.post(`/cinemas/${cinemaId}/rooms`, roomData);
-    return response.data;
-  }
+// Guardar Sala (Creación)
+export const saveRoom = async (cinemaId, roomData) => {
+  const response = await api.post(`/cinemas/${cinemaId}/rooms`, roomData);
+  return response.data;
 };
 
+// Editar Sala (Actualización de metadatos)
+export const updateRoom = async (roomId, roomData) => {
+  const response = await api.patch(`/rooms/${roomId}`, roomData);
+  return response.data;
+};
+
+// Obtener Asientos completos
 export const getSeatsByRoom = async (roomId) => {
   try {
-    // Endpoint basado en image_71b79e.png
-    const response = await api.get(`/rooms/${roomId}/seats`);
-    return response.data; 
+    const response = await api.get(`/rooms/${roomId}/seats?limit=-1`);
+    return response.data;
   } catch (error) {
     console.error("Error al obtener el mapa de asientos:", error);
     throw error;
   }
 };
 
-// Crear Asientos - Enviamos el objeto individual directamente
-export const createRoomSeats = async (roomId, seatData) => {
-  return await api.post(`/rooms/${roomId}/seats`, seatData);
+// Crear Asientos Iniciales 
+export const createRoomSeats = async (roomId, seatsArray) => {
+  return await api.post(`/rooms/${roomId}/seats`, seatsArray);
 };
 
 export const getRoomProjectionTypes = async (roomId) =>{
@@ -50,6 +49,12 @@ export const getRoomProjectionTypes = async (roomId) =>{
 }
 
 
+// Actualizar un Asiento Individual (Flujo de edición)
+export const updateSeatIndividual = async (seatId, seatData) => {
+  return await api.patch(`/seats/${seatId}`, seatData);
+};
+
+// Eliminar Sala
 export const deleteRoom = async (roomId) => {
   return await api.delete(`/rooms/${roomId}`);
 };

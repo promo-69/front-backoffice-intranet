@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Plus, ChevronLeft, ChevronRight } from "lucide-react"; // Importamos iconos para los botones
+import api from "@/api/axios";
+
+import { Plus, ChevronLeft, ChevronRight } from "lucide-react"; 
 import { getCinemas, deleteCinema } from "../../../services/cinema.service";
 import CinemaSearch from "../../../components/admin/cinemas/SearchBar";
 import CinemaTable from "../../../components/admin/cinemas/CinemaTable";
@@ -38,10 +40,11 @@ const CinemaPage = () => {
   
   const [isAddingRoom, setIsAddingRoom] = useState(false);
 
-  const fetchBranches = async (page = 1) => {
+  // Petición limpia al backend utilizando paginación estándar
+  const fetchBranches = async (params) => {
     try {
-      showLoader(); // Mostramos loader mientras esperamos los 10s o lo que tarde
-      const data = await getCinemas(page);
+      showLoader(); 
+      const data = await getCinemas(params);
       setBranches(data.data);
       setMetadata(data.metadata);
     } catch (error) {
@@ -52,25 +55,28 @@ const CinemaPage = () => {
     }
   };
 
-  // Efecto que reacciona al cambio de página
+  // Solo recargamos del servidor cuando cambia la página
   useEffect(() => {
-    fetchBranches(currentPage);
-  }, [currentPage]);
+    fetchBranches({ page: currentPage });
+  }, [currentPage]); 
+
+  // Filtrado en tiempo real en memoria para la barra de búsqueda
+  const branchesFiltradas = branches.filter((b) =>
+    b.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
 
 
   // NAVEGACIÓN DE PÁGINAS
   const handlePageChange = (newPage) => {
-    if (newPage >= 1 && newPage <= pagination.total_pages) {
+    if (newPage >= 1 && newPage <= metadata.total_pages) {
       setCurrentPage(newPage);
     }
   };
 
-  // MANEJO DE EDICIÓN (Limpieza de horas)
   const handleOpenEditModal = (branch) => {
     const mappedData = {
       ...branch,
-      // Quitamos los segundos (:00) para que el input tipo HH:mm no falle
       openingTime: (branch.opening_time || "").slice(0, 5),
       closingTime: (branch.closing_time || "").slice(0, 5),
     };
@@ -81,7 +87,7 @@ const CinemaPage = () => {
   const handleCloseModal = (shouldRefresh) => {
     setIsModalOpen(false);
     if (shouldRefresh) {
-      fetchBranches(currentPage); // Refrescamos la página actual
+      fetchBranches({ page: currentPage });
       setSuccessConfig({
         title: branchToEdit ? "¡Cambios Guardados!" : "¡Registro Exitoso!",
         message: branchToEdit 
@@ -105,7 +111,7 @@ const CinemaPage = () => {
         message: `Se ha removido "${itemToDelete.name}" exitosamente.`
       });
       setIsSuccessOpen(true);
-      fetchBranches(currentPage);
+      fetchBranches({ page: currentPage });
     } catch (error) {
       console.error("Error al eliminar:", error);
     } finally {
@@ -114,16 +120,13 @@ const CinemaPage = () => {
     }
   };
 
-  const filteredBranches = branches.filter((b) =>
-    b.name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   const selectedBranch = branches.find(
     (b) => Number(b.id) === Number(selectedId)
   );
 
   return (
-    <div className="space-y-6">
+    // 💡 CAMBIO AQUÍ: Cambiamos a 'max-w-7xl' para expandir un poco más la vista y reducir los márgenes laterales exagerados
+    <div className="space-y-6 max-w-7xl mx-auto w-full animate-in fade-in duration-300">
       <div className="flex justify-between items-center bg-white p-6 rounded-cineflix border border-gray-100 shadow-sm">
         <div>
           <h3 className="text-lg font-montserrat font-bold text-brand-primary">
@@ -142,7 +145,7 @@ const CinemaPage = () => {
 
       {/* TABLA DE DATOS */}
       <CinemaTable
-        data={filteredBranches}
+        data={branchesFiltradas} 
         selectedId={selectedId}
         onSelectBranch={(id) => { setSelectedId(id); setIsAddingRoom(false); }}
         onEdit={handleOpenEditModal}
@@ -154,7 +157,7 @@ const CinemaPage = () => {
       />
 
       {/* CONTROLES DE PAGINACIÓN */}
-      <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6 rounded-b-xl shadow-sm">
+      <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6 rounded-b-xl shadow-sm animate-in fade-in">
         <div className="flex justify-between flex-1 sm:hidden">
           <button
             onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
@@ -184,7 +187,7 @@ const CinemaPage = () => {
           <div>
             <nav className="inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
               <button
-                onClick={() => setCurrentPage(metadata.prev_page)}
+                onClick={() => handlePageChange(metadata.prev_page)}
                 disabled={!metadata.prev_page}
                 className="relative inline-flex items-center px-2 py-2 text-gray-400 rounded-l-md border border-gray-300 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
               >
@@ -196,7 +199,7 @@ const CinemaPage = () => {
               </div>
 
               <button
-                onClick={() => setCurrentPage(metadata.next_page)}
+                onClick={() => handlePageChange(metadata.next_page)}
                 disabled={!metadata.next_page}
                 className="relative inline-flex items-center px-2 py-2 text-gray-400 rounded-r-md border border-gray-300 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
               >
@@ -231,8 +234,12 @@ const CinemaPage = () => {
       {/* Sección de salas */}
       <div className="w-full pt-8 mt-4 border-t-2 border-dashed border-slate-200">
         {selectedBranch ? (
-          <div className="animate-in fade-in slide-in-from-bottom-4">
-             <RoomManager branch={selectedBranch} externalIsAdding={isAddingRoom} setExternalIsAdding={setIsAddingRoom} />
+          <div key={selectedBranch.id} className="animate-in fade-in slide-in-from-bottom-4">
+            <RoomManager 
+              branch={selectedBranch} 
+              externalIsAdding={isAddingRoom} 
+              setExternalIsAdding={setIsAddingRoom} 
+            />
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-20 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-300">

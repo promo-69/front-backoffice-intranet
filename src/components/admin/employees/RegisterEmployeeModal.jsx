@@ -30,6 +30,7 @@ export default function RegisterEmployeeModal({ open, onClose }) {
     salaryBase: "",
     email: "",
     password: "",
+    role:"",
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -64,6 +65,7 @@ export default function RegisterEmployeeModal({ open, onClose }) {
         salaryBase: "",
         email: "",
         password: "",
+        role:"",
       });
       setErrors({});
       setIsSubmitting(false);
@@ -130,11 +132,15 @@ export default function RegisterEmployeeModal({ open, onClose }) {
         salaryBase: Number(employeeData.salaryBase),
         email: employeeData.email.trim(),
         password: employeeData.password,
+        role: Number(employeeData.role),
       };
 
       await createEmployee(payload);
 
-      onClose(true);
+      setTimeout(() => {
+        onClose(true);
+      }, 100);
+      
     } catch (error) {
       console.error("Error registrando empleado:", error);
       setIsSubmitting(false);
@@ -293,6 +299,21 @@ export default function RegisterEmployeeModal({ open, onClose }) {
             </button>
 
             <ErrorMsg message={errors.password} />
+          </div>
+          <div>
+            <SelectForm
+              label="Rol del Sistema"
+              name="role"
+              value={employeeData.role}
+              onChange={handleChange}
+            >
+              <option value="">Seleccione un rol...</option>
+              <option value="2">GENERAL_MANAGER</option>
+              <option value="3">CINEMA_MANAGER</option>
+              <option value="4">CASHIER</option>
+              <option value="5">USHER</option>
+            </SelectForm>
+            <ErrorMsg message={errors.role} />
           </div>
         </div>
 
