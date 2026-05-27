@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { saveProductCategory } from "../../../services/localStore.service";
 import {
   Dialog,
   DialogContent,
@@ -8,7 +7,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { InputForm } from "@/components/ui/inputForm";
-import { useLoading } from "../../../context/LoadingContext";
 
 function ErrorMessage({ message }) {
   return message ? (
@@ -16,8 +14,7 @@ function ErrorMessage({ message }) {
   ) : null;
 }
 
-export default function CategoryModal({ open, onClose, initialData }) {
-  const { showLoader, hideLoader } = useLoading();
+export default function CategoryModal({ open, onClose, initialData, onSave }) {
   const isEdit = !!initialData;
 
   const emptyForm = {
@@ -60,12 +57,11 @@ export default function CategoryModal({ open, onClose, initialData }) {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
 
     setIsSubmitting(true);
-    showLoader();
 
     try {
       const payload = {
@@ -78,16 +74,15 @@ export default function CategoryModal({ open, onClose, initialData }) {
         payload.id = initialData.id;
       }
 
-      saveProductCategory(payload);
-      onClose(true); // Cerrar y recargar tabla
+      await onSave(payload);
+      onClose(true);
     } catch (error) {
       console.error("Error al guardar categoría:", error);
       setErrors((prev) => ({
         ...prev,
-        general: "Ocurrió un error inesperado al guardar la categoría.",
+        general: error?.response?.data?.message || "Ocurrió un error inesperado al guardar la categoría.",
       }));
     } finally {
-      hideLoader();
       setIsSubmitting(false);
     }
   };

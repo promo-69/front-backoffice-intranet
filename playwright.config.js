@@ -14,7 +14,7 @@ export default defineConfig({
   
   use: {
     /* URL base de tu servidor local de Vite */
-    baseURL: 'https://localhost:5174/',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'https://localhost:5174/',
 
     /* Ignora errores de certificados SSL auto-firmados */
     ignoreHTTPSErrors: true,

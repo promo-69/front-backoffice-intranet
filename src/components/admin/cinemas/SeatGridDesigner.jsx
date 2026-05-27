@@ -6,7 +6,7 @@ export default function SeatGridDesigner({
   initialLayout, 
   externalFormData, 
   setExternalFormData,
-  isEdit = false 
+  isEdit = false // Sincronizado como isEdit
 }) {
   if (!externalFormData) return null;
 
@@ -65,24 +65,27 @@ export default function SeatGridDesigner({
       rIdx === rowIndex ? row.map((seat, cIdx) => {
         if (cIdx !== colIndex) return seat;
         
-        // Modo Estructura (Pasillo / Silla / Mantenimiento si aplica)
+        // MODO ESTRUCTURA (Disponible -> Mantenimiento (si es edición) -> Pasillo)
         if (editMode) {
           let nextCond;
           if (isEdit) {
+            // Ciclo Completo en Edición: 1 (Disponible) -> 2 (Mantenimiento) -> 3 (Vacío) -> 1
             nextCond = seat.condition === 1 ? 2 : seat.condition === 2 ? 3 : 1;
           } else {
+            // Ciclo en Creación Estricta: 1 (Disponible) -> 3 (Vacío) -> 1 (Mantenimiento oculto)
             nextCond = seat.condition === 1 ? 3 : 1;
           }
           
           return { 
             ...seat, 
             condition: nextCond, 
+            // Si es 3 es pasillo (empty), si es 1 o 2 es una entidad física de asiento (active)
             type: nextCond === 3 ? 'empty' : 'active' 
           };
         }
         
-        // Modo Categoría (General / Discapacidad)
-        if (seat.condition === 3) return seat; // No se puede categorizar un pasillo vacio
+        // MODO CATEGORÍA (General / Discapacidad)
+        if (seat.condition === 3) return seat; // No se puede categorizar un pasillo vacío
         return { ...seat, category: seat.category === 1 ? 2 : 1 };
       }) : row
     );
@@ -144,7 +147,7 @@ export default function SeatGridDesigner({
               {seat.condition !== 3 && (
                 <div className="flex flex-col items-center">
                   <span>{String.fromCharCode(65 + ri)}{ci + 1}</span>
-                  {seat.category === 2 && <Accessibility className="w-3 h-3" />}
+                  {seat.category === 2 && seat.condition !== 2 && <Accessibility className="w-3 h-3" />}
                   {seat.condition === 2 && <Wrench className="w-3 h-3" />}
                 </div>
               )}
@@ -183,7 +186,6 @@ export default function SeatGridDesigner({
           <span>Discapacidad (VIP/Accesible)</span>
         </div>
 
-        {/* Mantenimiento oculto de forma estricta en el panel de creación */}
         {isEdit && (
           <div className="flex items-center gap-2">
             <div className="w-5 h-5 bg-orange-500 rounded-t-md border-b-2 border-orange-700 flex items-center justify-center text-white">

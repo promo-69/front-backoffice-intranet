@@ -5,7 +5,7 @@ test('Login exitoso - Credenciales correctas', async ({ page }) => {
   await page.goto('/login');
 
   await page.getByPlaceholder('Correo').fill('admin@cineflix.com');
-  await page.getByPlaceholder('Contraseña').fill('admin123456*');
+  await page.getByPlaceholder('Contraseña').fill('Admin123456*');
 
   const botonOjo = page.getByRole('button', { name: 'Mostrar contraseña' });
   await expect(botonOjo).toBeVisible();
