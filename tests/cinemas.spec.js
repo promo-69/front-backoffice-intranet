@@ -14,7 +14,7 @@ test('Crear sucursal - SUPERADMIN', async ({ page }) => {
   await page.getByRole('button', { name: 'Iniciar sesión' }).click();
   await expect(page).toHaveURL('/admin/dashboard');
 
-//CREACION DE UNA SUCURSAL-----------------------------------------------
+  //CREACION DE UNA SUCURSAL-----------------------------------------------
 
   await page.getByRole('link', { name: 'Sucursales' }).click();
   await page.getByRole('button', { name: 'Nueva sucursal' }).click();
@@ -88,14 +88,14 @@ test('Editar sucursal - SUPERADMIN', async ({ page }) => {
   const filaSucursal = page.locator('tr').filter({ hasText: sucursalAEditar });
   await expect(filaSucursal).toBeVisible();
   await filaSucursal.locator('button.text-brand-primary').click();
-  
+
   await page.getByLabel('Nombre').fill('Prueba Edicion');
   await page.getByLabel('Dirección').fill('Calle Salsa 456');
   await page.getByLabel('Teléfono').fill('0251 000 2003');
   const bloqueEApertura = page.locator('div.flex-col:has(label:text-is("Apertura"))');
-  await bloqueEApertura.getByRole('button').nth(0).click(); 
+  await bloqueEApertura.getByRole('button').nth(0).click();
   await page.locator('div:text-is("05")').click();
-  await bloqueEApertura.getByRole('button').nth(1).click();  
+  await bloqueEApertura.getByRole('button').nth(1).click();
   await page.locator('div:text-is("45")').click();
   await bloqueEApertura.getByRole('button').nth(2).click(); //AM/PM
   await page.locator('div:text-is("AM")').click();

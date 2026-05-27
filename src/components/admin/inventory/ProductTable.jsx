@@ -9,10 +9,9 @@ const ProductTable = ({ data, onEdit, onDelete, categories = [], currencies = []
     return Number(value).toFixed(2);
   };
 
-  // Helper para obtener nombre de categoría desde el FK
   const getCategoryLabel = (categoryId) => {
     const cat = categories.find((c) => c.id === categoryId);
-    return cat?.description || "—";
+    return cat?.name || cat?.description || "—";
   };
 
   // Helper para obtener símbolo de moneda desde el FK
