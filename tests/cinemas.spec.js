@@ -14,7 +14,7 @@ test('Crear sucursal - SUPERADMIN', async ({ page }) => {
   await page.getByRole('button', { name: 'Iniciar sesión' }).click();
   await expect(page).toHaveURL('/admin/dashboard');
 
-  //CREACION DE UNA SUCURSAL-----------------------------------------------
+  //CREACION DE UNA SUCURSAL------------------------------------------------
 
   await page.getByRole('link', { name: 'Sucursales' }).click();
   await page.getByRole('button', { name: 'Nueva sucursal' }).click();
