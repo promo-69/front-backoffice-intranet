@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { saveConcessionProduct } from "../../../services/localStore.service";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +9,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { InputForm } from "@/components/ui/inputForm";
-import { useLoading } from "../../../context/LoadingContext";
 
 function ErrorMessage({ message }) {
   return message ? (
@@ -29,9 +27,8 @@ const emptyProductForm = {
   earned_loyalty_points: "",
 };
 
-export default function ProductModal({ open, onClose, initialData, categories = [], currencies = [] }) {
+export default function ProductModal({ open, onClose, initialData, categories = [], currencies = [], onSave }) {
   const isEdit = !!initialData;
-  const { showLoader, hideLoader } = useLoading();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState(emptyProductForm);
   const [errors, setErrors] = useState({});
@@ -110,14 +107,13 @@ export default function ProductModal({ open, onClose, initialData, categories = 
     }
 
     setIsSubmitting(true);
-    showLoader();
 
     try {
       const payload = {
         name: formData.name.trim(),
         sku: formData.code.trim(),
-        product_category: parseInt(formData.product_category, 10),
-        currency: parseInt(formData.currency, 10),
+        product_category: isNaN(formData.product_category) ? formData.product_category : Number(formData.product_category),
+        currency: isNaN(formData.currency) ? formData.currency : Number(formData.currency),
         price: parseFloat(formData.price),
         earned_loyalty_points: formData.earned_loyalty_points
           ? parseInt(formData.earned_loyalty_points, 10)
@@ -125,12 +121,10 @@ export default function ProductModal({ open, onClose, initialData, categories = 
         status: 1,
       };
 
-      console.log("Enviando producto a DB:", payload);
-
       if (isEdit) {
         payload.id = initialData.id;
       }
-      saveConcessionProduct(payload);
+      await onSave(payload);
       onClose(true);
     } catch (error) {
       console.error("Error al guardar producto:", error);
@@ -139,7 +133,6 @@ export default function ProductModal({ open, onClose, initialData, categories = 
         name: "Ocurrió un error inesperado al guardar el producto.",
       }));
     } finally {
-      hideLoader();
       setIsSubmitting(false);
     }
   };
@@ -227,7 +220,7 @@ export default function ProductModal({ open, onClose, initialData, categories = 
               <option value="">Selecciona una categoría</option>
               {categories.map((cat) => (
                 <option key={cat.id} value={cat.id}>
-                  {cat.description}
+                  {cat.name || cat.description}
                 </option>
               ))}
             </select>

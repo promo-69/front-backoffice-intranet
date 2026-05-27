@@ -1,16 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import api from "@/api/axios";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { getProducts } from "../../../services/product.service";
 import {
-  initLocalStore,
-  getProductCategories,
-  getCurrencies,
-  getConcessionProducts,
-  deleteConcessionProduct,
-} from "../../../services/localStore.service";
+  getMyInventory,
+  createInventoryItem,
+  updateInventoryItem,
+  deleteInventoryItem,
+} from "../../../services/inventory.service";
+import { getCatalogRecords } from "../../../services/catalog.service";
 import ProductSearchBar from "../../../components/admin/inventory/ProductSearchBar";
 import ProductTable from "../../../components/admin/inventory/ProductTable";
 import ProductModal from "../../../components/admin/inventory/ProductModal";
@@ -21,15 +18,12 @@ import { useLoading } from "../../../context/LoadingContext";
 const ProductsPage = () => {
   const { showLoader, hideLoader } = useLoading();
 
-  // ESTADOS DE DATOS Y PAGINACIÓN
   const [products, setProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // CATÁLOGOS (para los selects del modal y las labels de la tabla)
   const [categories, setCategories] = useState([]);
   const [currencies, setCurrencies] = useState([]);
 
-  // ESTADOS DE PAGINACIÓN
   const [metadata, setMetadata] = useState({
     total: 0,
     per_page: 10,
@@ -40,7 +34,6 @@ const ProductsPage = () => {
   });
   const [currentPage, setCurrentPage] = useState(1);
 
-  // ESTADOS DE MODALES
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [productToEdit, setProductToEdit] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -51,32 +44,31 @@ const ProductsPage = () => {
     message: "",
   });
 
-  // Cargar catálogos al montar
-  const fetchCatalogs = () => {
+  const fetchCatalogs = async () => {
     try {
-      initLocalStore();
-      setCategories(getProductCategories());
-      setCurrencies(getCurrencies());
+      const catRes = await getCatalogRecords("product-categories").catch(() => null);
+      if (catRes) {
+        setCategories(catRes?.data ?? catRes ?? []);
+      }
+      
+      const curRes = await getCatalogRecords("currencies").catch(() => null);
+      if (curRes) {
+        setCurrencies(curRes?.data ?? curRes ?? []);
+      }
     } catch (error) {
       console.error("Error al cargar catálogos:", error);
     }
   };
 
-  const fetchProducts = () => {
+  const fetchProducts = async () => {
     try {
       showLoader();
-      initLocalStore();
-      const data = getConcessionProducts();
-      setProducts(data);
-      // Falso metadata para paginación
-      setMetadata({
-        total: data.length,
-        per_page: data.length || 10,
-        current_page: 1,
-        total_pages: 1,
-        next_page: null,
-        prev_page: null,
-      });
+      const response = await getMyInventory({ page: currentPage, limit: metadata.per_page });
+      const list = response?.data ?? [];
+      setProducts(list);
+      if (response?.metadata) {
+        setMetadata(response.metadata);
+      }
     } catch (error) {
       console.error("Error al cargar productos:", error);
       setProducts([]);
@@ -85,17 +77,14 @@ const ProductsPage = () => {
     }
   };
 
-  // Cargar catálogos al montar
   useEffect(() => {
     fetchCatalogs();
   }, []);
 
-  // Efecto que reacciona al cambio de página
   useEffect(() => {
     fetchProducts();
   }, [currentPage]);
 
-  // MANEJO DE EDICIÓN
   const handleOpenEditModal = (product) => {
     setProductToEdit(product);
     setIsModalOpen(true);
@@ -104,7 +93,7 @@ const ProductsPage = () => {
   const handleCloseModal = (shouldRefresh) => {
     setIsModalOpen(false);
     if (shouldRefresh) {
-      fetchProducts(currentPage);
+      fetchProducts();
       setSuccessConfig({
         title: productToEdit ? "¡Cambios Guardados!" : "¡Registro Exitoso!",
         message: productToEdit
@@ -116,10 +105,10 @@ const ProductsPage = () => {
     setProductToEdit(null);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     try {
       showLoader();
-      deleteConcessionProduct(itemToDelete.id);
+      await deleteInventoryItem(itemToDelete.id);
 
       setIsDeleteModalOpen(false);
       setSuccessConfig({
@@ -136,13 +125,20 @@ const ProductsPage = () => {
     }
   };
 
+  const handleSaveProduct = async (payload) => {
+    if (payload.id) {
+      await updateInventoryItem(payload.id, payload);
+    } else {
+      await createInventoryItem(payload);
+    }
+  };
+
   const filteredProducts = products.filter((p) =>
     p.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
     <div className="space-y-6">
-      {/* HEADER Y BÚSQUEDA */}
       <div className="flex justify-between items-center border-b border-gray-100 pb-4">
         <div>
           <div className="flex items-center gap-4">
@@ -165,7 +161,6 @@ const ProductsPage = () => {
         />
       </div>
 
-      {/* TABLA DE DATOS */}
       <ProductTable
         data={filteredProducts}
         categories={categories}
@@ -178,7 +173,6 @@ const ProductsPage = () => {
         }}
       />
 
-      {/* CONTROLES DE PAGINACIÓN */}
       <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6 rounded-b-xl shadow-sm">
         <div className="flex justify-between flex-1 sm:hidden">
           <button
@@ -242,7 +236,6 @@ const ProductsPage = () => {
         </div>
       </div>
 
-      {/* MODALES DE INTERACCIÓN */}
       <DeleteConfirmModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
@@ -263,6 +256,7 @@ const ProductsPage = () => {
         initialData={productToEdit}
         categories={categories}
         currencies={currencies}
+        onSave={handleSaveProduct}
       />
     </div>
   );
