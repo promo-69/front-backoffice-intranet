@@ -29,7 +29,7 @@ export default function LoginForm() {
 
     try {
       const payload = { email: data.email.trim(), password: data.password };
-      const result = await loginAdmin(payload);
+      const result = await login(payload);
 
       if (result.success) {
         const role = result.user.role;
