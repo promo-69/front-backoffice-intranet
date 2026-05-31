@@ -1,15 +1,24 @@
-import { Pencil, Trash } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Pencil } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { getRoles } from "@/services/roles.service";
 
-export default function Roles() {
+export default function RolesPage() {
   const navigate = useNavigate();
+  const [roles, setRoles] = useState([]);
 
-  const roles = [
-    { id: 1, name: "ADMIN" },
-    { id: 2, name: "GERENT_MANAGER" },
-    { id: 3, name: "CASHIER" },
-    { id: 4, name: "USHER" },
-  ];
+  const loadRoles = async () => {
+    try {
+      const data = await getRoles(); 
+      setRoles(data);
+    } catch (err) {
+      console.error("Error cargando roles:", err);
+    }
+  };
+
+  useEffect(() => {
+    loadRoles();
+  }, []);
 
   return (
     <div className="bg-white rounded-cineflix border border-gray-100 shadow-sm p-6">
@@ -27,23 +36,17 @@ export default function Roles() {
             className="grid grid-cols-2 py-3 text-sm items-center hover:bg-gray-50 transition-colors"
           >
             {/* Nombre del rol */}
-            <span className="font-medium text-gray-800">{role.name}</span>
+            <span className="font-medium text-gray-800">{role.code}</span>
 
             {/* Acciones */}
             <div className="flex justify-end gap-4">
-              {/* EDITAR */}
               <button
                 onClick={() =>
-                  navigate(`/admin/personal/create-role?role=${role.name}`)
+                  navigate(`/admin/personal/edit-role?roleId=${role.id}`)
                 }
                 className="text-brand-primary hover:text-brand-primary/80 transition"
               >
                 <Pencil className="w-5 h-5" />
-              </button>
-
-              {/* ELIMINAR */}
-              <button className="text-red-500 hover:text-red-600 transition">
-                <Trash className="w-5 h-5" />
               </button>
             </div>
           </div>

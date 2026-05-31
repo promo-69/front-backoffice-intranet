@@ -1,35 +1,51 @@
 import { useState, useEffect } from "react";
 import { ArrowLeft } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 
 import { getAllPermissions } from "@/services/permissions.service";
-import { createRole, updateRolePermissions } from "@/services/roles.service";
+import {
+  getRolePermissions,
+  updateRolePermissions,
+  getRoleById,
+} from "@/services/roles.service";
 
-export default function CreateRolePage() {
+export default function EditRolePage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
+  const roleId = searchParams.get("roleId");
+
+  const [roleName, setRoleName] = useState("");
   const [activeTab, setActiveTab] = useState("visual");
-
-  const [roleData, setRoleData] = useState({
-    code: "",
-    name: "",
-    description: "",
-  });
 
   const [permissionsByResource, setPermissionsByResource] = useState({});
   const [selectedPermissions, setSelectedPermissions] = useState(new Set());
 
   // ============================
-  // 1. Cargar permisos del backend
+  // 1. Cargar datos del rol + permisos
   // ============================
   useEffect(() => {
     async function load() {
+      if (!roleId) return;
+
+      // 1. Obtener datos del rol
+      const roleData = await getRoleById(roleId);
+      setRoleName(roleData.code); 
+
+      // 2. Obtener todos los permisos
       const allPermissions = await getAllPermissions(); 
 
+      // 3. Obtener permisos asignados al rol
+      const rolePermissions = await getRolePermissions(roleId); 
+
+      const assignedIds = new Set(rolePermissions.map((p) => p.id));
+      setSelectedPermissions(assignedIds);
+
+      // 4. Agrupar permisos por recurso
       const grouped = {};
       allPermissions.forEach((perm) => {
         const resource = perm._Resources.code;
@@ -47,7 +63,7 @@ export default function CreateRolePage() {
     }
 
     load();
-  }, []);
+  }, [roleId]);
 
   // ============================
   // 2. Toggle de permisos
@@ -61,16 +77,10 @@ export default function CreateRolePage() {
   };
 
   // ============================
-  // 3. Crear rol + asignar permisos
+  // 3. Guardar cambios
   // ============================
   const handleSave = async () => {
-    // 1. Crear el rol
-    const newRole = await createRole(roleData);
-
-    // 2. Asignar permisos
-    await updateRolePermissions(newRole.id, Array.from(selectedPermissions));
-
-    // 3. Volver a Roles
+    await updateRolePermissions(roleId, Array.from(selectedPermissions));
     navigate("/admin/personal");
   };
 
@@ -87,9 +97,9 @@ export default function CreateRolePage() {
 
       {/* TÍTULO */}
       <div>
-        <h2 className="text-xl font-bold text-brand-primary">Crear Rol</h2>
+        <h2 className="text-xl font-bold text-brand-primary">Editar Rol</h2>
         <p className="text-xs text-muted-foreground">
-          Define el nombre y los permisos del nuevo rol
+          Modifica los permisos del rol
         </p>
       </div>
 
@@ -102,7 +112,7 @@ export default function CreateRolePage() {
         <div className="border-b border-gray-200 pb-2">
           <TabsList className="flex gap-6 bg-transparent p-0 justify-start h-auto">
             <TabsTrigger value="visual" className="pb-2 text-sm font-semibold">
-              Información
+              Visualización
             </TabsTrigger>
 
             <TabsTrigger
@@ -114,46 +124,13 @@ export default function CreateRolePage() {
           </TabsList>
         </div>
 
-        {/* INFORMACIÓN */}
-        <TabsContent value="visual" className="space-y-4 mt-0">
-          <div>
-            <label className="text-sm font-semibold block text-brand-primary">
-              Código del Rol
-            </label>
-            <Input
-              placeholder="Ej: CASHIER, MANAGER"
-              value={roleData.code}
-              onChange={(e) =>
-                setRoleData({ ...roleData, code: e.target.value })
-              }
-            />
-          </div>
+        {/* VISUALIZACIÓN */}
+        <TabsContent value="visual" className="space-y-2 mt-0">
+          <label className="text-sm font-semibold block text-brand-primary">
+            Nombre del Rol
+          </label>
 
-          <div>
-            <label className="text-sm font-semibold block text-brand-primary">
-              Nombre del Rol
-            </label>
-            <Input
-              placeholder="Ej: Operador Nivel 2"
-              value={roleData.name}
-              onChange={(e) =>
-                setRoleData({ ...roleData, name: e.target.value })
-              }
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-semibold block text-brand-primary">
-              Descripción
-            </label>
-            <Input
-              placeholder="Describe las funciones del rol"
-              value={roleData.description}
-              onChange={(e) =>
-                setRoleData({ ...roleData, description: e.target.value })
-              }
-            />
-          </div>
+          <Input disabled value={roleName} className="w-full bg-gray-100" />
         </TabsContent>
 
         {/* PERMISOS */}
@@ -190,7 +167,7 @@ export default function CreateRolePage() {
           onClick={handleSave}
           className="bg-brand-primary text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:brightness-110 transition-all shadow-sm"
         >
-          Crear Rol
+          Guardar Cambios
         </button>
       </div>
     </div>

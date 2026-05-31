@@ -20,6 +20,7 @@ import GlobalLoader from "../components/ui/GlobalLoader";
 import { useLoading } from "../context/LoadingContext";
 
 import CreateRolePage from "@/pages/admin/personal/createRolePage";
+import EditRolePage from "@/pages/admin/personal/editRolePage";
 import NoAccess from "@/pages/noAccess";
 
 import { ROUTE_PERMISSIONS } from "@/lib/route-permissions";
@@ -109,6 +110,7 @@ function AppRoute() {
         >
           <Route index element={<Personal />} />
           <Route path="create-role" element={<CreateRolePage />} />
+          <Route path="edit-role" element={<EditRolePage />} />
         </Route>
 
         <Route
