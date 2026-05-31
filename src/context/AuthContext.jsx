@@ -67,7 +67,7 @@ export function AuthProvider({ children }) {
       const userData = {
         ...data,
         role: data.roleCode, // ← rol real del backend
-        permissions: data.permissions || [], // ← permisos reales del backend
+        permissions: data.permissions || [], // ← permisos del backend
       };
 
       localStorage.setItem("user", JSON.stringify(userData));

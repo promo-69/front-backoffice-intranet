@@ -8,9 +8,8 @@ import { Switch } from "@/components/ui/switch";
 
 import { getAllPermissions } from "@/services/permissions.service";
 import {
-  getRolePermissions,
-  updateRolePermissions,
   getRoleById,
+  updateRolePermissions, // Asegúrate de que apunte al POST {{baseUrl}}/roles/:id/permissions
 } from "@/services/roles.service";
 
 export default function EditRolePage() {
@@ -26,47 +25,53 @@ export default function EditRolePage() {
   const [selectedPermissions, setSelectedPermissions] = useState(new Set());
 
   // ============================
-  // 1. Cargar datos del rol + permisos
+  // 1. Cargar datos del rol + permisos globales
   // ============================
   useEffect(() => {
     async function load() {
       if (!roleId) return;
 
-      // 1. Obtener datos del rol
-      const roleData = await getRoleById(roleId);
-      setRoleName(roleData.code); 
+      try {
+        // 1. Obtener datos del rol 
+        const roleData = await getRoleById(roleId);
+        setRoleName(roleData.code);
 
-      // 2. Obtener todos los permisos
-      const allPermissions = await getAllPermissions(); 
+        // 2. Obtener todos los permisos globales 
+        const allPermissions = await getAllPermissions();
 
-      // 3. Obtener permisos asignados al rol
-      const rolePermissions = await getRolePermissions(roleId); 
+        // ⭐ 3. Extraer los permisos que ya tiene el rol asignados.
+        const rolePermissions =
+          roleData.permissions || roleData._Permissions || [];
 
-      const assignedIds = new Set(rolePermissions.map((p) => p.id));
-      setSelectedPermissions(assignedIds);
+        // Creamos el Set con los IDs de los permisos activos de este rol
+        const assignedIds = new Set(rolePermissions.map((p) => p.id));
+        setSelectedPermissions(assignedIds);
 
-      // 4. Agrupar permisos por recurso
-      const grouped = {};
-      allPermissions.forEach((perm) => {
-        const resource = perm._Resources.code;
-        const action = perm._Actions.code;
+        // 4. Agrupar la parrilla completa de permisos por recurso para la interfaz
+        const grouped = {};
+        allPermissions.forEach((perm) => {
+          const resource = perm._Resources.code;
+          const action = perm._Actions.code;
 
-        if (!grouped[resource]) grouped[resource] = [];
+          if (!grouped[resource]) grouped[resource] = [];
 
-        grouped[resource].push({
-          id: perm.id,
-          action,
+          grouped[resource].push({
+            id: perm.id,
+            action,
+          });
         });
-      });
 
-      setPermissionsByResource(grouped);
+        setPermissionsByResource(grouped);
+      } catch (error) {
+        console.error("Error cargando los datos de edición de roles:", error);
+      }
     }
 
     load();
   }, [roleId]);
 
   // ============================
-  // 2. Toggle de permisos
+  // 2. Toggle de checkboxes / switches
   // ============================
   const togglePermission = (permId) => {
     setSelectedPermissions((prev) => {
@@ -77,11 +82,45 @@ export default function EditRolePage() {
   };
 
   // ============================
-  // 3. Guardar cambios
+  // 3. Guardar cambios (Ejecuta el POST )
   // ============================
   const handleSave = async () => {
-    await updateRolePermissions(roleId, Array.from(selectedPermissions));
-    navigate("/admin/personal");
+    // 🔍 LOG 1: Verificar si la función se ejecuta al dar clic
+    console.log("¡Botón Guardar presionado!");
+    console.log("ID del Rol actual (roleId):", roleId);
+
+    const permissionsArray = Array.from(selectedPermissions);
+    console.log("IDs de permisos capturados para enviar:", permissionsArray);
+
+    if (!roleId) {
+      console.error(
+        "Fallo antes de enviar: No se encontró el 'roleId' en la URL.",
+      );
+      alert("Error: Falta el ID del rol.");
+      return;
+    }
+
+    try {
+      console.log("Enviando petición al backend...");
+
+      // Aquí hacemos la llamada
+      const response = await updateRolePermissions(roleId, permissionsArray);
+
+      // 🔍 LOG 2: Si el backend responde con éxito
+      console.log("Respuesta exitosa del backend:", response);
+
+      alert("¡Permisos guardados correctamente!");
+      navigate("/admin/personal");
+    } catch (error) {
+      // 🔍 LOG 3: Si la petición falla (Ej: Error 400, 404, 500)
+      console.error("Error capturado en handleSave al ejecutar el servicio:");
+      if (error.response) {
+        console.error("Datos del error de respuesta:", error.response.data);
+        console.error("Estado HTTP del error:", error.response.status);
+      } else {
+        console.error("Mensaje de error general:", error.message);
+      }
+    }
   };
 
   return (
@@ -129,7 +168,6 @@ export default function EditRolePage() {
           <label className="text-sm font-semibold block text-brand-primary">
             Nombre del Rol
           </label>
-
           <Input disabled value={roleName} className="w-full bg-gray-100" />
         </TabsContent>
 
