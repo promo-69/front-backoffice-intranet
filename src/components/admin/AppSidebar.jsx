@@ -28,37 +28,59 @@ import LogoCineflix from "@/assets/images/logotype/logoCiineflix1.png";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
-import { useRole } from "@/hooks/useRole";
+import { usePermission } from "@/hooks/usePermission";
 
-// Menú base
+// Menú base con permisos REALES
 const navItems = [
   {
     id: "dashboard",
     title: "Dashboard",
     url: "/admin/dashboard",
     icon: LayoutDashboard,
+    permission: "CRUD:READ:ROOMS",
   },
   {
     id: "cinemas",
     title: "Sucursales",
     url: "/admin/sucursales",
     icon: MapPin,
+    permission: "CRUD:READ:CINEMAS",
   },
-  { id: "personal", title: "Personal", url: "/admin/personal", icon: Users },
+  {
+    id: "personal",
+    title: "Personal",
+    url: "/admin/personal",
+    icon: Users,
+    permission: "CRUD:READ:EMPLOYEES",
+  },
   {
     id: "exhibition",
     title: "Cartelera",
     url: "/admin/exhibition",
     icon: Film,
+    permission: "CRUD:READ:ROOM-EVENTS",
   },
   {
     id: "inventory",
     title: "Inventario",
     url: "/admin/inventario",
     icon: Package,
+    permission: "CRUD:READ:PRODUCTS",
   },
-  { id: "catalog", title: "Maestros", url: "/admin/catalogo", icon: BookOpen },
-  { id: "reports", title: "Reportes", url: "/admin/reports", icon: BarChart3 },
+  {
+    id: "catalog",
+    title: "Maestros",
+    url: "/admin/catalogo",
+    icon: BookOpen,
+    permission: "CRUD:READ:CATALOGS",
+  },
+  {
+    id: "reports",
+    title: "Reportes",
+    url: "/admin/reports",
+    icon: BarChart3,
+    permission: "CRUD:READ:REPORTS", 
+  },
 
   // Cajero
   {
@@ -66,59 +88,29 @@ const navItems = [
     title: "Dashboard Cajero",
     url: "/ticketOffice/dashboard",
     icon: LayoutDashboard,
+    permission: "CRUD:READ:PRODUCTS",
   },
   {
     id: "sell_tickets",
     title: "Venta de Boletos",
     url: "/ticketOffice/sell",
     icon: TicketIcon,
+    permission: "CRUD:READ:CINEMAS-ROOM-EVENTS",
   },
   {
     id: "candy_bar",
     title: "Caramelería",
     url: "/ticketOffice/candy",
     icon: ShoppingBag,
+    permission: "CRUD:READ:COMBOS",
   },
 ];
 
-// items por rol (solo ids)
-const ALLOWED_BY_ROLE = {
-  SUPER_ADMIN: [
-    "dashboard",
-    "cinemas",
-    "personal",
-    "exhibition",
-    "inventory",
-    "catalog",
-    "reports",
-    "dashboard_cashier",
-    "sell_tickets",
-    "candy_bar",
-  ],
-
-  GENERAL_MANAGER: [
-    "dashboard",
-    "cinemas",
-    "personal",
-    "exhibition",
-    "inventory",
-    "reports",
-  ],
-
-  CINEMA_MANAGER: ["dashboard", "cinemas", "personal", "exhibition"],
-
-  CASHIER: ["dashboard_cashier", "sell_tickets", "candy_bar"],
-
-  USHER: ["dashboard_cashier", "sell_tickets"],
-};
-
 export function AppSidebar({ className, ...props }) {
-  const { role } = useRole();
+  const { can } = usePermission();
 
-  if (!role) return null;
-
-  const allowedIds = ALLOWED_BY_ROLE[role] || [];
-  const visibleMenu = navItems.filter((item) => allowedIds.includes(item.id));
+  // Filtrar por permisos reales
+  const visibleMenu = navItems.filter((item) => can(item.permission));
 
   return (
     <Sidebar

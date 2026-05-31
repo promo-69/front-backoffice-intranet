@@ -1,63 +1,77 @@
 import { useState, useEffect } from "react";
 import { ArrowLeft } from "lucide-react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 
-// Mock temporal — luego se reemplaza por backend
-const ROLE_PERMISSIONS = {
-  ADMIN: {
-    employees: true,
-    users: true,
-    reports: true,
-  },
-  GERENT_MANAGER: {
-    employees: true,
-    users: true,
-    reports: false,
-  },
-  CASHIER: {
-    employees: false,
-    users: false,
-    reports: true,
-  },
-  USHER: {
-    employees: false,
-    users: false,
-    reports: false,
-  },
-};
+import { getAllPermissions } from "@/services/permissions.service";
+import { createRole, updateRolePermissions } from "@/services/roles.service";
 
 export default function CreateRolePage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
 
-  //  Si viene desde EDITAR, cargamos el nombre del rol
-  const editingRole = searchParams.get("role");
-
-  const [roleName, setRoleName] = useState(editingRole || "");
   const [activeTab, setActiveTab] = useState("visual");
 
-  const [permissions, setPermissions] = useState({
-    employees: false,
-    users: false,
-    reports: false,
+  const [roleData, setRoleData] = useState({
+    code: "",
+    name: "",
+    description: "",
   });
 
-  //  Cargar permisos automáticamente según el rol
-  useEffect(() => {
-    if (editingRole && ROLE_PERMISSIONS[editingRole]) {
-      setPermissions(ROLE_PERMISSIONS[editingRole]);
-    }
-  }, [editingRole]);
+  const [permissionsByResource, setPermissionsByResource] = useState({});
+  const [selectedPermissions, setSelectedPermissions] = useState(new Set());
 
-  const togglePermission = (key) => {
-    setPermissions((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
+  // ============================
+  // 1. Cargar permisos del backend
+  // ============================
+  useEffect(() => {
+    async function load() {
+      const allPermissions = await getAllPermissions(); 
+
+      const grouped = {};
+      allPermissions.forEach((perm) => {
+        const resource = perm._Resources.code;
+        const action = perm._Actions.code;
+
+        if (!grouped[resource]) grouped[resource] = [];
+
+        grouped[resource].push({
+          id: perm.id,
+          action,
+        });
+      });
+
+      setPermissionsByResource(grouped);
+    }
+
+    load();
+  }, []);
+
+  // ============================
+  // 2. Toggle de permisos
+  // ============================
+  const togglePermission = (permId) => {
+    setSelectedPermissions((prev) => {
+      const updated = new Set(prev);
+      updated.has(permId) ? updated.delete(permId) : updated.add(permId);
+      return updated;
+    });
+  };
+
+  // ============================
+  // 3. Crear rol + asignar permisos
+  // ============================
+  const handleSave = async () => {
+    // 1. Crear el rol
+    const newRole = await createRole(roleData);
+
+    // 2. Asignar permisos
+    await updateRolePermissions(newRole.id, Array.from(selectedPermissions));
+
+    // 3. Volver a Roles
+    navigate("/admin/personal");
   };
 
   return (
@@ -73,14 +87,9 @@ export default function CreateRolePage() {
 
       {/* TÍTULO */}
       <div>
-        <h2 className="text-xl font-bold text-brand-primary">
-          {editingRole ? "Editar Rol" : "Crear Rol"}
-        </h2>
-
+        <h2 className="text-xl font-bold text-brand-primary">Crear Rol</h2>
         <p className="text-xs text-muted-foreground">
-          {editingRole
-            ? "Modifica el nombre y los permisos del rol"
-            : "Configura el nombre y los permisos del nuevo rol"}
+          Define el nombre y los permisos del nuevo rol
         </p>
       </div>
 
@@ -92,80 +101,96 @@ export default function CreateRolePage() {
       >
         <div className="border-b border-gray-200 pb-2">
           <TabsList className="flex gap-6 bg-transparent p-0 justify-start h-auto">
-            <TabsTrigger
-              value="visual"
-              className="pb-2 text-sm font-semibold rounded-none border-b-2 bg-transparent data-[state=active]:text-brand-primary data-[state=active]:border-brand-primary data-[state=inactive]:text-gray-500 data-[state=inactive]:border-transparent transition-all"
-            >
-              Visualización
+            <TabsTrigger value="visual" className="pb-2 text-sm font-semibold">
+              Información
             </TabsTrigger>
 
             <TabsTrigger
               value="permissions"
-              className="pb-2 text-sm font-semibold rounded-none border-b-2 bg-transparent data-[state=active]:text-brand-primary data-[state=active]:border-brand-primary data-[state=inactive]:text-gray-500 data-[state=inactive]:border-transparent transition-all"
+              className="pb-2 text-sm font-semibold"
             >
               Permisos
             </TabsTrigger>
           </TabsList>
         </div>
 
-        <div className="w-full pt-4">
-          {/* VISUALIZACIÓN */}
-          <TabsContent value="visual" className="space-y-2 mt-0">
+        {/* INFORMACIÓN */}
+        <TabsContent value="visual" className="space-y-4 mt-0">
+          <div>
+            <label className="text-sm font-semibold block text-brand-primary">
+              Código del Rol
+            </label>
+            <Input
+              placeholder="Ej: CASHIER, MANAGER"
+              value={roleData.code}
+              onChange={(e) =>
+                setRoleData({ ...roleData, code: e.target.value })
+              }
+            />
+          </div>
+
+          <div>
             <label className="text-sm font-semibold block text-brand-primary">
               Nombre del Rol
             </label>
-
             <Input
-              placeholder="Ej: Administrador, Cajero, Supervisor..."
-              value={roleName}
-              onChange={(e) => setRoleName(e.target.value)}
-              className="w-full"
+              placeholder="Ej: Operador Nivel 2"
+              value={roleData.name}
+              onChange={(e) =>
+                setRoleData({ ...roleData, name: e.target.value })
+              }
             />
-          </TabsContent>
+          </div>
 
-          {/* PERMISOS */}
-          <TabsContent value="permissions" className="space-y-6 mt-0">
-            <h3 className="text-sm font-semibold text-brand-primary">
-              Permisos del Rol
-            </h3>
+          <div>
+            <label className="text-sm font-semibold block text-brand-primary">
+              Descripción
+            </label>
+            <Input
+              placeholder="Describe las funciones del rol"
+              value={roleData.description}
+              onChange={(e) =>
+                setRoleData({ ...roleData, description: e.target.value })
+              }
+            />
+          </div>
+        </TabsContent>
 
-            <div className="space-y-4 max-w-md">
-              <div className="flex items-center justify-between py-2 border-b border-gray-50">
-                <span className="text-sm text-gray-700">
-                  Gestionar empleados
-                </span>
-                <Switch
-                  checked={permissions.employees}
-                  onCheckedChange={() => togglePermission("employees")}
-                />
-              </div>
+        {/* PERMISOS */}
+        <TabsContent value="permissions" className="space-y-6 mt-0">
+          <h3 className="text-sm font-semibold text-brand-primary">
+            Permisos del Rol
+          </h3>
 
-              <div className="flex items-center justify-between py-2 border-b border-gray-50">
-                <span className="text-sm text-gray-700">
-                  Gestionar usuarios
-                </span>
-                <Switch
-                  checked={permissions.users}
-                  onCheckedChange={() => togglePermission("users")}
-                />
-              </div>
+          {Object.entries(permissionsByResource).map(([resource, perms]) => (
+            <div key={resource} className="border p-4 rounded-lg">
+              <h4 className="font-semibold text-gray-700 mb-3">{resource}</h4>
 
-              <div className="flex items-center justify-between py-2">
-                <span className="text-sm text-gray-700">Ver reportes</span>
-                <Switch
-                  checked={permissions.reports}
-                  onCheckedChange={() => togglePermission("reports")}
-                />
-              </div>
+              {perms.map((perm) => (
+                <div
+                  key={perm.id}
+                  className="flex items-center justify-between py-2 border-b last:border-none"
+                >
+                  <span className="text-sm">{perm.action}</span>
+
+                  <Switch
+                    checked={selectedPermissions.has(perm.id)}
+                    onCheckedChange={() => togglePermission(perm.id)}
+                  />
+                </div>
+              ))}
             </div>
-          </TabsContent>
-        </div>
+          ))}
+        </TabsContent>
       </Tabs>
 
       {/* BOTÓN GUARDAR */}
       <div className="flex justify-end pt-4 border-t border-gray-100">
-        <button className="bg-brand-primary text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:brightness-110 transition-all shadow-sm">
-          {editingRole ? "Guardar Cambios" : "Guardar Rol"}
+        <button
+          onClick={handleSave}
+          className="bg-brand-primary text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:brightness-110 transition-all shadow-sm"
+        >
+          Crear Rol
         </button>
       </div>
     </div>
