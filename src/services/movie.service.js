@@ -12,21 +12,21 @@ export const getMovies = async (params) => {
   const response = await api.get('/movies', {
     params: {
       page: String(params.page || 1),
-      per_page: String(params.per_page || 10)
+      limit: String(params.limit || 10)
     }
   }); 
   return response.data;
 };*/
 
-export const getMovies = async (pageOrParams = 1, perPage = 10) => {
-  let queryParams = { page: 1, per_page: 10 };
+export const getMovies = async (page = 1, limit = 10) => {
+  let queryParams = { page: 1, limit: 10 };
 
-  if (typeof pageOrParams === 'object' && pageOrParams !== null) {
-    queryParams.page = String(pageOrParams.page || 1);
-    queryParams.per_page = String(pageOrParams.per_page || 10);
+  if (typeof page === 'object' && page !== null) {
+    queryParams.page = String(page.page || 1);
+    queryParams.limit = String(page.limit || 10);
   } else {
-    queryParams.page = String(pageOrParams);
-    queryParams.per_page = String(perPage);
+    queryParams.page = String(page);
+    queryParams.limit = String(limit);
   }
 
   const response = await api.get('/movies', { params: queryParams }); 
