@@ -23,9 +23,11 @@ export default function MovieForm({
   onClose, 
   onSuccess, 
   initialData, 
-  lifecycleStatesList = [], 
+  lifecycleStatesList, 
   genresList = [],
-  ageClassificationsList = []
+  ageClassificationsList,
+  languagesList = [],
+  projectionTypesList=[]
 }) {
   const isEdit = !!initialData;
   const fileInputRef = useRef(null);
@@ -37,26 +39,56 @@ export default function MovieForm({
     defaultValues: {
       lifecycleState: "",
       ageClassification: "",
-      durationMinutes: "",
-      genres: []
+      durationMinutes: "0",
+      genres: [],
+      languages:[],
+      projectionTypes:[]
     }
   });
 
   const selectedGenres = watch("genres") || [];
+  const selectedProjectionTypes = watch("projectionTypes") || [];
+  const selectedLanguages = watch("languages") || [];
 
   useEffect(() => {
     if (open && initialData) {
+      // Helper para normalizar los valores que vienen del backend
+      const getNormalizedId = (list, fieldData) => {
+        if (!fieldData) return "";
+        
+        // Si es un ID directo (número o string numérico)
+        if (typeof fieldData === "number") return fieldData;
+        if (typeof fieldData === "string" && !isNaN(fieldData) && fieldData.trim() !== "") return Number(fieldData);
+        
+        // Si es un objeto (como el caso de age_classification en el ejemplo del usuario)
+        if (typeof fieldData === "object") {
+          if (fieldData.id) return fieldData.id;
+          
+          // Búsqueda por descripción en el catálogo cargado (Salvavidas)
+          if (fieldData.description && list?.length > 0) {
+            const found = list.find(item => 
+              item.description?.toLowerCase() === fieldData.description?.toLowerCase() || 
+              item.name?.toLowerCase() === fieldData.description?.toLowerCase()
+            );
+            return found ? found.id : "";
+          }
+        }
+        return "";
+      };
+
       const formattedData = {
         title: initialData.title,
         synopsis: initialData.synopsis,
         durationMinutes: initialData.duration_minutes, 
         releaseDate: initialData.release_date?.split('T')[0], 
-        ageClassification: initialData.age_classification, 
-        lifecycleState: initialData.lifecycle_state, 
+        ageClassification: getNormalizedId(ageClassificationsList, initialData.age_classification), 
+        lifecycleState: getNormalizedId(lifecycleStatesList, initialData.lifecycle_state), 
         poster: initialData.poster_url,
         banner: initialData.banner_url,
         trailerUrl: initialData.trailer_url, 
-        genres: initialData._MovieGenres?.map(g => g.genre.toString()) || []
+        genres: (initialData.genres || initialData._MovieGenres)?.map(g => (g.genre || g.id).toString()) || [],
+        languages: initialData.languages?.map(lang => (lang.language || lang.id).toString()) || [],
+        projectionTypes: initialData.projection_types?.map(projt => (projt.projection_type || projt.id).toString()) || []
       };
       reset(formattedData);
       setBannerPreview(initialData.banner_url);
@@ -70,12 +102,23 @@ export default function MovieForm({
         trailerUrl: "", 
         ageClassification: "", 
         lifecycleState: "", 
-        genres: [] 
+        genres: [], 
+        languages: [],
+        projectionTypes: []
       });
       setBannerPreview(null);
       setPosterPreview(null);
     }
-  }, [initialData, open, reset]);
+  }, [
+    initialData, 
+    open, 
+    reset, 
+    genresList, 
+    ageClassificationsList, 
+    lifecycleStatesList, 
+    languagesList, 
+    projectionTypesList
+  ]);
 
   // Manejador de cambio para el Póster
   const handleImageChange = (e) => {
@@ -115,6 +158,9 @@ export default function MovieForm({
       const genresArrayOfNumbers = data.genres.map(Number);
       formData.append('genres', JSON.stringify(genresArrayOfNumbers));
     }
+
+    formData.append('languages', JSON.stringify(data.languages.map(Number)));
+    formData.append('projectionTypes', JSON.stringify(data.projectionTypes.map(Number)));
 
     // Solo adjuntar si es un archivo real (File), ignorar si se quedó como string URL o null
     if (data.poster && data.poster instanceof FileList && data.poster[0]) {
@@ -278,10 +324,32 @@ export default function MovieForm({
               />
             </div>
 
+              <ChipsSelectorForm
+              label="Idiomas"
+              options={languagesList}
+              selectedValues={selectedLanguages}
+              registerProps={register("languages", { 
+                validate: (value) => value.length > 0 || "Este campo es obligatorio" 
+              })}
+              error={errors.languages?.message}
+              />
+              
+          
+              <ChipsSelectorForm
+              label="Proyecciones"
+              options={projectionTypesList}
+              selectedValues={selectedProjectionTypes}
+              registerProps={register("projectionTypes", { 
+                validate: (value) => value.length > 0 || "Este campo es obligatorio" 
+              })}
+              error={errors.projectionTypes?.message}
+              />
+            
+
             <ChipsSelectorForm
               label="Géneros"
-              genresList={genresList}
-              selectedGenres={selectedGenres}
+              options={genresList}
+              selectedValues={selectedGenres}
               registerProps={register("genres", { 
                 validate: (value) => value.length > 0 || "Este campo es obligatorio" 
               })}

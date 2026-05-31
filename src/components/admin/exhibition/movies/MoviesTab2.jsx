@@ -4,7 +4,7 @@ import { Pencil, Trash2, Film, Clock, Calendar } from "lucide-react";
 const GENRES_FALLBACK = { 1: 'Acción', 2: 'Comedia', 3: 'Drama', 4: 'Ciencia Ficción', 5: 'Terror / Suspenso', 6: 'Animación / Infantil' };
 const CLASSIFICATION_FALLBACK = { 1: "A (Todo Público)", 2: "B (+12)", 3: "C (+15)", 4: "D (+18)" };
 
-export function MoviesTab({ data, onEdit, onDelete }) {
+export function MoviesTab({ data, onEdit, onDelete, currentPage, onPageChange, metadata }) {
   return (
     <div className="overflow-x-auto bg-surface-container rounded-cineflix border border-border shadow-sm">
       <table className="w-full text-left text-xs font-montserrat">
@@ -13,7 +13,9 @@ export function MoviesTab({ data, onEdit, onDelete }) {
             <th className="py-4 px-6 text-center">Póster</th>
             <th className="py-4 px-4">Información</th>
             <th className="py-4 px-4">Géneros</th>
+            <th className="py-4 px-4">Idiomas</th>
             <th className="py-4 px-4 text-center">Clasificación</th>
+            <th className="py-4 px-4 text-center">Tipos de Proyección</th>
             <th className="py-4 px-4 text-center">Estado</th>
             <th className="py-4 px-6 text-center">Acciones</th>
           </tr>
@@ -54,10 +56,10 @@ export function MoviesTab({ data, onEdit, onDelete }) {
                 {/* GÉNEROS */}
                 <td className="py-4 px-4">
                   <div className="flex flex-wrap gap-1 max-w-[200px]">
-                    {movie._MovieGenres && movie._MovieGenres.length > 0 ? (
-                      movie._MovieGenres.map((g) => (
+                    {movie.genres && movie.genres.length > 0 ? (
+                      movie.genres.map((g) => (
                         <span key={g.id} className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[9px] font-bold uppercase border border-slate-200">
-                          {g.Genre?.name || g.Genre?.description || GENRES_FALLBACK[g.genre] || "Otro"}
+                          {g._Genres?.description || g._Genres?.description || GENRES_FALLBACK[g.genre] || "Otro"}
                         </span>
                       ))
                     ) : (
@@ -65,18 +67,48 @@ export function MoviesTab({ data, onEdit, onDelete }) {
                     )}
                   </div>
                 </td>
+
+                {/* IDIOMAS */}
+                <td className="py-4 px-4">
+                  <div className="flex flex-wrap gap-1 max-w-[200px]">
+                    {movie.languages && movie.languages.length > 0 ? (
+                      movie.languages.map((lang) => (
+                        <span key={lang.id} className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[9px] font-bold uppercase border border-slate-200">
+                          {lang._Languages?.description || "Otro"}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-gray-300 italic text-[10px]">Sin idiomas</span>
+                    )}
+                  </div>
+                </td>
                 
                 {/* CLASIFICACIÓN DE EDAD */}
                 <td className="py-4 px-4 text-center">
                   <span className="px-2 py-1 rounded bg-brand-primary/5 text-brand-primary font-black text-[10px] border border-brand-primary/10 whitespace-nowrap">
-                    {movie.AgeClassification?.name || movie.AgeClassification?.description || CLASSIFICATION_FALLBACK[movie.age_classification] || "N/A"}
+                    {movie.age_classification?.description || CLASSIFICATION_FALLBACK[movie.age_classification] || "N/A"}
                   </span>
+                </td>
+
+                {/* TIPOS DE PROYECCIONES */}
+                <td className="py-4 px-4">
+                  <div className="flex flex-wrap gap-1 max-w-[200px]">
+                    {movie.projection_types && movie.projection_types.length > 0 ? (
+                      movie.projection_types.map((pt) => (
+                        <span key={pt.id} className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[9px] font-bold uppercase border border-slate-200">
+                          {pt._ProjectionTypes?.description || "Otro"}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-gray-300 italic text-[10px]">Sin proyecciones</span>
+                    )}
+                  </div>
                 </td>
 
                 {/* ESTADO DE CICLO DE VIDA */}
                 <td className="py-4 px-4 text-center">
                    <div className="flex justify-center">
-                    {getStateBadge(movie.lifecycle_state, movie.LifecycleState)}
+                    {getStateBadge(movie.lifecycle_state?.id, movie.lifecycle_state)}
                    </div>
                 </td>
 
@@ -101,7 +133,7 @@ export function MoviesTab({ data, onEdit, onDelete }) {
             ))
           ) : (
             <tr>
-              <td colSpan="6" className="text-center py-12 text-slate-400 font-montserrat uppercase text-[10px] tracking-widest font-bold">
+              <td colSpan="8" className="text-center py-12 text-slate-400 font-montserrat uppercase text-[10px] tracking-widest font-bold">
                 No hay películas disponibles en esta página
               </td>
             </tr>
@@ -121,18 +153,30 @@ function getStateBadge(id, nestedObject) {
         5: "bg-rose-50 text-rose-600 border-rose-100"          // Fuera de Cartelera
     };
     
-    const labels = { 
-        1: "Próximamente", 
-        2: "Estreno", 
-        3: "Cartelera", 
-        4: "Últimos Días", 
-        5: "Fuera de Cartelera" 
+    const labelsFallback = { 
+        1: "Próximamente",
+        2: "En Cartelera (Estreno)",
+        3: "En Cartelera (Regular)",
+        4: "Últimos Días",
+        5: "Fuera de Cartelera"
     };
 
-    const textToShow = nestedObject?.name || nestedObject?.description || labels[id] || "Oculto";
+    // Si el ID es nulo (como en tu respuesta del backend), intentamos inferir el ID por el texto
+    let effectiveId = id;
+    const description = nestedObject?.description || nestedObject?.name;
+
+    if (!effectiveId && description) {
+        const foundEntry = Object.entries(labelsFallback).find(
+            ([_, label]) => label.toLowerCase() === description.toLowerCase()
+        );
+        if (foundEntry) effectiveId = Number(foundEntry[0]);
+    }
+
+    const textToShow = description || labelsFallback[id] || "Oculto";
+    const badgeClass = badges[effectiveId] || "bg-gray-50 text-gray-400 border-gray-100";
 
     return (
-      <span className={`px-2 py-1 rounded-md font-bold text-[9px] uppercase border ${badges[id] || "bg-gray-50 text-gray-400 border-gray-100"}`}>
+      <span className={`px-2 py-1 rounded-md font-bold text-[9px] uppercase border ${badgeClass}`}>
         {textToShow}
       </span>
     );

@@ -4,8 +4,8 @@ import { cn } from "@/lib/utils"
 
 export const ChipsSelectorForm = forwardRef(({ 
   label, 
-  genresList = [], 
-  selectedGenres = [], 
+  options = [], 
+  selectedValues = [], 
   error, 
   registerProps,
   className 
@@ -34,8 +34,8 @@ export const ChipsSelectorForm = forwardRef(({
           className
         )}
       >
-        {genresList.map((genre) => {
-          const isChecked = selectedGenres.includes(genre.id.toString());
+        {options.map((genre) => {
+          const isChecked = selectedValues.includes(genre.id.toString());
           
           return (
             <label 

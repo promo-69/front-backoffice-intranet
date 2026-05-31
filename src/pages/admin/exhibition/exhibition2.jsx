@@ -17,29 +17,29 @@ import { getRooms } from "@/services/room.service";
 // --- RESPALDOS ESTÁTICOS DE SEGURIDAD (FALLBACKS) ---
 // Evitan pantallas en blanco si el servidor está suspendido o colapsado
 const FALLBACKS = {
-  genresData: [
+  "genres": [
     { id: 1, description: "Acción" },
     { id: 2, description: "Comedia" },
     { id: 3, description: "Drama" },
     { id: 4, description: "Ciencia Ficción" }
   ],
-  classificationsData: [
+  "age-classifications": [
     { id: 1, description: "A (Todo Público)" },
     { id: 2, description: "B (+12)" },
     { id: 3, description: "C (+15)" },
     { id: 4, description: "D (+18)" }
   ],
-  lifecyclesData: [
+  "movie-lifecycle-states": [
     { id: 1, description: "Próximamente" },
     { id: 2, description: "En Cartelera (Estreno)" },
     { id: 3, description: "En Cartelera (Regular)" },
     { id: 4, description: "Últimos Días" }
   ],
-  projectionsData: [
+  "projection-types": [
     { id: 1, description: "2D Tradicional" },
     { id: 2, description: "3D Dolby Atmos" }
   ],
-  currenciesData: [
+  "currencies": [
     { id: 1, description: "USD - Dólares", symbol: "$" },
     { id: 2, description: "VES - Bolívares", symbol: "Bs" }
   ],
@@ -77,6 +77,7 @@ export default function ExhibitionPage() {
   const [genres, setGenres] = useState([]);
   const [ageClassifications, setAgeClassifications] = useState([]);
   const [lifecycleStates, setLifecycleStates] = useState([]);
+  const [languages, setLanguages] = useState([]);
   const [projectionTypes, setProjectionTypes] = useState([]);
   const [currencies, setCurrencies] = useState([]);
   const [roomBookings, setRoomBookings] = useState([]);
@@ -115,6 +116,9 @@ export default function ExhibitionPage() {
       const projectionsData = await safeFetchCatalog("projection-types");
       await delay(150);
 
+      const languagesData = await safeFetchCatalog("languages");
+      await delay(150);
+
       const currenciesData = await safeFetchCatalog("currencies");
       await delay(150);
 
@@ -124,6 +128,7 @@ export default function ExhibitionPage() {
       setAgeClassifications(classificationsData);
       setLifecycleStates(lifecyclesData);
       setProjectionTypes(projectionsData);
+      setLanguages(languagesData);
       setCurrencies(currenciesData);
       setRoomBookings(bookingsData);
     }
@@ -299,6 +304,8 @@ useEffect(() => {
         genresList={genres}
         ageClassificationsList={ageClassifications}
         lifecycleStatesList={lifecycleStates}
+        languagesList={languages}
+        projectionTypesList={projectionTypes}
         initialData={modal.data}
         onSuccess={handleMovieSuccess}
       />
@@ -317,11 +324,14 @@ useEffect(() => {
 
       {/* MODAL DE CONFIRMACIÓN DE BORRADO */}
       <DeleteConfirmModal 
-        open={modal.isOpen && modal.type === "delete"}
+        isOpen={modal.isOpen && modal.type === "delete"}
         onClose={closeModal}
         onConfirm={handleConfirmDelete}
-        title={activeTab === "movies" ? "¿Remover Película del Sistema?" : "¿Cancelar Función de Cartelera?"}
-        description={`Esta acción destruirá los registros de forma permanente. ¿Confirmas la eliminación de: ${modal.data?.title || 'este elemento'}?`}
+        itemName={
+          activeTab === "movies" 
+            ? modal.data?.title 
+            : (movies.find(m => String(m.id) === String(modal.data?.movie))?.title || "esta función")
+        }
       />
     </div>
   );

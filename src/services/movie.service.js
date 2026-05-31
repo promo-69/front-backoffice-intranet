@@ -64,7 +64,7 @@ export const createMovie = async (formData) => {
 
 
 export const updateMovie = async (id, movieData) => {
-    const response = await api.put(`/movies/${id}`, movieData);
+    const response = await api.patch(`/movies/${id}`, movieData);
     return response.data;
 };
 
