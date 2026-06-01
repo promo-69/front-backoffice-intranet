@@ -65,13 +65,15 @@ export default function ExhibitionPage() {
 
   // Estados de Películas
   const [movies, setMovies] = useState([]);
-  const [moviesPage, setMoviesPage] = useState(1);
-  const [moviesMetadata, setMoviesMetadata] = useState({ total: 0, per_page: 10, current_page: 1, total_pages: 1 });
+  const [moviesCurrentPage, setMoviesCurrentPage] = useState(1);
+  const [moviesPerPage, setMoviesPerPage] = useState(10);
+  const [moviesMetadata, setMoviesMetadata] = useState(null);
 
   // Estados de Funciones
   const [showtimes, setShowtimes] = useState([]);
   const [showtimesPage, setShowtimesPage] = useState(1);
-  const [showtimesMetadata, setShowtimesMetadata] = useState({ total: 0, per_page: 10, current_page: 1, total_pages: 1 });
+  const [showtimesPerPag, setShowtimesPerPage] = useState(10);
+  const [showtimesMetadata, setShowtimesMetadata] = useState({ total: 0, limit: 10, current_page: 1, total_pages: 1 });
 
   // --- ESTADOS LOCALES PARA CATÁLOGOS ELEVADOS (LIFTING STATE UP) ---
   const [genres, setGenres] = useState([]);
@@ -142,7 +144,7 @@ export default function ExhibitionPage() {
       if (activeTab !== "movies") return;
       showLoader();
       try {
-        const res = await getMovies({ page: moviesPage, per_page: 10 });
+        const res = await getMovies( moviesCurrentPage, moviesPerPage );
         setMovies(res.data || []);
         if (res.metadata) setMoviesMetadata(res.metadata);
       } catch (err) {
@@ -153,7 +155,7 @@ export default function ExhibitionPage() {
       }
     }
     loadMovies();
-  }, [moviesPage, activeTab]);
+  }, [moviesCurrentPage, moviesPerPage, activeTab]);
 
 
 useEffect(() => {
@@ -194,10 +196,10 @@ useEffect(() => {
   // --- MANEJADORES DE OPERACIONES EXITOSAS  ---
   const handleMovieSuccess = async () => {
     closeModal();
-    setMoviesPage(1);
+    setMoviesCurrentPage(1);
     showLoader();
     try {
-      const res = await getMovies({ page: 1, per_page: 10 });
+      const res = await getMovies( moviesCurrentPage, moviesPerPage );
       setMovies(res.data || []);
       if (res.metadata) setMoviesMetadata(res.metadata);
     } catch (e) {
@@ -278,8 +280,8 @@ useEffect(() => {
           data={movies}
           onEdit={(type, data) => openModal(type, data)}
           onDelete={(type, data) => openModal(type, data)}
-          currentPage={moviesPage}
-          onPageChange={setMoviesPage}
+          currentPage={moviesCurrentPage}
+          onPageChange={setMoviesCurrentPage}
           metadata={moviesMetadata}
         />
       ) : (
