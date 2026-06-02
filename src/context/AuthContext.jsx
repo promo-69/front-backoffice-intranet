@@ -8,15 +8,6 @@ import { useLoading } from "./LoadingContext";
 
 export const AuthContext = createContext();
 
-/*const ROLE_MAP = {
-  1: "SUPER_ADMIN",
-  2: "GENERAL_MANAGER",
-  3: "CINEMA_MANAGER",
-  4: "CASHIER",
-  5: "USHER",
-};*/
-
-
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem("user");
@@ -25,29 +16,34 @@ export function AuthProvider({ children }) {
 
   const { showLoader, hideLoader } = useLoading();
 
+  // ============================
+  //   REFRESH DE SESIÓN
+  // ============================
   useEffect(() => {
     async function initSession() {
-      // 1. Evitamos el 401 innecesario: si no hay usuario guardado, 
-      // asumimos que no hay sesión y no disparamos el refresh.
-      if (!localStorage.getItem("user")) return;
+      const saved = localStorage.getItem("user");
+      if (!saved) return;
 
       showLoader();
       try {
-        // 2. Intentamos renovar la sesión (el interceptor en axios.js ayudará aquí)
-        const ok = await refreshSession(); 
+        const refreshed = await refreshSession();
 
-        if (ok) {
-          const saved = localStorage.getItem("user");
-          if (saved) setUser(JSON.parse(saved));
+        if (refreshed) {
+          // El backend debe devolver nuevamente roleCode y permissions
+          const updatedUser = {
+            ...JSON.parse(saved),
+            role: refreshed.roleCode,
+            permissions: refreshed.permissions || [],
+          };
+
+          localStorage.setItem("user", JSON.stringify(updatedUser));
+          setUser(updatedUser);
         } else {
-          // Si el refresh falla (401), limpiamos el estado
           localStorage.removeItem("user");
           setUser(null);
         }
-      } catch (error) {
-        // Fallo de red o servidor caído
-        console.error( "Error al verificar sesión:", error);
-        //setUser(null);
+      } catch {
+        setUser(null);
       } finally {
         hideLoader();
       }
@@ -56,6 +52,9 @@ export function AuthProvider({ children }) {
     initSession();
   }, []);
 
+  // ============================
+  //   LOGIN
+  // ============================
   const login = async (credentials) => {
     showLoader();
     try {
@@ -64,10 +63,11 @@ export function AuthProvider({ children }) {
       if (!data || !data.roleCode) {
         return { success: false, message: "El usuario no tiene rol asignado" };
       }
-      //tomando los roles para guardar  
+
       const userData = {
         ...data,
-        role: data.roleCode, 
+        role: data.roleCode, // ← rol real del backend
+        permissions: data.permissions || [], // ← permisos del backend
       };
 
       localStorage.setItem("user", JSON.stringify(userData));
@@ -84,7 +84,9 @@ export function AuthProvider({ children }) {
     }
   };
 
-
+  // ============================
+  //   LOGOUT
+  // ============================
   const logout = async () => {
     showLoader();
     try {

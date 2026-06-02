@@ -20,7 +20,10 @@ import GlobalLoader from "../components/ui/GlobalLoader";
 import { useLoading } from "../context/LoadingContext";
 
 import CreateRolePage from "@/pages/admin/personal/createRolePage";
+import EditRolePage from "@/pages/admin/personal/editRolePage";
 import NoAccess from "@/pages/noAccess";
+
+import { ROUTE_PERMISSIONS } from "@/lib/route-permissions";
 
 function AppRoute() {
   const { loading } = useLoading();
@@ -50,19 +53,13 @@ function AppRoute() {
         <Route path="/no-access" element={<NoAccess />} />
 
         {/* ============================
-            RUTAS ADMIN (roles altos)
+            RUTAS ADMIN (PERMISOS REALES)
         ============================ */}
+
         <Route
           path="/admin/dashboard"
           element={
-            <ProtectedRoute
-              allowedRoles={[
-                "SUPER_ADMIN",
-                "GENERAL_MANAGER",
-                "CINEMA_MANAGER",
-                "USHER",
-              ]}
-            >
+            <ProtectedRoute permission={ROUTE_PERMISSIONS.DASHBOARD_ADMIN}>
               <AdminLayout>
                 <Dashboard />
               </AdminLayout>
@@ -73,14 +70,7 @@ function AppRoute() {
         <Route
           path="/admin/exhibition"
           element={
-            <ProtectedRoute
-              allowedRoles={[
-                "SUPER_ADMIN",
-                "GENERAL_MANAGER",
-                "CINEMA_MANAGER",
-                "CASHIER"
-              ]}
-            >
+            <ProtectedRoute permission={ROUTE_PERMISSIONS.EXHIBITION_READ}>
               <AdminLayout>
                 <Exhibition />
               </AdminLayout>
@@ -91,7 +81,7 @@ function AppRoute() {
         <Route
           path="/admin/catalogo"
           element={
-            <ProtectedRoute allowedRoles={["SUPER_ADMIN", "GENERAL_MANAGER"]}>
+            <ProtectedRoute permission={ROUTE_PERMISSIONS.CATALOG_READ}>
               <AdminLayout>
                 <CatalogsPage />
               </AdminLayout>
@@ -102,13 +92,7 @@ function AppRoute() {
         <Route
           path="/admin/sucursales"
           element={
-            <ProtectedRoute
-              allowedRoles={[
-                "SUPER_ADMIN",
-                "GENERAL_MANAGER",
-                "CINEMA_MANAGER",
-              ]}
-            >
+            <ProtectedRoute permission={ROUTE_PERMISSIONS.CINEMAS_READ}>
               <AdminLayout>
                 <CinemasPage />
               </AdminLayout>
@@ -119,19 +103,20 @@ function AppRoute() {
         <Route
           path="/admin/personal"
           element={
-            <ProtectedRoute allowedRoles={["SUPER_ADMIN", "GENERAL_MANAGER", "CINEMA_MANAGER"]}>
+            <ProtectedRoute permission={ROUTE_PERMISSIONS.PERSONAL_READ}>
               <AdminLayout />
             </ProtectedRoute>
           }
         >
           <Route index element={<Personal />} />
           <Route path="create-role" element={<CreateRolePage />} />
+          <Route path="edit-role" element={<EditRolePage />} />
         </Route>
 
         <Route
           path="/admin/inventario"
           element={
-            <ProtectedRoute allowedRoles={["SUPER_ADMIN", "GENERAL_MANAGER"]}>
+            <ProtectedRoute permission={ROUTE_PERMISSIONS.INVENTORY_READ}>
               <AdminLayout>
                 <ProductsPage />
               </AdminLayout>
@@ -142,7 +127,7 @@ function AppRoute() {
         <Route
           path="/admin/reports"
           element={
-            <ProtectedRoute allowedRoles={["SUPER_ADMIN", "GENERAL_MANAGER", "CINEMA_MANAGER", "CASHIER"]}>
+            <ProtectedRoute permission={ROUTE_PERMISSIONS.REPORTS_READ}>
               <AdminLayout>
                 <div className="p-4">Próximamente: Reportes</div>
               </AdminLayout>
@@ -151,12 +136,13 @@ function AppRoute() {
         />
 
         {/* ============================
-            RUTAS CAJERO
+            RUTAS CAJERO (PERMISOS REALES)
         ============================ */}
+
         <Route
           path="/ticketOffice/dashboard"
           element={
-            <ProtectedRoute allowedRoles={["SUPER_ADMIN", "CASHIER"]}>
+            <ProtectedRoute permission={ROUTE_PERMISSIONS.CASHIER_DASHBOARD}>
               <AdminLayout>
                 <DashboardCashier />
               </AdminLayout>
@@ -167,7 +153,7 @@ function AppRoute() {
         <Route
           path="/ticketOffice/sell"
           element={
-            <ProtectedRoute allowedRoles={["SUPER_ADMIN", "CASHIER"]}>
+            <ProtectedRoute permission={ROUTE_PERMISSIONS.SELL_TICKETS}>
               <AdminLayout>
                 <SellTickets />
               </AdminLayout>
@@ -178,7 +164,7 @@ function AppRoute() {
         <Route
           path="/ticketOffice/candy"
           element={
-            <ProtectedRoute allowedRoles={["SUPER_ADMIN", "CASHIER"]}>
+            <ProtectedRoute permission={ROUTE_PERMISSIONS.CANDY_BAR}>
               <AdminLayout>
                 <CandyBar />
               </AdminLayout>
