@@ -1,33 +1,53 @@
-import api from '../api/axios.js';
+import api from "../api/axios";
 
-export const showtimesService = {
-  getAll: async (page = 1, limit = 10) => {
-    try {
-      const response = await api.get(`/showtimes?page=${page}&limit=${limit}`);
-      return response.data; 
-    } catch (error) {
-      console.error("Error en showtimesService.getAll:", error);
-      return { data: [], metadata: { total: 0, per_page: 10, current_page: 1, total_pages: 1 } };
-    }
-  },
+export const getShowtimes = async (page = 1, limit = 10) => {
+  const res = await api.get(`/showtimes?page=${page}&limit=${limit}`);
+  return res.data;
+};
 
-  getById: async(id)=>{
-    const response = await api.get(`/showtimes/${id}`)
-    return response.data;
-  },
+export const getShowtimesByCinema = async (cinemaId, filters = {}) => {
+  const { page = 1, limit = 10, date, startDate, endDate, movieId } = filters;
 
-  create: async (showtimeData) => {
-    const response = await api.post('/showtimes', showtimeData);
-    return response.data;
-  },
+  // Construimos dinámicamente los parámetros presentes
+  const params = new URLSearchParams();
+  params.append("page", page);
+  params.append("limit", limit);
 
-  update: async (id, showtimeData) => {
-    const response = await api.put(`/showtimes/${id}`, showtimeData);
-    return response.data;
-  },
-
-  delete: async (id) => {
-    const response = await api.delete(`/showtimes/${id}`);
-    return response.data;
+  if (date) params.append("date", date);
+  if (startDate && endDate) {
+    params.append("startDate", startDate);
+    params.append("endDate", endDate);
   }
+  if (movieId) params.append("movieId", movieId);
+
+  const res = await api.get(`/cinemas/${cinemaId}/showtimes?${params.toString()}`);
+  return res.data;
+};
+
+export const getShowtimeById = async (id) => {
+  const res = await api.get(`/showtimes/${id}`);
+  return res.data.data;
+};
+
+export const createShowtime = async (payload) => {
+  const res = await api.post("/showtimes", payload);
+  return res.data;
+};
+
+/**
+ * Programar una funcion en una sucursal
+ */
+export const createByCinema = async (cinemaId, payload) => {
+  const res = await api.post(`/cinemas/${cinemaId}/showtimes`, payload);
+  return res.data;
+};
+
+export const patchShowtime = async (id, payload) => {
+  const res = await api.patch(`/showtimes/${id}`, payload);
+  return res.data;
+};
+
+export const deleteShowtime = async (id) => {
+  const res = await api.delete(`/showtimes/${id}`);
+  return res.data;
 };

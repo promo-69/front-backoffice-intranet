@@ -1,33 +1,24 @@
 import { Pencil, Trash2, Clock, Calendar } from "lucide-react";
 
-export function ShowtimesTab({ 
-  data = [], 
-  onEdit, 
-  onDelete, 
-  moviesList = [],    // Lista de películas de la BD
-  bookingsList = [],  // Lista de room_bookings (las dueñas del tiempo)
-  roomsList = []      // Lista de salas del endpoint independiente /rooms
-}) {
+export function ShowtimesTab({ data = [], onEdit, onDelete }) {
   
-  // Helpers para dar formato legible a los datos ISO de la base de datos
   const formatTime = (dateStr) => {
     if (!dateStr) return "N/A";
     return new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
   };
 
-  const formatDate = (isoDate) => {
-    if (!isoDate) return "N/A";
-    return new Date(isoDate).toLocaleDateString();
+  const formatDate = (isoStr) => {
+    if (!isoStr) return "N/A";
+    return new Date(isoStr).toLocaleDateString();
   };
 
-  // UN SOLO RETURN PRINCIPAL PARA TODO EL COMPONENTE
   return (
     <div className="mt-4 overflow-hidden bg-surface-container rounded-cineflix border border-border shadow-sm">
       <table className="w-full text-left text-xs font-montserrat">
         <thead className="bg-gray-50 text-gray-600 uppercase tracking-wider border-b">
           <tr>
             <th className="py-4 px-4">Película</th>
-            <th className="py-4 px-4">Sala / Horario de Proyección</th>
+            <th className="py-4 px-4">Sala</th>
             <th className="py-4 px-4">Fecha</th>
             <th className="py-4 px-4">Horario</th>
             <th className="py-4 px-4">Precio</th>
@@ -38,29 +29,19 @@ export function ShowtimesTab({
           {data.length === 0 ? (
             <tr>
               <td colSpan="6" className="text-center py-10 text-gray-400 font-bold">
-                No hay funciones planificadas.
+                No hay funciones planificadas para los filtros seleccionados.
               </td>
             </tr>
           ) : (
-            // Recorremos el JSON plano de funciones que nos dio el GET
             data.map((st) => {
-              
-              // 1. PUENTE PELÍCULA: Buscamos el objeto película que coincida con st.movie
-              const movieMatch = moviesList.find(m => String(m.id) === String(st.movie));
-              
-              // 2. PUENTE RESERVA: Buscamos la reserva en room_bookings que coincida con st.booking
-              const bookingMatch = bookingsList.find(b => String(b.id) === String(st.booking));
-
-              // 3. IDENTIFICAR SALA: Extraemos el room_id que está guardado dentro de la reserva encontrada
-              const targetRoomId = bookingMatch?.room || bookingMatch?.room_id;
-
-              // 4. PUENTE SALA EXCLUSIVO: Buscamos en la lista de /rooms el nombre real de esa sala
-              const roomMatch = roomsList.find(r => String(r.id) === String(targetRoomId));
-
-              // Resolvemos el nombre de la sala (o mostramos el ID como salvavidas si la red está lenta)
-              const roomDisplayName = roomMatch 
-                ? (roomMatch.name || roomMatch.name_desc || `Sala ${roomMatch.number}`) 
-                : `Sala Num. #${targetRoomId || '?'}`;
+              // Desestructuramos la rica información anidada provista por el backend
+              const movieTitle = st.movie?.title || `Película #${st.movie_id}`;
+              const movieDuration = st.movie?.duration_minutes;
+              const roomName = st.room?.name ;
+              const projectionDesc = st.projection_type?.description || "Digital";
+              const languageDesc = st.language?.description || "";
+              const currencySymbol = st.currency?.symbol || "$";
+              const currencyCode = st.currency?.code || "USD";
 
               return (
                 <tr key={st.id} className="hover:bg-slate-50/50 transition-colors">
@@ -69,50 +50,45 @@ export function ShowtimesTab({
                   <td className="py-4 px-4 font-medium text-slate-700">
                     <div className="flex flex-col">
                       <span className="font-bold uppercase tracking-tight text-[11px]">
-                        {movieMatch ? movieMatch.title : `Película ID: #${st.movie}`}
+                        {movieTitle}
                       </span>
                       <span className="text-[9px] text-slate-400 mt-0.5">
-                        {movieMatch?.duration_minutes ? `${movieMatch.duration_minutes} min` : "Duración no esp."}
+                        {movieDuration ? `${movieDuration} min` : "Duración no esp."}
                       </span>
                     </div>
                   </td>
 
-                  {/* COLUMNA SALA Y DETALLE DE PROYECCIÓN */}
+                  {/* COLUMNA SALA Y PROYECCIÓN */}
                   <td className="py-4 px-4 text-slate-500">
-                    <div className="font-bold text-slate-700">
-                      {bookingMatch 
-                        ? `${roomDisplayName} (${formatTime(bookingMatch.start_time)} - ${formatTime(bookingMatch.end_time)})` 
-                        : `${roomDisplayName} (Sin horario reservado)`}
-                    </div>
+                    <div className="font-bold text-slate-700">{roomName}</div>
                     <div className="text-[10px] text-brand-primary font-bold uppercase tracking-wider mt-0.5">
-                      {/* projection_type suele venir como ID, dejamos un fallback descriptivo */}
-                      {st.projection_type_desc || `Tipo de Proyección ID: #${st.projection_type}`}
+                      {projectionDesc} {languageDesc && `• ${languageDesc}`}
                     </div>
                   </td>
 
-                  {/* COLUMNA FECHA (Extraída del start_time de la reserva) */}
+                  {/* COLUMNA FECHA */}
                   <td className="py-4 px-4 text-slate-500">
                     <div className="flex items-center gap-1.5">
                       <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{formatDate(bookingMatch?.start_time)}</span>
+                      <span>{formatDate(st.start_time)}</span>
                     </div>
                   </td>
 
-                  {/* COLUMNA HORARIO DE INICIO */}
+                  {/* COLUMNA HORARIO */}
                   <td className="py-4 px-4 text-slate-500">
                     <div className="flex items-center gap-1.5 font-semibold text-slate-600">
                       <Clock className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{formatTime(bookingMatch?.start_time)}</span>
+                      <span>{formatTime(st.start_time)} - {formatTime(st.end_time)}</span>
                     </div>
                   </td>
 
-                  {/* COLUMNA PRECIO MONEDA LOCAL / EXTRANJERA */}
+                  {/* COLUMNA PRECIO */}
                   <td className="py-4 px-4 text-slate-600 font-medium">
                     <div className="font-bold">
-                      {Number(st.currency) === 2 ? (
+                      {currencyCode === "VES" ? (
                         <span>Bs. {parseFloat(st.price).toLocaleString("es-VE", { minimumFractionDigits: 2 })}</span>
                       ) : (
-                        <span>$ {parseFloat(st.price).toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+                        <span>{currencySymbol} {parseFloat(st.price).toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
                       )}
                     </div>
                     <div className="text-[9px] text-slate-400 uppercase tracking-wider">
@@ -120,7 +96,7 @@ export function ShowtimesTab({
                     </div>
                   </td>
 
-                  {/* BOTONES DE ACCIONES */}
+                  {/* ACCIONES */}
                   <td className="py-4 px-6">
                     <div className="flex justify-center gap-2">
                       <button 
