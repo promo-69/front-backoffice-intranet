@@ -270,7 +270,7 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
                       onClick={() => handleEditClick(room)} 
                       className="h-8 w-8 text-brand-primary bg-slate-50 hover:bg-brand-primary hover:text-white rounded-lg transition-all"
                     >
-                      <Pencil className="h-4 h-4" />
+                      <Pencil className="h-4 w-4" />
                     </Button>
 
                     <Button 

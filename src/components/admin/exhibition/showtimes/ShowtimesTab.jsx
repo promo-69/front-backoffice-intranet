@@ -26,12 +26,14 @@ export function ShowtimesTab({
               <tr key={st.id} className="hover:bg-brand-primary/5 transition-colors">
                 <td className="py-4 px-4 font-bold text-brand-primary">{st.movie_title}</td>
                 <td className="py-4 px-4">{st.room_name}</td>
+                
                 <td className="py-4 px-4 text-center">
                   <div className="flex items-center justify-center gap-2">
                     <Calendar className="w-3 h-3 text-slate-400" />
                     {st.date}
                   </div>
                 </td>
+
                 <td className="py-4 px-4 text-center">
                   <div className="flex items-center justify-center gap-2 font-medium">
                     <Clock className="w-3 h-3 text-brand-gold" />

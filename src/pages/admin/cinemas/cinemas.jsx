@@ -51,7 +51,7 @@ const CinemaPage = () => {
       console.error("Error al cargar sucursales:", error);
       setBranches([]);
     } finally {
-      hideLoader();
+      hideLoader(); 
     }
   };
 
@@ -64,6 +64,8 @@ const CinemaPage = () => {
   const branchesFiltradas = branches.filter((b) =>
     b.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+
 
   // NAVEGACIÓN DE PÁGINAS
   const handlePageChange = (newPage) => {

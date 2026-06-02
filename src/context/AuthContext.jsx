@@ -91,9 +91,13 @@ export function AuthProvider({ children }) {
     showLoader();
     try {
       await logoutRequest();
-      localStorage.removeItem("user");
-      setUser(null);
+    }
+    catch (error) {
+      console.error("Error al revocar token en servidor, limpiando local de igual forma", error);
+     
     } finally {
+       localStorage.removeItem("user");
+      setUser(null);
       hideLoader();
     }
   };

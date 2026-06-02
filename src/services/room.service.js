@@ -6,6 +6,13 @@ export const getRoomsByCinema = async (cinemaId) => {
   return response.data.data || response.data || [];
 };
 
+export const getRooms = async () => {
+  const response = await api.get(`/rooms`);
+  return response.data;
+};
+
+
+
 // Guardar Sala (Creación)
 export const saveRoom = async (cinemaId, roomData) => {
   const response = await api.post(`/cinemas/${cinemaId}/rooms`, roomData);
@@ -33,6 +40,14 @@ export const getSeatsByRoom = async (roomId) => {
 export const createRoomSeats = async (roomId, seatsArray) => {
   return await api.post(`/rooms/${roomId}/seats`, seatsArray);
 };
+
+export const getRoomProjectionTypes = async (roomId) =>{
+//rooms/:id/projection-types
+
+  const response = await api.get(`/rooms/${roomId}/projection-types`);
+  return response.data;
+}
+
 
 // Actualizar un Asiento Individual (Flujo de edición)
 export const updateSeatIndividual = async (seatId, seatData) => {

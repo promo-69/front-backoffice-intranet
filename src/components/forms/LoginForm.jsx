@@ -69,7 +69,6 @@ export default function LoginForm() {
       {/* Contenedor de Inputs */}
       <div className="flex flex-col gap-8 items-center">
         
-        {/* 💡 CORRECCIÓN VISUAL: Alertas globales de la API */}
         {error && (
           <div className="w-80 text-center bg-red-500/10 border border-red-500 text-red-500 text-sm py-2 px-3 rounded font-montserrat animate-fade-in">
             {error}

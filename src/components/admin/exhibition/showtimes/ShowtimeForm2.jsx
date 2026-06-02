@@ -1,132 +1,261 @@
 import { useEffect } from "react";
-import { useForm } from "react-hook-form";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { useForm, useWatch } from "react-hook-form";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
 import { InputForm } from "@/components/ui/inputForm"; 
 import { SelectForm } from "@/components/ui/SelectForm";
 
-export function ShowtimeForm({ open, onClose, onSuccess, initialData, movies = [], rooms = [], projectionTypes = [] }) {
-  const isEdit = !!initialData;
-
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm({
+export function ShowtimeForm({ 
+  open, 
+  onClose, 
+  onSave, 
+  initialData, 
+  movies = [], 
+  roomsList = [], 
+  projectionTypes = [],
+  languagesList=[],
+  currenciesList = []
+}) {
+  const isEdit = !!initialData?.id;
+  
+  const { register, handleSubmit, reset, control, setValue, formState: { errors } } = useForm({
     defaultValues: {
-      status: 1,
-      currency: 1 
+      movie: "",
+      room: "",
+      date: "",
+      start_time_raw: "",
+      end_time_raw: "",
+      projection_type: "",
+      language: "",
+      currency: "",
+      price: "",
+      earned_loyalty_points: ""
     }
   });
 
-  useEffect(() => {
-    if (initialData) {
-      reset(initialData);
-    } else {
-      reset({ status: 1, currency: 1, movie: "", room: "", projectionType: "" });
-    }
-  }, [initialData, open, reset]);
+  const watchCurrency = useWatch({ control, name: "currency", defaultValue: "" });
+  const watchMovie = useWatch({ control, name: "movie", defaultValue: "" });
+  const watchStartTime = useWatch({ control, name: "start_time_raw", defaultValue: "" });
 
-  const onSubmit = (data) => {
-    
-    onSuccess(data);
+  // 🔍 Lógica de Filtrado Dinámico basada en la Película Seleccionada
+  const selectedMovie = movies.find(m => String(m.id) === String(watchMovie));
+
+  const filteredProjections = selectedMovie?.projection_types?.length > 0
+    ? projectionTypes.filter(p => 
+        selectedMovie.projection_types.some(mp => String(mp.projection_type || mp.id || mp) === String(p.id))
+      )
+    : projectionTypes;
+
+  const filteredLanguages = selectedMovie?.languages?.length > 0
+    ? languagesList.filter(l => 
+        selectedMovie.languages.some(ml => String(ml.language || ml.id || ml) === String(l.id))
+      )
+    : languagesList;
+
+  // ⏱️ Auto-cálculo de la Hora de Fin Estimada
+  useEffect(() => {
+    if (watchMovie && watchStartTime && selectedMovie?.duration_minutes) {
+      const [hours, minutes] = watchStartTime.split(':').map(Number);
+      
+      // Creamos un objeto Date para manipular el tiempo fácilmente
+      const date = new Date();
+      date.setHours(hours, minutes, 0);
+      
+      // Sumamos la duración de la película (en milisegundos)
+      const endDate = new Date(date.getTime() + selectedMovie.duration_minutes * 60000);
+      
+      const endHours = String(endDate.getHours()).padStart(2, '0');
+      const endMinutes = String(endDate.getMinutes()).padStart(2, '0');
+      
+      setValue("end_time_raw", `${endHours}:${endMinutes}`);
+    }
+  }, [watchMovie, watchStartTime, selectedMovie, setValue]);
+
+  // EFECTO: CARGAR O RESETEAR EL FORMULARIO
+  useEffect(() => {
+    if (!open) return;
+
+    if (initialData && initialData.id) {
+      // 1. Formatear precio según moneda
+      const basePrice = parseFloat(initialData.price).toFixed(2);
+      const formattedPrice = Number(initialData.currency) === 2 
+        ? basePrice.replace(".", ",") 
+        : basePrice;
+
+      // 2. Parsear Fechas ISO del Backend a Inputs nativos (YYYY-MM-DD y HH:mm)
+      let datePart = "";
+      let startTimePart = "";
+      let endTimePart = "";
+
+      if (initialData.start_time) {
+        const startSec = new Date(initialData.start_time);
+        datePart = startSec.toISOString().split("T")[0]; // "2026-06-15"
+        startTimePart = startSec.toTimeString().split(" ")[0].slice(0, 5); // "18:00"
+      }
+
+      if (initialData.end_time) {
+        const endSec = new Date(initialData.end_time);
+        endTimePart = endSec.toTimeString().split(" ")[0].slice(0, 5); // "20:15"
+      }
+
+      reset({
+        movie: initialData.movie?.id || initialData.movie, // Previene si el backend manda objeto o ID plano
+        room: initialData.room?.id || initialData.room,
+        date: datePart,
+        start_time_raw: startTimePart,
+        end_time_raw: endTimePart,
+        projection_type: initialData.projection_type?.id || initialData.projection_type,
+        language: initialData.language?.id || initialData.language,
+        currency: initialData.currency?.id || initialData.currency,
+        price: formattedPrice,
+        earned_loyalty_points: initialData.earned_loyalty_points || "0"
+      });
+    } else {
+      // Valores limpios para creación de nueva función
+      reset({ movie: "", room: "", date: "", start_time_raw: "", end_time_raw: "", projection_type: "", language: "0", currency: "", price: "", earned_loyalty_points: "" });
+    }
+  }, [initialData, open, reset, isEdit]);
+
+  // SUBMIT DEL FORMULARIO
+  const handleFormSubmit = (data) => {
+    let cleanPrice = data.price;
+    if (typeof cleanPrice === "string") {
+      cleanPrice = cleanPrice.replace(",", "."); 
+    }
+
+    // Unir la Fecha con las Horas nativas para construir los ISO Strings perfectos que espera Cineflix
+    const startTimeISO = new Date(`${data.date}T${data.start_time_raw}:00`).toISOString();
+    const endTimeISO = new Date(`${data.date}T${data.end_time_raw}:00`).toISOString();
+
+    const payload = {
+      movie: Number(data.movie),
+      room: Number(data.room),
+      projection_type: Number(data.projection_type),
+      language: Number(data.language),
+      currency: Number(data.currency),
+      price: parseFloat(cleanPrice),
+      earned_loyalty_points: data.earned_loyalty_points ? Number(data.earned_loyalty_points) : 0,
+      start_time: startTimeISO,
+      end_time: endTimeISO
+    };
+
+    if (isEdit) {
+      payload.id = initialData.id; 
+    }
+
+    onSave(payload);
   };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className=" bg-white rounded-cineflix p-6 shadow-2xl border-none overflow-y-auto max-h-[90vh] font-montserrat">
+      <DialogContent className="max-w-2xl bg-white rounded-cineflix p-6 shadow-2xl font-montserrat max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <button onClick={onClose} className="absolute top-3 right-3 text-gray-400 hover:text-brand-primary transition">
-            <X className="h-5 w-5" />
-          </button>
-            <div>
-              <DialogTitle className="text-xl font-bold text-brand-primary font-montserrat">
-                {isEdit ? "Editar Función" : "Registrar Nueva Función"}
-              </DialogTitle>
-              <DialogDescription className="text-slate-400 text-xs font-medium uppercase tracking-widest">
-                Configuración de horarios y salas
-              </DialogDescription>
-            </div>
+          <DialogTitle className="text-xl font-bold text-brand-primary uppercase">
+            {isEdit ? "Editar Función" : "Registrar Función"}
+          </DialogTitle>
+          <DialogDescription className="text-xs text-slate-500">
+            Establece los parámetros de tiempo, espacio y precio de la función.
+          </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-4">
-          {/*<div className="grid grid-cols-12 gap-5">*/}
-            
-            <div>
-              <SelectForm
-                label="Película"
-                error={errors.movie?.message}
-                {...register("movie", { required: "Selecciona una película" })}
-              >
-                <option value="">Seleccionar...</option>
-                {movies.map(m => <option key={m.id} value={m.id}>{m.title}</option>)}
-              </SelectForm>
-            </div>
+        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4 mt-4 text-left">
 
-            <div >
-              <SelectForm
-                label="Sala de Cine"
-                error={errors.room?.message}
-                {...register("room", { required: "Selecciona una sala" })}
-              >
-                <option value="">Seleccionar...</option>
-                 {rooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-                {/*{rooms.map((room) => (
-                  <option key={room.id} value={room.id}>
-                    {room.description}
-                  </option>
-                ))}*/}
-              </SelectForm>
-            </div>
-            
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* SELECCIÓN DE PELÍCULA */}
+            <SelectForm label="Película" error={errors.movie?.message} {...register("movie", { required: "Obligatorio" })}>
+              <option value="">Seleccionar película...</option>
+              {movies.map(m => <option key={m.id} value={m.id}>{m.title}</option>)}
+            </SelectForm>
 
-            <div >
-              <InputForm
-                label="Inicio de Función"
-                type="datetime-local"
-                error={errors.startTime?.message}
-                {...register("startTime", { required: "Este campo es obligatorio" })}
-              />
-            </div>
+            {/* SELECCIÓN DE SALA REAL DISPONIBLE */}
+            <SelectForm label="Sala de Cine" error={errors.room?.message} {...register("room", { required: "Obligatorio" })}>
+              <option value="">Seleccionar sala...</option>
+              {roomsList.map(r => (
+                <option key={r.id} value={r.id}>
+                  {r.name || `Sala ${r.id}`}
+                </option>
+              ))}
+            </SelectForm>
+          </div>
 
-            <div >
-              <SelectForm
-                label="Tipo de Proyección"
-                error={errors.projectionType?.message}
-                {...register("projectionType", { required: "Este campo es obligatorio" })}
-              >
-                <option value="">Seleccionar...</option>
-                {projectionTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-              </SelectForm>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* CONTROL DE FECHA */}
+            <InputForm
+              label="Fecha de la Función"
+              type="date"
+              error={errors.date?.message}
+              {...register("date", { required: "Obligatorio" })}
+            />
 
-            <div >
-              <InputForm
-                label="Precio"
-                type="number"
-                step="0.01"
-                error={errors.price?.message}
-                {...register("price", { required: "Este campo es obligatorio" })}
-              />
-            </div>
+            {/* PUNTOS DE LEALTAD */}
+            <InputForm 
+              label="Puntos de Lealtad" 
+              type="number" 
+              placeholder="0"
+              error={errors.earned_loyalty_points?.message}
+              {...register("earned_loyalty_points")} 
+            />
+          </div>
 
-          {/*</div>*/}
+          {/* CONTROLES DE HORAS ATÓMICAS */}
+          <div className="grid grid-cols-2 gap-4">
+            <InputForm
+              label="Hora Inicio"
+              type="time"
+              error={errors.start_time_raw?.message}
+              {...register("start_time_raw", { required: "Obligatorio" })}
+            />
+            <InputForm
+              label="Hora Fin (Estimada)"
+              type="time"
+              error={errors.end_time_raw?.message}
+              {...register("end_time_raw", { required: "Obligatorio" })}
+            />
+          </div>
 
-          <DialogFooter className="mt-6 flex justify-end gap-3 pt-6 border-t border-gray-100">
-            <Button type="button" variant="outline" onClick={onClose} className="rounded-xl h-12 px-6">
-              Cancelar
-            </Button>
-            <Button type="submit" className="bg-brand-primary text-white px-8 rounded-xl h-12 shadow-lg uppercase text-[10px] font-black tracking-widest">
-              {isEdit ? "Actualizar" : "Crear Función"}
+          {/* PROYECCIÓN E IDIOMA */}
+          <div className="grid grid-cols-2 gap-4">
+            <SelectForm label="Tipo Proyección" error={errors.projection_type?.message} {...register("projection_type", { required: "Obligatorio" })}>
+              <option value="">Seleccionar...</option>
+              {filteredProjections.map(p => <option key={p.id} value={p.id}>{p.description}</option>)}
+            </SelectForm>
+
+            <SelectForm label="Idioma Audio" error={errors.language?.message} {...register("language", { required: "Obligatorio" })}>
+              <option value="">Seleccionar idioma...</option>
+              {filteredLanguages.map(lang => (
+                <option key={lang.id} value={lang.id}>{lang.description || lang.name}</option>
+              ))}
+            </SelectForm>
+          </div>
+
+          {/* MONEDA Y PRECIO */}
+          <div className="grid grid-cols-2 gap-4">
+            <SelectForm label="Moneda" error={errors.currency?.message} {...register("currency", { required: "Obligatorio" })}>
+              <option value="">Seleccionar...</option>
+              {currenciesList.map(c => <option key={c.id} value={c.id}>{`${c.description} (${c.symbol})`}</option>)}
+            </SelectForm>
+
+            <InputForm
+              label="Precio Entrada"
+              type="text"
+              placeholder="0.00"
+              error={errors.price?.message}
+              {...register("price", {
+                required: "Obligatorio",
+                onChange: (e) => {
+                  const rawValue = e.target.value.replace(/\D/g, "");
+                  if (!rawValue) { e.target.value = ""; return; }
+                  const numericValue = (parseFloat(rawValue) / 100).toFixed(2);
+                  e.target.value = Number(watchCurrency) === 2 ? numericValue.replace(".", ",") : numericValue;
+                }
+              })}
+            />
+          </div>
+
+          <DialogFooter className="mt-6 flex justify-end gap-3 pt-4 border-t">
+            <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
+            <Button type="submit" className="bg-brand-primary text-white font-bold px-6">
+              {isEdit ? "Guardar Cambios" : "Registrar Función"}
             </Button>
           </DialogFooter>
         </form>
