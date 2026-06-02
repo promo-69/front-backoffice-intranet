@@ -7,7 +7,7 @@ export const createEmployee = async (payload) => {
 
 export const getEmployees = async () => {
   const res = await api.get("/employees");
-  return res.data.data; 
+  return res.data.data.rows; 
 };
 
 
