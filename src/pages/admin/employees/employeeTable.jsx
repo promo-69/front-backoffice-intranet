@@ -40,26 +40,26 @@ export default function EmployeeTable({ employees, onEdit, onDelete }) {
               </td>
             </tr>
           )}
-
+ 
           {employees.map((emp) => (
             <tr key={emp.id} className="hover:bg-gray-50 transition-colors">
               {/* ⭐ NOMBRE */}
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-montserrat text-gray-800">
+              <td className="py-4 px-4 font-bold text-slate-700 text-xs">
                 {emp.person?.first_name} {emp.person?.last_name}
               </td>
 
               {/* ⭐ DOCUMENTO */}
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-montserrat text-gray-700">
+              <td className="py-4 px-4 text-gray-500 max-w-xs truncate whitespace-nowrap text-xs">
                 {emp.person?.document_number}
               </td>
 
               {/* ⭐ CARGO */}
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-montserrat text-gray-700">
+              <td className="px-4 py-4 whitespace-nowrap font-montserrat text-gray-700 text-xs">
                 {emp.jobPositionName || "—"}
               </td>
 
               {/* ⭐ SUCURSAL */}
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-montserrat text-gray-700">
+              <td className="px-4 py-4 whitespace-nowrap font-montserrat text-gray-700 text-xs">
                 {emp.cinemaName || "—"}
               </td>
 
