@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { getAllPermissions } from "@/services/permissions.service";
 import {
   getRoleById,
-  updateRolePermissions, // Asegúrate de que apunte al POST {{baseUrl}}/roles/:id/permissions
+  updateRolePermissions, 
 } from "@/services/roles.service";
 
 export default function EditRolePage() {
@@ -39,12 +39,11 @@ export default function EditRolePage() {
         // 2. Obtener todos los permisos globales 
         const allPermissions = await getAllPermissions();
 
-        // ⭐ 3. Extraer los permisos que ya tiene el rol asignados.
-        const rolePermissions =
-          roleData.permissions || roleData._Permissions || [];
+        // 3. Extraer los permisos que ya tiene el rol asignados.
+        const rolePermissions = roleData._RolePermissions || [];
 
         // Creamos el Set con los IDs de los permisos activos de este rol
-        const assignedIds = new Set(rolePermissions.map((p) => p.id));
+        const assignedIds = new Set(rolePermissions.map((rp) => rp.permission));
         setSelectedPermissions(assignedIds);
 
         // 4. Agrupar la parrilla completa de permisos por recurso para la interfaz
