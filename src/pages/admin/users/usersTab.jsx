@@ -12,19 +12,19 @@ export default function UsersTable({
         {/* ⭐ ENCABEZADOS */}
         <thead className="bg-gray-50">
           <tr>
-            <th className="px-6 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600">
+            <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600">
               Nombre
             </th>
-            <th className="px-6 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600">
+            <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600">
               Correo
             </th>
-            <th className="px-6 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600">
+            <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600">
               Rol
             </th>
-            <th className="px-6 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600">
+            <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600">
               Estado
             </th>
-            <th className="px-6 py-3 text-right text-[11px] font-black uppercase tracking-widest text-gray-600">
+            <th className="px-4 py-3 text-right text-[11px] font-black uppercase tracking-widest text-gray-600">
               Acciones
             </th>
           </tr>
@@ -46,22 +46,22 @@ export default function UsersTable({
           {users.map((u) => (
             <tr key={u.id} className="hover:bg-gray-50 transition-colors">
               {/* ⭐ NOMBRE */}
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-montserrat text-gray-800">
+              <td className="py-4 px-4 font-bold text-gray-700 max-w-32 truncate whitespace-nowrap text-xs">
                 {u._People?.first_name} {u._People?.last_name}
               </td>
 
               {/* ⭐ CORREO */}
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-montserrat text-gray-700">
+              <td className="py-4 px-4 text-gray-500 max-w-32 truncate whitespace-nowrap text-xs">
                 {u.email}
               </td>
 
               {/* ⭐ ROL */}
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-montserrat text-gray-700">
+              <td className="py-4 px-4 text-gray-500 max-w-32 truncate whitespace-nowrap text-xs">
                 {u._Roles?.code || "SIN ROL"}
               </td>
 
               {/* ⭐ ESTADO */}
-              <td className="px-6 py-4 whitespace-nowrap">
+              <td className="px-1 py-4 whitespace-nowrap">
                 <span
                   className={`px-3 py-1 rounded-full text-xs font-bold ${
                     u.status === 1
@@ -74,7 +74,7 @@ export default function UsersTable({
               </td>
 
               {/* ⭐ ACCIONES */}
-              <td className="px-6 py-4 whitespace-nowrap text-right flex justify-end gap-3">
+              <td className="px-4 py-4 whitespace-nowrap text-right flex justify-end gap-3">
                 {/* EDITAR USUARIO */}
                 <button
                   onClick={() => onEdit(u)}

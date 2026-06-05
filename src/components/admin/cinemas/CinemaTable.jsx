@@ -64,15 +64,15 @@ const CinemaTable = ({
                     </div>
                   </td>
 
-                  <td className="py-4 px-4 font-bold text-slate-700">
+                  <td className="py-4 px-4 font-bold max-w-32 text-slate-700">
                     {item.name}
                   </td>
 
-                  <td className="py-4 px-4 text-gray-500 max-w-xs truncate">
+                  <td className="py-4 px-4 text-gray-500 max-w-32 truncate">
                     {item.address}
                   </td>
 
-                  <td className="py-4 px-4 text-gray-500 font-medium">
+                  <td className="py-4 px-4 text-gray-500 max-w-32 truncate whitespace-nowrap text-xs font-medium">
                     {item.phone}
                   </td>
 
