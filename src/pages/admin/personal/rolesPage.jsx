@@ -21,37 +21,56 @@ export default function RolesPage() {
   }, []);
 
   return (
-    <div className="bg-white rounded-cineflix border border-gray-100 shadow-sm p-6">
-      {/* ENCABEZADOS */}
-      <div className="grid grid-cols-2 text-xs font-semibold text-gray-500 border-b pb-2">
-        <span>ROL</span>
-        <span className="text-right">ACCIONES</span>
-      </div>
+    <div className="overflow-x-auto bg-white rounded-xl shadow-sm border border-[#4B2E83]">
+      <table className="min-w-full divide-y divide-[#4B2E83]/60">
+        {/* ENCABEZADOS */}
+        <thead className="bg-gray-50">
+          <tr>
+            <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600">
+              Rol
+            </th>
+            <th className="px-4 py-3 text-right text-[11px] font-black uppercase tracking-widest text-gray-600">
+              Acciones
+            </th>
+          </tr>
+        </thead>
 
-      {/* FILAS */}
-      <div className="divide-y">
-        {roles.map((role) => (
-          <div
-            key={role.id}
-            className="grid grid-cols-2 py-3 text-sm items-center hover:bg-gray-50 transition-colors"
-          >
-            {/* Nombre del rol */}
-            <span className="font-medium text-gray-800">{role.code}</span>
-
-            {/* Acciones */}
-            <div className="flex justify-end gap-4">
-              <button
-                onClick={() =>
-                  navigate(`/admin/personal/edit-role?roleId=${role.id}`)
-                }
-                className="text-brand-primary hover:text-brand-primary/80 transition"
+        {/* CUERPO */}
+        <tbody className="divide-y divide-[#4B2E83]/40">
+          {roles.length === 0 && (
+            <tr>
+              <td
+                colSpan="2"
+                className="text-center py-6 text-gray-500 font-montserrat"
               >
-                <Pencil className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+                No hay roles registrados.
+              </td>
+            </tr>
+          )}
+
+          {roles.map((role) => (
+            <tr key={role.id} className="hover:bg-gray-50 transition-colors">
+              {/* NOMBRE DEL ROL */}
+              <td className="py-4 px-4 text-left font-bold text-slate-700 text-xs">
+                {role.code}
+              </td>
+
+              {/* ACCIONES */}
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium flex justify-end gap-3">
+                <button
+                  onClick={() =>
+                    navigate(`/admin/personal/edit-role?roleId=${role.id}`)
+                  }
+                  className="text-blue-500 hover:scale-110 transition-transform"
+                  title="Editar rol"
+                >
+                  <Pencil className="w-5 h-5" />
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
