@@ -7,8 +7,8 @@ export default function UsersTable({
   onDelete,
 }) {
   return (
-    <div className="overflow-x-auto bg-white rounded-xl shadow-sm border border-gray-200">
-      <table className="min-w-full divide-y divide-gray-200">
+    <div className="overflow-x-auto bg-white rounded-xl shadow-sm border border-[#4B2E83]">
+      <table className="min-w-full divide-y divide-[#4B2E83]/60">
         {/* ⭐ ENCABEZADOS */}
         <thead className="bg-gray-50">
           <tr>
@@ -31,7 +31,7 @@ export default function UsersTable({
         </thead>
 
         {/* ⭐ CUERPO */}
-        <tbody className="divide-y divide-gray-200">
+        <tbody className="divide-y divide-[#4B2E83]/40">
           {users.length === 0 && (
             <tr>
               <td

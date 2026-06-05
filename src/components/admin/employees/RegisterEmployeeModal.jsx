@@ -137,9 +137,8 @@ export default function RegisterEmployeeModal({ open, onClose }) {
 
       await createEmployee(payload);
 
-      setTimeout(() => {
-        onClose(true);
-      }, 100);
+      // Cerrar modal y avisar al padre que refresque y muestre mensaje
+    onClose(true);
       
     } catch (error) {
       console.error("Error registrando empleado:", error);
@@ -155,7 +154,7 @@ export default function RegisterEmployeeModal({ open, onClose }) {
     ) : null;
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={() => onClose(false)}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto bg-white rounded-cineflix p-6 shadow-2xl border-none">
         <button
           onClick={() => onClose(false)}
