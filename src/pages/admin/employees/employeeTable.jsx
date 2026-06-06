@@ -4,7 +4,7 @@ export default function EmployeeTable({ employees, onEdit, onDelete, isLoading =
   const skeletonRows = Array(5).fill(0);
 
   return (
-    <div className="overflow-x-auto bg-white rounded-xl shadow-sm border border-[#4B2E83]">
+    <div className="overflow-x-auto bg-surface-container rounded-cineflix border border-border shadow-sm">
       <table className="min-w-full divide-y divide-[#4B2E83]/60">
         {/* ⭐ ENCABEZADOS */}
         <thead className="bg-gray-50">

@@ -197,8 +197,9 @@ export default function ExhibitionPage() {
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto font-montserrat">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="flex justify-between items-center bg-white p-6 rounded-cineflix border border-gray-100 shadow-sm">
         <div>
+          <h3 className="text-lg font-montserrat font-bold text-brand-primary">Gestión de Peliculas y Funciones</h3>
           <p className="text-xs text-slate-400 mt-0.5">Administración global de películas y planificación de funciones.</p>
         </div>
 
