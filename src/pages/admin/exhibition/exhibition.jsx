@@ -69,6 +69,7 @@ export default function ExhibitionPage() {
   const [currencies, setCurrencies] = useState([]);
   const [rooms, setRooms] = useState([]);
 
+  // Controla la pestaña activa y el layout
   // --- MANEJADOR DEL BOTÓN DINÁMICO ---
   const handleAdd = () => {
     if (activeTab === "movies") {

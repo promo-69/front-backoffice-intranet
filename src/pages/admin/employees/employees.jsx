@@ -10,7 +10,7 @@ import SuccessModal from "@/components/ui/SuccessModal";
 import { getEmployees, deleteEmployee } from "@/services/employees.service";
 
 export default function Employees({ search }) {
-  // ⭐ ESTADO LOCAL DE CARGA
+  // ESTADO LOCAL DE CARGA
   const [loading, setLoading] = useState(true);
   const [employees, setEmployees] = useState([]);
 
@@ -93,7 +93,7 @@ export default function Employees({ search }) {
 
   return (
     <div className="space-y-6">
-      {/* ⭐ TABLA CON PROPIEDAD LOADING */}
+      {/* TABLA CON PROPIEDAD LOADING */}
       <EmployeeTable
         employees={paginatedEmployees}
         onEdit={handleEditClick}
@@ -101,7 +101,7 @@ export default function Employees({ search }) {
         isLoading={loading} 
       />
 
-      {/* ⭐ PAGINACIÓN (solo si no estamos cargando) */}
+      {/* PAGINACIÓN (solo si no estamos cargando) */}
       {!loading && (
         <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6 rounded-b-xl shadow-sm">
            {/* ... mantén tu lógica de paginación igual ... */}
@@ -118,7 +118,7 @@ export default function Employees({ search }) {
         </div>
       )}
 
-      {/* ⭐ MODALES */}
+      {/* MODALES */}
       <DeleteConfirmModal
         isOpen={isDeleteOpen}
         onClose={() => setIsDeleteOpen(false)}
