@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useModal } from "@/hooks/useModal";
 import { TabsCustom } from "@/components/ui/TabsCustom";
-import { Plus, Calendar, Clock, Building2 } from "lucide-react"; 
+import { Plus, Building2 } from "lucide-react"; 
 import { useLoading } from "@/context/LoadingContext";
 import { toast } from "sonner";
 import { MoviesTab } from "@/components/admin/exhibition/movies/MoviesTab2";
@@ -18,7 +18,6 @@ import {
 } from "@/services/showtime.service";
 import { getCatalogByName } from "@/services/catalog.service"; 
 import { getRoomsByCinema } from "@/services/room.service"; 
-// IMPORTANTE: Asegúrate de tener o mapear el servicio para obtener los cines disponibles
 import { getCinemas } from "@/services/cinema.service"; 
 
 const FALLBACKS = {
@@ -27,7 +26,6 @@ const FALLBACKS = {
   lifecyclesData: [{ id: 1, description: "En Cartelera" }],
   projectionTypesData: [{ id: 1, description: "2D Tradicional" }],
   currenciesData: [{ id: 1, description: "USD - Dólares", symbol: "$" }],
-  bookingsData: [],
   cinemasData: [
     { id: 1, name: "Cineflix Sambil Barquisimeto" },
     { id: 2, name: "Cineflix Las Trinitarias" },
@@ -40,36 +38,29 @@ const tabs = [
   { id: "showtimes", label: "Funciones" }
 ];
 
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
 export default function ExhibitionPage() {
   const [activeTab, setActiveTab] = useState("movies");
   const { modal, openModal, closeModal } = useModal();
   const { showLoader, hideLoader } = useLoading();
 
-  // CONTEXTO DE SUCURSAL SELECCIONADA POR EL SUPER ADMIN
   const [cinemas, setCinemas] = useState([]);
   const [selectedCinemaId, setSelectedCinemaId] = useState("");
 
-  // ESTADOS DE PELÍCULAS (Paginación)
   const [movies, setMovies] = useState([]);
   const [moviesCurrentPage, setMoviesCurrentPage] = useState(1);
   const [moviesPerPage, setMoviesPerPage] = useState(10);
   const [moviesMetadata, setMoviesMetadata] = useState(null);
 
-  // 🍿 ESTADOS DE FUNCIONES (Paginación y Filtros Query)
   const [showtimes, setShowtimes] = useState([]);
   const [showtimesPage, setShowtimesPage] = useState(1);
   const [showtimesPerPage, setShowtimesPerPage] = useState(10);
   const [showtimesTotalCount, setShowtimesTotalCount] = useState(0);
 
-  // Filtros query para funciones
   const [filterMovieId, setFilterMovieId] = useState("");
   const [filterDate, setFilterDate] = useState("");
   const [filterStartDate, setFilterStartDate] = useState("");
   const [filterEndDate, setFilterEndDate] = useState("");
 
-  // ESTADOS DE CATÁLOGOS ELEVADOS
   const [genres, setGenres] = useState([]);
   const [ageClassifications, setAgeClassifications] = useState([]);
   const [lifecycleStates, setLifecycleStates] = useState([]);
@@ -78,35 +69,38 @@ export default function ExhibitionPage() {
   const [currencies, setCurrencies] = useState([]);
   const [rooms, setRooms] = useState([]);
 
-  // Helper de catálogos
+  // --- MANEJADOR DEL BOTÓN DINÁMICO ---
+  const handleAdd = () => {
+    if (activeTab === "movies") {
+      openModal("movieForm", null);
+    } else {
+      if (!selectedCinemaId) {
+        toast.warning("Debe seleccionar una sucursal para poder planificar una función.");
+        return;
+      }
+      openModal("showtimeForm", { cinema_id: selectedCinemaId });
+    }
+  };
+
   const safeFetchCatalog = async (catalogName, fallbackKey) => {
     try {
       const response = await getCatalogByName(catalogName);
       if (Array.isArray(response) && response.length > 0) return response;
-      
-      const fb = FALLBACKS[fallbackKey] || [];
-      console.warn(`⚠️ Usando datos fallback para: ${catalogName}`);
-      return fb;
+      return FALLBACKS[fallbackKey] || [];
     } catch (error) {
-      console.error(`Catálogo [${catalogName}] falló en red. Degradación grácil activa.`, error);
       return FALLBACKS[fallbackKey] || [];
     }
   };
 
-  // Carga inicial única de catálogos, salas y lista de cines disponibles
   useEffect(() => {
     async function loadAllInitialData() {
       showLoader();
-      // Carga de cines de la cadena corporativa
       try {
         const cinemaRes = await getCinemas();
-        // En el patrón de nuestros servicios, cinemaRes es el body (res.data)
-        // por lo que el array de cines está en cinemaRes.data
         const cinemaList = cinemaRes.data || (Array.isArray(cinemaRes) ? cinemaRes : null);
         setCinemas(cinemaList || FALLBACKS.cinemasData);
       } catch (e) {
         setCinemas(FALLBACKS.cinemasData);
-        console.log(e);
       }
 
       const genresData = await safeFetchCatalog("genres", "genresData");
@@ -124,31 +118,20 @@ export default function ExhibitionPage() {
       setCurrencies(currenciesData);
       hideLoader();
     }
-
     loadAllInitialData();
   }, []);
 
-  // ⚡ EFECTO: CARGA DE SALAS (Depende de la sucursal seleccionada por el Super Admin)
   useEffect(() => {
     async function loadRooms() {
-      if (!selectedCinemaId) {
-        setRooms([]);
-        return;
-      }
+      if (!selectedCinemaId) { setRooms([]); return; }
       try {
         const roomsData = await getRoomsByCinema(selectedCinemaId);
-        // Normalizamos la respuesta: el backend puede devolver el array directo o un objeto con { rows }
-        // Esto asegura que el selector en ShowtimeForm tenga siempre un array para mapear.
-        const roomsList = Array.isArray(roomsData) ? roomsData : (roomsData?.rows || []);
-        setRooms(roomsList);
-      } catch (error) {
-        console.error("Error cargando las salas de la sucursal seleccionada:", error);
-      }
+        setRooms(Array.isArray(roomsData) ? roomsData : (roomsData?.rows || []));
+      } catch (error) { console.error(error); }
     }
     loadRooms();
   }, [selectedCinemaId]);
 
-  // ⚡ EFECTO: CARGA DE PELÍCULAS (No dependen de la sucursal)
   useEffect(() => {
     async function loadMovies() {
       showLoader();
@@ -156,194 +139,101 @@ export default function ExhibitionPage() {
         const res = await getMovies(moviesCurrentPage, moviesPerPage);
         setMovies(res.data || []);
         if (res.metadata) setMoviesMetadata(res.metadata);
-      } catch (err) {
-        toast.error("Error al sincronizar listado de películas");
-        console.log(err);
-      } finally {
-        hideLoader();
-      }
+      } catch (err) { toast.error("Error al sincronizar películas"); } 
+      finally { hideLoader(); }
     }
     loadMovies();
   }, [moviesCurrentPage, moviesPerPage]);
 
-  // ⚡ EFECTO: CARGA DE FUNCIONES (DINÁMICA por selectedCinemaId)
   useEffect(() => {
     async function loadShowtimes() {
-      // Condición de seguridad: Si no hay pestaña activa o no se ha seleccionado sucursal, limpiar y frenar
       if (activeTab !== "showtimes" || !selectedCinemaId) {
-        setShowtimes([]);
-        setShowtimesTotalCount(0);
-        return;
+        setShowtimes([]); setShowtimesTotalCount(0); return;
       }
-      
       showLoader();
       try {
-        const filters = {
-          page: showtimesPage,
-          limit: showtimesPerPage,
-          movieId: filterMovieId || undefined,
-          date: filterDate || undefined,
-          startDate: filterStartDate || undefined,
-          endDate: filterEndDate || undefined
-        };
-
+        const filters = { page: showtimesPage, limit: showtimesPerPage, movieId: filterMovieId || undefined, date: filterDate || undefined, startDate: filterStartDate || undefined, endDate: filterEndDate || undefined };
         const res = await getShowtimesByCinema(selectedCinemaId, filters);
-        if (res.success) {
-          setShowtimes(res.data?.rows || []);
-          setShowtimesTotalCount(res.data?.count || 0);
-        }
-      } catch (err) {
-        toast.error("Error al sincronizar cartelera de la sucursal seleccionada");
-        console.log(err);
-        setShowtimes([]);
-      } finally {
-        hideLoader();
-      }
+        if (res.success) { setShowtimes(res.data?.rows || []); setShowtimesTotalCount(res.data?.count || 0); }
+      } catch (err) { setShowtimes([]); } 
+      finally { hideLoader(); }
     }
     loadShowtimes();
-  }, [
-    activeTab, 
-    selectedCinemaId, // Escucha activa al selector global del Super Admin
-    showtimesPage, 
-    showtimesPerPage, 
-    filterMovieId, 
-    filterDate, 
-    filterStartDate, 
-    filterEndDate
-  ]);
+  }, [activeTab, selectedCinemaId, showtimesPage, showtimesPerPage, filterMovieId, filterDate, filterStartDate, filterEndDate]);
 
-  // --- CÁLCULO DE METADATA PARA FUNCIONES ---
   const totalShowtimePages = Math.ceil(showtimesTotalCount / showtimesPerPage) || 1;
   const hasNextShowtimePage = showtimesPage < totalShowtimePages;
   const hasPrevShowtimePage = showtimesPage > 1;
 
-  // --- MANEJADORES DE OPERACIONES EXITOSAS ---
-  const handleMovieSuccess = async () => {
-    closeModal();
-    setMoviesCurrentPage(1);
-  };
+  const handleMovieSuccess = async () => { closeModal(); setMoviesCurrentPage(1); };
+  const handleShowtimeSuccess = async () => { closeModal(); setShowtimesPage(1); };
 
-  const handleShowtimeSuccess = async () => {
-    closeModal();
-    setShowtimesPage(1);
-  };
-
-  // --- MANEJADOR DE GUARDADO/ACTUALIZACIÓN DE FUNCIONES ---
-const handleShowtimeSave = async (payload) => {
-  showLoader();
-  try {
-    // Capturamos el ID del cine y enriquecemos el payload para asegurar la integridad de la sucursal
-    const targetCinemaId = modal.data?.cinema_id || selectedCinemaId;
-    const enrichedPayload = {
-      ...payload,
-      cinema_id: Number(targetCinemaId)
-    };
-
-    if (modal.data?.id) {
-      // MODO EDICIÓN
-      const { id, ...updateData } = enrichedPayload;
-      const res = await patchShowtime(id, updateData);
-      
-      if (res.success) {
-        toast.success(res.message || "Función modificada con éxito");
+  const handleShowtimeSave = async (payload) => {
+    showLoader();
+    try {
+      const targetCinemaId = modal.data?.cinema_id || selectedCinemaId;
+      const enrichedPayload = { ...payload, cinema_id: Number(targetCinemaId) };
+      if (modal.data?.id) {
+        const { id, ...updateData } = enrichedPayload;
+        await patchShowtime(id, updateData);
+      } else {
+        await createByCinema(targetCinemaId, enrichedPayload);
       }
-    } else {
-      // MODO CREACIÓN
-      const res = await createByCinema(targetCinemaId, enrichedPayload);
-      
-      if (res.success) {
-        // Aquí recibes el body que me acabas de mostrar: res.data.showtime_id y res.data.booking_id
-        toast.success(`¡Función #${res.data.showtime_id} programada! Sala reservada exitosamente.`);
-      }
-    }
-    
-    // Cerrar modal y refrescar la tabla apuntando a la primera página
-    closeModal();
-    setShowtimesPage(1);
-  } catch (error) {
-    console.error("Error en la operación de función:", error);
-    toast.error(error.response?.data?.message || "Error crítico al procesar la función");
-  } finally {
-    hideLoader();
-  }
-};
+      closeModal();
+      setShowtimesPage(1);
+    } catch (error) { toast.error("Error al procesar la función"); } 
+    finally { hideLoader(); }
+  };
 
   const handleConfirmDelete = async () => {
     if (!modal.data?.id) return;
     showLoader();
     try {
-      if (activeTab === "movies") {
-        await deleteMovie(modal.data.id);
-        toast.success("Película removida correctamente");
-        await handleMovieSuccess();
-      } else {
-        await deleteShowtime(modal.data.id);
-        toast.success("Función cancelada correctamente");
-        await handleShowtimeSuccess();
-      }
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Error al procesar la acción");
-    } finally {
-      hideLoader();
-    }
-  };
-
-  // Interceptor para validar el botón de creación de funciones
-  const handleOpenShowtimeForm = () => {
-    if (!selectedCinemaId) {
-      toast.warning("Debe seleccionar una sucursal para poder planificar una función.");
-      return;
-    }
-    // Pasamos el selectedCinemaId dentro del objeto de contexto o inicialización si tu formulario lo requiere
-    openModal("showtimeForm", { cinema_id: selectedCinemaId });
+      if (activeTab === "movies") { await deleteMovie(modal.data.id); await handleMovieSuccess(); }
+      else { await deleteShowtime(modal.data.id); await handleShowtimeSuccess(); }
+    } catch (error) { toast.error("Error al borrar"); } 
+    finally { hideLoader(); }
   };
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto font-montserrat">
-      
-      {/* HEADER DE LA SECCIÓN CORPORATIVA */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Administración global de películas y planificación de funciones por sucursales.
-          </p>
+          <p className="text-xs text-slate-400 mt-0.5">Administración global de películas y planificación de funciones.</p>
         </div>
 
-        {/* CONTROLES ACCIONABLES */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          
-          {/* SELECTOR GLOBAL DE SUCURSAL PARA EL SUPER ADMIN */}
           {activeTab === "showtimes" && (
             <div className="flex items-center gap-2 bg-slate-100/80 border border-border p-1.5 px-3 rounded-xl shadow-sm">
               <Building2 className="w-4 h-4 text-slate-500 shrink-0" />
-              <select
-                value={selectedCinemaId}
-                onChange={(e) => {
-                  setSelectedCinemaId(e.target.value);
-                  setShowtimesPage(1); // Resetea la página al cambiar de sucursal
-                }}
-                className="bg-transparent border-none text-xs font-bold text-slate-700 focus:outline-none cursor-pointer pr-4"
-              >
+              <select value={selectedCinemaId} onChange={(e) => { setSelectedCinemaId(e.target.value); setShowtimesPage(1); }} className="bg-transparent border-none text-xs font-bold text-slate-700 focus:outline-none cursor-pointer pr-4">
                 <option value="">-- Seleccionar Sucursal --</option>
-                {cinemas.map((cinema) => (
-                  <option key={cinema.id} value={cinema.id}>
-                    {cinema.name}
-                  </option>
-                ))}
+                {cinemas.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
           )}
 
           <button
-            onClick={() => activeTab === "movies" ? openModal("movieForm", null) : handleOpenShowtimeForm()}
-            className="bg-brand-primary text-white font-bold hover:bg-brand-primary/90 transition-all shadow-sm flex items-center justify-center gap-2 text-xs py-2.5 px-4 rounded-xl"
+            onClick={handleAdd}
+            className="
+              bg-brand-primary text-white 
+              px-5 py-2.5
+              rounded-xl
+              flex items-center gap-2 
+              text-[11px] font-black uppercase tracking-widest
+              hover:brightness-110 hover:shadow-lg hover:-translate-y-0.5
+              active:scale-95
+              transition-all duration-300
+              border-2 border-purple-400/30
+              font-montserrat
+            "
           >
-            <Plus className="w-4 h-4 stroke-[3]" />
-            {activeTab === "movies" ? "REGISTRAR PELÍCULA" : "PLANIFICAR FUNCIÓN"}
+            <Plus className="w-4 h-4 text-brand-gold" strokeWidth={3} /> 
+            {activeTab === "movies" ? "Registrar Película" : "Programar Función"}
           </button>
         </div>
-      </div>
 
+      </div>
       {/* TABS SELECTORES */}
       <TabsCustom tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
 
