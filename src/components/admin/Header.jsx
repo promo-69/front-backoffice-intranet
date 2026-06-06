@@ -89,18 +89,6 @@ export function Navbar({ sectionTitle }) {
                   </div>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>Ver Perfil</DropdownMenuItem>
-                <DropdownMenuItem>Ajustes de Seguridad</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="text-status-error font-bold"
-                  onClick={logout}
-                >
-                  Cerrar Sesión
-                </DropdownMenuItem>
-              </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </div>
