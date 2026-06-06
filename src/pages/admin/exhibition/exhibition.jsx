@@ -1,366 +1,464 @@
-import { useState } from "react"
-import { useReactTable, getCoreRowModel } from "@tanstack/react-table";
-import { Plus } from "lucide-react"
-import { MoviesTab } from "@/components/admin/exhibition/movies/MoviesTab"
-import SuccessModal from "@/components/ui/SuccessModal"
-import DeleteConfirmModal from "@/components/ui/DialogConfirmModal"
-import { ShowtimesTab } from "@/components/admin/exhibition/showtimes/ShowtimesTab"
-import { ShowtimeForm } from "@/components/admin/exhibition/showtimes/ShowtimeForm"
-import { RegisterMovieForm } from "@/components/forms/RegisterMovieForm"
-import MovieForm from "@/components/admin/exhibition/movies/MovieForm"
-import { ColumnsMovies } from "@/components/admin/exhibition/movies/ColumnsMovies";
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
+import { useModal } from "@/hooks/useModal";
+import { TabsCustom } from "@/components/ui/TabsCustom";
+import { Plus, Building2 } from "lucide-react"; 
 import { useLoading } from "@/context/LoadingContext";
+import { toast } from "sonner";
+import { MoviesTab } from "@/components/admin/exhibition/movies/MoviesTab";
+import { ShowtimesTab } from "@/components/admin/exhibition/showtimes/ShowtimesTab";
+import { ShowtimeForm } from "@/components/admin/exhibition/showtimes/ShowtimesForm";
+import MovieForm from "@/components/admin/exhibition/movies/MovieForm";
+import DeleteConfirmModal from "@/components/ui/DialogConfirmModal";
+import { getMovies, deleteMovie } from "@/services/movie.service";
+import { 
+  getShowtimesByCinema, 
+  deleteShowtime,
+  createByCinema,
+  patchShowtime
+} from "@/services/showtime.service";
+import { getCatalogByName } from "@/services/catalog.service"; 
+import { getRoomsByCinema } from "@/services/room.service"; 
+import { getCinemas } from "@/services/cinema.service"; 
 
-import poster1 from "@/assets/images/posters/the-drama-poster.jpg"
+const FALLBACKS = {
+  genresData: [{ id: 1, description: "Acción" }, { id: 2, description: "Comedia" }],
+  classificationsData: [{ id: 1, description: "A (Todo Público)" }, { id: 2, description: "B (+12)" }],
+  lifecyclesData: [{ id: 1, description: "En Cartelera" }],
+  projectionTypesData: [{ id: 1, description: "2D Tradicional" }],
+  currenciesData: [{ id: 1, description: "USD - Dólares", symbol: "$" }],
+  cinemasData: [
+    { id: 1, name: "Cineflix Sambil Barquisimeto" },
+    { id: 2, name: "Cineflix Las Trinitarias" },
+    { id: 3, name: "Cineflix Sambil Caracas" }
+  ]
+};
 
+const tabs = [
+  { id: "movies", label: "Películas" },
+  { id: "showtimes", label: "Funciones" }
+];
 
 export default function ExhibitionPage() {
   const [activeTab, setActiveTab] = useState("movies");
-  const [search, setSearch] = useState("");
-  const [isFormOpen, setIsFormOpen] = useState(false)
-  const [isSuccessOpen, setIsSuccessOpen] = useState(false);
-  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-  const [movieToDelete, setMovieToDelete] = useState(null);
-  const [successMessage, setSuccessMessage] = useState({ title: "", message: "" });
-  const [selectedId, setSelectedId] = useState(null);
-  const [movieToEdit, setMovieToEdit] = useState(null);
-  const [itemToDelete, setItemToDelete] = useState(null);
-  const [deleteType, setDeleteType] = useState(null); 
-
-
-const handleDeleteMovie = (movie) => {
-  setItemToDelete(movie);
-  setDeleteType('movie');
-  setIsDeleteConfirmOpen(true);
-};
-
-
-const handleDeleteShowtime = (showtime) => {
-  setItemToDelete(showtime);
-  setDeleteType('showtime');
-  setIsDeleteConfirmOpen(true);
-};
-
-const handleConfirmDelete = () => {
-  if (deleteType === 'movie') {
-    setData(prev => prev.filter(m => m.id !== itemToDelete.id));
-    setSuccessMessage({ 
-      title: "¡Película Eliminada!", 
-      message: `El título "${itemToDelete.title}" ha sido removido con éxito.` 
-    });
-  } else {
-    setShowtimes(prev => prev.filter(s => s.id !== itemToDelete.id));
-    setSuccessMessage({ 
-      title: "¡Función Eliminada!", 
-      message: "La programación ha sido cancelada correctamente." 
-    });
-  }
-
-  setIsDeleteConfirmOpen(false);
-  setIsSuccessOpen(true);
-  setItemToDelete(null);
-  setDeleteType(null);
-};
-  const [showtimes, setShowtimes] = useState([
-    {
-      id: 1,
-      movie_id: 1,
-      room_id: 101,
-      date: "2026-04-30",
-      start_time: "14:00",
-      end_time: "16:30",
-      price: "10.00",
-    },
-    {
-      id: 2,
-      movie_id: 2,
-      room_id: 102,
-      date: "2026-04-30",
-      start_time: "17:00",
-      end_time: "19:00",
-      price: "12.50",
-    },
-  ]); 
-  const [itemToEdit, setItemToEdit] = useState(null);
-  
-
-  const [totalElements, setTotalElements] = useState(3); 
-  const [{ pageIndex, pageSize }, setPagination] = useState({
-    pageIndex: 0,
-    pageSize: 10,
-  });
-   
-  const [data, setData] = useState([
-    {
-      id: 1,
-      titulo: "EL Drama",
-      poster: poster1,  
-      genero: "Drama / Suspenso",
-      clasificacion: "C",
-      duracion: 169,
-      state: "En Cartelera"
-    },
-    {
-        id: 2,
-        titulo: "Velocidad Extrema",
-        poster: null,
-        genero: "Acción",
-        clasificacion: "B",
-        duracion: 124,
-        state: "Próximamente"
-    }
-  ]);
-
-  const [rooms] = useState([ // Esto vendría de RoomManager o API
-    { id: 101, name: "Sala 1 - IMAX" },
-    { id: 102, name: "Sala 2 - VIP" }
-  ]);
-
-  const handleView = (movie) => console.log("Ver:", movie.titulo);
-  
-  const handleOpenCreate = () => {
-    if (activeTab === "movies") {
-      setMovieToEdit(null);
-    } else {
-      setItemToEdit(null);
-    }
-    setIsFormOpen(true);
-  };
-
-  const handleEdit = (item) => {
-    if (activeTab === "movies") {
-      setMovieToEdit(item);
-    } else {
-      setItemToEdit(item);
-    }
-    setIsFormOpen(true);
-  };
-
-  const handleDelete = (item) => {
-    if (activeTab === "movies") {
-      setMovieToDelete(item);
-      setIsDeleteConfirmOpen(true);
-    } else {
-      handleDeleteMovieShowtime(item);
-    }
-  };
-
-  const handleMovieConfirmDelete = () => {
-    if (activeTab === "movies") {
-      setData((prev) => prev.filter((m) => m.id !== movieToDelete.id));
-      setTotalElements((prev) => prev - 1);
-      setIsDeleteConfirmOpen(false);
-      setSuccessMessage({
-        title: "¡Eliminado con Éxito!",
-        message: "La película ha sido removida del catálogo correctamente.",
-      });
-      setIsSuccessOpen(true);
-    }
-  };
-
-  const handleShowtimeConfirmDelete = () => {
-  if (activeTab === "movies") {
-    setData(prev => prev.filter(m => m.id !== movieToDelete.id));
-  } else {
-    setShowtimes(prev => prev.filter(st => st.id !== movieToDelete.id));
-  }
-  setIsDeleteConfirmOpen(false);
-  setMovieToDelete(null);
-  
-  setSuccessMessage({ title: "Eliminado", message: "Operación realizada con éxito" });
-  setIsSuccessOpen(true);
-};
-
-  const handleFormSuccess = (isEdit) => {
-    if (activeTab === "movies") {
-      setSuccessMessage({
-        title: isEdit ? "¡Cambios Guardados!" : "¡Registro Exitoso!",
-        message: isEdit
-          ? "La información de la película ha sido actualizada."
-          : "La nueva película ha sido añadida al catálogo correctamente.",
-      });
-    } else {
-      setSuccessMessage({
-        title: isEdit ? "¡Función Actualizada!" : "¡Función Programada!",
-        message: isEdit
-          ? "La información de la función ha sido actualizada."
-          : "La nueva función ha sido programada correctamente.",
-      });
-    }
-    setIsSuccessOpen(true);
-  };
-
-  const handleSaveShowtime = (newShowtime) => {
-    if (itemToEdit) {
-      setShowtimes(prev => prev.map(s => s.id === itemToEdit.id ? { ...newShowtime, id: s.id } : s));
-    } else {
-      setShowtimes(prev => [...prev, { ...newShowtime, id: Date.now() }]);
-    }
-    setIsFormOpen(false);
-    setItemToEdit(null);
-  };
-
-  const handleDeleteMovieShowtime = (st) => {
-    setShowtimes(prev => prev.filter(item => item.id !== st.id));
-  };
-
-  const enrichedShowtimes = showtimes.map(st => {
-    const movie = data.find(m => m.id === parseInt(st.movie_id));
-    const room = rooms.find(r => r.id === parseInt(st.room_id));
-
-    return {
-      ...st,
-      movie_title: movie?.titulo || "N/A",
-      room_name: room?.name || "N/A",
-    };
-  });
-
-  const columns = ColumnsMovies(handleView, handleEdit, handleDelete);
-
-  const table = useReactTable({
-    data,
-    columns,
-    pageCount: Math.ceil(totalElements / pageSize),
-    state: { pagination: { pageIndex, pageSize } },
-    onPaginationChange: setPagination,
-    manualPagination: true, 
-    getCoreRowModel: getCoreRowModel(),
-  });
-
+  const { modal, openModal, closeModal } = useModal();
   const { showLoader, hideLoader } = useLoading();
-  
-    useEffect(() => {
-      async function loadData() {
-        showLoader();
-        try {
-          // Aquí va fetch real
-          await new Promise((r) => setTimeout(r, 800));
-        } finally {
-          hideLoader();
-        }
+
+  const [cinemas, setCinemas] = useState([]);
+  const [selectedCinemaId, setSelectedCinemaId] = useState("");
+
+  const [movies, setMovies] = useState([]);
+  const [moviesCurrentPage, setMoviesCurrentPage] = useState(1);
+  const [moviesPerPage, setMoviesPerPage] = useState(10);
+  const [moviesMetadata, setMoviesMetadata] = useState(null);
+
+  const [showtimes, setShowtimes] = useState([]);
+  const [showtimesPage, setShowtimesPage] = useState(1);
+  const [showtimesPerPage, setShowtimesPerPage] = useState(10);
+  const [showtimesTotalCount, setShowtimesTotalCount] = useState(0);
+
+  const [filterMovieId, setFilterMovieId] = useState("");
+  const [filterDate, setFilterDate] = useState("");
+  const [filterStartDate, setFilterStartDate] = useState("");
+  const [filterEndDate, setFilterEndDate] = useState("");
+
+  const [genres, setGenres] = useState([]);
+  const [ageClassifications, setAgeClassifications] = useState([]);
+  const [lifecycleStates, setLifecycleStates] = useState([]);
+  const [languages, setLanguages] = useState([]);
+  const [projectionTypes, setProjectionTypes] = useState([]);
+  const [currencies, setCurrencies] = useState([]);
+  const [rooms, setRooms] = useState([]);
+
+  // --- MANEJADOR DEL BOTÓN DINÁMICO ---
+  const handleAdd = () => {
+    if (activeTab === "movies") {
+      openModal("movieForm", null);
+    } else {
+      if (!selectedCinemaId) {
+        toast.warning("Debe seleccionar una sucursal para poder planificar una función.");
+        return;
       }
-  
-      loadData();
-    }, []);
+      openModal("showtimeForm", { cinema_id: selectedCinemaId });
+    }
+  };
+
+  const safeFetchCatalog = async (catalogName, fallbackKey) => {
+    try {
+      const response = await getCatalogByName(catalogName);
+      if (Array.isArray(response) && response.length > 0) return response;
+      return FALLBACKS[fallbackKey] || [];
+    } catch (error) {
+      return FALLBACKS[fallbackKey] || [];
+    }
+  };
+
+  useEffect(() => {
+    async function loadAllInitialData() {
+      showLoader();
+      try {
+        const cinemaRes = await getCinemas();
+        const cinemaList = cinemaRes.data || (Array.isArray(cinemaRes) ? cinemaRes : null);
+        setCinemas(cinemaList || FALLBACKS.cinemasData);
+      } catch (e) {
+        setCinemas(FALLBACKS.cinemasData);
+      }
+
+      const genresData = await safeFetchCatalog("genres", "genresData");
+      const classificationsData = await safeFetchCatalog("age-classifications", "classificationsData");
+      const lifecyclesData = await safeFetchCatalog("movie-lifecycle-states", "lifecyclesData");
+      const projectionsData = await safeFetchCatalog("projection-types", "projectionTypesData");
+      const languagesData = await safeFetchCatalog("languages", "languagesData");
+      const currenciesData = await safeFetchCatalog("currencies", "currenciesData");
+
+      setGenres(genresData);
+      setAgeClassifications(classificationsData);
+      setLifecycleStates(lifecyclesData);
+      setProjectionTypes(projectionsData);
+      setLanguages(languagesData);
+      setCurrencies(currenciesData);
+      hideLoader();
+    }
+    loadAllInitialData();
+  }, []);
+
+  useEffect(() => {
+    async function loadRooms() {
+      if (!selectedCinemaId) { setRooms([]); return; }
+      try {
+        const roomsData = await getRoomsByCinema(selectedCinemaId);
+        setRooms(Array.isArray(roomsData) ? roomsData : (roomsData?.rows || []));
+      } catch (error) { console.error(error); }
+    }
+    loadRooms();
+  }, [selectedCinemaId]);
+
+  useEffect(() => {
+    async function loadMovies() {
+      showLoader();
+      try {
+        const res = await getMovies(moviesCurrentPage, moviesPerPage);
+        setMovies(res.data || []);
+        if (res.metadata) setMoviesMetadata(res.metadata);
+      } catch (err) { toast.error("Error al sincronizar películas"); } 
+      finally { hideLoader(); }
+    }
+    loadMovies();
+  }, [moviesCurrentPage, moviesPerPage]);
+
+  useEffect(() => {
+    async function loadShowtimes() {
+      if (activeTab !== "showtimes" || !selectedCinemaId) {
+        setShowtimes([]); setShowtimesTotalCount(0); return;
+      }
+      showLoader();
+      try {
+        const filters = { page: showtimesPage, limit: showtimesPerPage, movieId: filterMovieId || undefined, date: filterDate || undefined, startDate: filterStartDate || undefined, endDate: filterEndDate || undefined };
+        const res = await getShowtimesByCinema(selectedCinemaId, filters);
+        if (res.success) { setShowtimes(res.data?.rows || []); setShowtimesTotalCount(res.data?.count || 0); }
+      } catch (err) { setShowtimes([]); } 
+      finally { hideLoader(); }
+    }
+    loadShowtimes();
+  }, [activeTab, selectedCinemaId, showtimesPage, showtimesPerPage, filterMovieId, filterDate, filterStartDate, filterEndDate]);
+
+  const totalShowtimePages = Math.ceil(showtimesTotalCount / showtimesPerPage) || 1;
+  const hasNextShowtimePage = showtimesPage < totalShowtimePages;
+  const hasPrevShowtimePage = showtimesPage > 1;
+
+  const handleMovieSuccess = async () => { closeModal(); setMoviesCurrentPage(1); };
+  const handleShowtimeSuccess = async () => { closeModal(); setShowtimesPage(1); };
+
+  const handleShowtimeSave = async (payload) => {
+    showLoader();
+    try {
+      const targetCinemaId = modal.data?.cinema_id || selectedCinemaId;
+      const enrichedPayload = { ...payload, cinema_id: Number(targetCinemaId) };
+      if (modal.data?.id) {
+        const { id, ...updateData } = enrichedPayload;
+        await patchShowtime(id, updateData);
+      } else {
+        await createByCinema(targetCinemaId, enrichedPayload);
+      }
+      closeModal();
+      setShowtimesPage(1);
+    } catch (error) { toast.error("Error al procesar la función"); } 
+    finally { hideLoader(); }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!modal.data?.id) return;
+    showLoader();
+    try {
+      if (activeTab === "movies") { await deleteMovie(modal.data.id); await handleMovieSuccess(); }
+      else { await deleteShowtime(modal.data.id); await handleShowtimeSuccess(); }
+    } catch (error) { toast.error("Error al borrar"); } 
+    finally { hideLoader(); }
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center border-b border-gray-100 pb-4">
+    <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto font-montserrat">
+      <div className="flex justify-between items-center bg-white p-6 rounded-cineflix border border-gray-100 shadow-sm">
         <div>
-          <h3 className="text-lg font-montserrat font-bold text-brand-primary">
-            {activeTab === "movies" ? "Cartelera de Películas" : "Gestión de Funciones"}
-          </h3>
-          <p className="text-xs text-muted-foreground">
-            {activeTab === "movies" 
-              ? "Administra el catálogo de películas y estrenos" 
-              : "Asigna horarios y salas a las películas activas"}
-          </p>
+          <h3 className="text-lg font-montserrat font-bold text-brand-primary">Gestión de Peliculas y Funciones</h3>
+          <p className="text-xs text-slate-400 mt-0.5">Administración global de películas y planificación de funciones.</p>
         </div>
 
-        <div className="flex items-center gap-4">
-          <input
-            type="text"
-            placeholder={activeTab === "movies" ? "Buscar Película..." : "Buscar Función..."}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-64 px-3 py-2 rounded-cineflix border border-gray-300 text-sm font-montserrat focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
-          />
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          {activeTab === "showtimes" && (
+            <div className="flex items-center gap-2 bg-slate-100/80 border border-border p-1.5 px-3 rounded-xl shadow-sm">
+              <Building2 className="w-4 h-4 text-slate-500 shrink-0" />
+              <select value={selectedCinemaId} onChange={(e) => { setSelectedCinemaId(e.target.value); setShowtimesPage(1); }} className="bg-transparent border-none text-xs font-bold text-slate-700 focus:outline-none cursor-pointer pr-4">
+                <option value="">-- Seleccionar Sucursal --</option>
+                {cinemas.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+          )}
 
           <button
-            onClick={handleOpenCreate}
-            className="bg-brand-primary text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-[11px] font-black uppercase tracking-widest hover:brightness-110 hover:shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all duration-300 border-2 border-purple-400/30 font-montserrat"
+            onClick={handleAdd}
+            className="
+              bg-brand-primary text-white 
+              px-5 py-2.5
+              rounded-xl
+              flex items-center gap-2 
+              text-[11px] font-black uppercase tracking-widest
+              hover:brightness-110 hover:shadow-lg hover:-translate-y-0.5
+              active:scale-95
+              transition-all duration-300
+              border-2 border-purple-400/30
+              font-montserrat
+            "
           >
-            <Plus className="w-4 h-4 text-brand-gold" strokeWidth={3} />
-            {activeTab === "movies" ? "Añadir Película" : "Añadir Función"}
+            <Plus className="w-4 h-4 text-brand-gold" strokeWidth={3} /> 
+            {activeTab === "movies" ? "Registrar Película" : "Programar Función"}
           </button>
         </div>
+
       </div>
+      {/* TABS SELECTORES */}
+      <TabsCustom tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
 
-      {/* MINI MENÚ DE PESTAÑAS  */}
-      <div className="flex gap-4 border-b pb-2">
-        <button
-          className={`text-xs font-montserrat uppercase tracking-wide pb-1 border-b-2 transition-colors ${
-            activeTab === "movies"
-              ? "font-bold text-brand-gold border-brand-gold"
-              : "text-muted-foreground border-transparent hover:text-brand-primary"
-          }`}
-          onClick={() => setActiveTab("movies")}
-        >
-          Películas
-        </button>
+      {/* 🔍 BARRA DE FILTROS EXCLUSIVA PARA LA PESTAÑA DE FUNCIONES */}
+      {activeTab === "showtimes" && selectedCinemaId && (
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-cineflix border border-border text-xs font-montserrat shadow-sm/40">
+          <div className="flex flex-col gap-1 text-left">
+            <label className="font-bold text-slate-500 uppercase text-[10px] tracking-wider">Película</label>
+            <select 
+              value={filterMovieId} 
+              onChange={(e) => { setFilterMovieId(e.target.value); setShowtimesPage(1); }}
+              className="w-full bg-white border border-border p-2 rounded-xl text-slate-700 font-bold focus:outline-none focus:border-brand-primary cursor-pointer shadow-sm text-[11px]"
+            >
+              <option value="">Todas las películas</option>
+              {movies.map(m => <option key={m.id} value={m.id}>{m.title}</option>)}
+            </select>
+          </div>
 
-        <button
-          className={`text-xs font-montserrat uppercase tracking-wide pb-1 border-b-2 transition-colors ${
-            activeTab === "functions"
-              ? "font-bold text-brand-gold border-brand-gold"
-              : "text-muted-foreground border-transparent hover:text-brand-primary"
-          }`}
-          onClick={() => setActiveTab("functions")}
-        >
-          Funciones
-        </button>
-      </div>
+          <div className="flex flex-col gap-1 text-left">
+            <label className="font-bold text-slate-500 uppercase text-[10px] tracking-wider">Fecha Exacta</label>
+            <input 
+              type="date" 
+              value={filterDate}
+              disabled={!!filterStartDate || !!filterEndDate}
+              onChange={(e) => { setFilterDate(e.target.value); setShowtimesPage(1); }}
+              className="w-full bg-white border border-border p-1.5 rounded-xl text-slate-700 font-bold disabled:bg-slate-200/70 focus:outline-none focus:border-brand-primary shadow-sm text-[11px]"
+            />
+          </div>
 
-      {/* CONTENIDO CONDICIONAL */}
-      {activeTab === "movies" && (
-        <>
-        <MoviesTab 
-          table={table} 
-          totalElements={totalElements}
-          onView={handleView}
-          onEdit={handleEdit}
-          onDelete={(id) => handleDelete(data.find((m) => m.id === id))}
-          onSelectMovie={setSelectedId}
-          selectedId={selectedId}
-          search={search}
-        />
+          <div className="flex flex-col gap-1 text-left">
+            <label className="font-bold text-slate-500 uppercase text-[10px] tracking-wider">Rango: Desde</label>
+            <input 
+              type="date" 
+              value={filterStartDate}
+              disabled={!!filterDate}
+              onChange={(e) => { setFilterStartDate(e.target.value); setShowtimesPage(1); }}
+              className="w-full bg-white border border-border p-1.5 rounded-xl text-slate-700 font-bold disabled:bg-slate-200/70 focus:outline-none focus:border-brand-primary shadow-sm text-[11px]"
+            />
+          </div>
 
-        <MovieForm
-          open={isFormOpen}
-          onClose={() => setIsFormOpen(false)}
-          initialData={movieToEdit}
-          onSuccess={handleFormSuccess}
-        />
-        </>
+          <div className="flex flex-col gap-1 text-left">
+            <label className="font-bold text-slate-500 uppercase text-[10px] tracking-wider">Rango: Hasta</label>
+            <input 
+              type="date" 
+              value={filterEndDate}
+              disabled={!!filterDate}
+              onChange={(e) => { setFilterEndDate(e.target.value); setShowtimesPage(1); }}
+              className="w-full bg-white border border-border p-1.5 rounded-xl text-slate-700 font-bold disabled:bg-slate-200/70 focus:outline-none focus:border-brand-primary shadow-sm text-[11px]"
+            />
+          </div>
+        </div>
       )}
 
-      {activeTab === "functions" && (
-        <>
-          <ShowtimesTab
-            data={enrichedShowtimes}
-            onEdit={handleEdit}
-            onDelete={handleDeleteShowtime}
-            search={search}
+      {/* RENDERIZADO PRINCIPAL CON TABLAS Y PAGINACIÓN INLINE */}
+      {activeTab === "movies" ? (
+        <div className="flex flex-col gap-4">
+          <MoviesTab 
+            data={movies}
+            onEdit={(type, data) => openModal(type, data)}
+            onDelete={(type, data) => openModal(type, data)}
           />
+          
+          {/* PAGINACIÓN INLINE: PELÍCULAS */}
+          {moviesMetadata && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-5 py-4 bg-surface-container border border-border rounded-cineflix font-montserrat text-xs shadow-sm">
+              <div className="flex items-center gap-3 text-gray-500 font-bold uppercase text-[10px] tracking-wider">
+                <span>Mostrar</span>
+                <select
+                  value={moviesPerPage}
+                  onChange={(e) => { setMoviesPerPage(Number(e.target.value)); setMoviesCurrentPage(1); }}
+                  className="border border-border bg-white py-1 px-2.5 rounded-xl text-gray-700 font-bold focus:outline-none focus:border-brand-primary cursor-pointer shadow-sm"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                </select>
+                <span>Películas de {moviesMetadata.total} en total</span>
+              </div>
 
-          <ShowtimeForm
-            open={isFormOpen}
-            onClose={() => {
-              setIsFormOpen(false);
-              setItemToEdit(null);
-            }}
-            initialData={itemToEdit}
-            movies={data} 
-            rooms={rooms}
-            existingShowtimes={showtimes}
-            onSave={handleSaveShowtime}
-          />
-        </>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  disabled={moviesMetadata.prev_page === null}
+                  onClick={() => setMoviesCurrentPage(prev => prev - 1)}
+                  className="px-3 py-1.5 rounded-xl border border-border bg-white text-gray-600 font-bold uppercase text-[9px] tracking-widest transition-all hover:bg-gray-50 disabled:opacity-40"
+                >
+                  Anterior
+                </button>
+                {Array.from({ length: moviesMetadata.total_pages }, (_, i) => i + 1).map(pageNum => (
+                  <button
+                    key={pageNum}
+                    type="button"
+                    onClick={() => setMoviesCurrentPage(pageNum)}
+                    className={`w-7 h-7 flex items-center justify-center rounded-xl font-black text-[10px] border shadow-sm ${
+                      moviesMetadata.current_page === pageNum
+                        ? "bg-brand-primary text-white border-brand-primary"
+                        : "bg-white text-gray-500 border-border hover:border-brand-primary/40"
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  disabled={moviesMetadata.next_page === null}
+                  onClick={() => setMoviesCurrentPage(prev => prev + 1)}
+                  className="px-3 py-1.5 rounded-xl border border-border bg-white text-gray-600 font-bold uppercase text-[9px] tracking-widest transition-all hover:bg-gray-50 disabled:opacity-40"
+                >
+                  Siguiente
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-4">
+          
+          {/* CONTROL DE VISTA VACÍA POR FALTA DE SELECCIÓN DE CINE */}
+          {!selectedCinemaId ? (
+            <div className="text-center py-16 border border-dashed border-border bg-slate-50/50 rounded-cineflix p-6">
+              <Building2 className="w-10 h-10 text-slate-400 mx-auto mb-3 stroke-[1.5]" />
+              <h3 className="font-bold text-slate-700 uppercase tracking-tight text-sm">No se ha seleccionado ninguna sucursal</h3>
+              <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1">
+                Por favor, elija un complejo de cines desde el menú superior para poder ver, auditar o planificar las funciones disponibles.
+              </p>
+            </div>
+          ) : (
+            <>
+              <ShowtimesTab 
+                data={showtimes}
+                onEdit={(type, data) => openModal(type, data)}
+                onDelete={(type, data) => openModal(type, data)}
+              />
+
+              {/* PAGINACIÓN INLINE: FUNCIONES */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-5 py-4 bg-surface-container border border-border rounded-cineflix font-montserrat text-xs shadow-sm">
+                <div className="flex items-center gap-3 text-gray-500 font-bold uppercase text-[10px] tracking-wider">
+                  <span>Mostrar</span>
+                  <select
+                    value={showtimesPerPage}
+                    onChange={(e) => { setShowtimesPerPage(Number(e.target.value)); setShowtimesPage(1); }}
+                    className="border border-border bg-white py-1 px-2.5 rounded-xl text-gray-700 font-bold focus:outline-none"
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                  </select>
+                  <span>Funciones de {showtimesTotalCount} en total</span>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    disabled={!hasPrevShowtimePage}
+                    onClick={() => setShowtimesPage(prev => prev - 1)}
+                    className="px-3 py-1.5 rounded-xl border border-border bg-white text-gray-600 font-bold uppercase text-[9px] tracking-widest transition-all hover:bg-gray-50 disabled:opacity-40"
+                  >
+                    Anterior
+                  </button>
+                  {Array.from({ length: totalShowtimePages }, (_, i) => i + 1).map(pageNum => (
+                    <button
+                      key={pageNum}
+                      type="button"
+                      onClick={() => setShowtimesPage(pageNum)}
+                      className={`w-7 h-7 flex items-center justify-center rounded-xl font-black text-[10px] border shadow-sm ${
+                        showtimesPage === pageNum
+                          ? "bg-brand-primary text-white border-brand-primary"
+                          : "bg-white text-gray-500 border-border hover:border-brand-primary/40"
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    disabled={!hasNextShowtimePage}
+                    onClick={() => setShowtimesPage(prev => prev + 1)}
+                    className="px-3 py-1.5 rounded-xl border border-border bg-white text-gray-600 font-bold uppercase text-[9px] tracking-widest transition-all hover:bg-gray-50 disabled:opacity-40"
+                  >
+                    Siguiente
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       )}
 
-      <DeleteConfirmModal 
-        isOpen={isDeleteConfirmOpen}
-        onClose={() => setIsDeleteConfirmOpen(false)}
-        onConfirm={handleMovieConfirmDelete}
-        itemName={movieToDelete?.title}
+      {/* FORMULARIO DE PELÍCULAS */}
+      <MovieForm 
+        open={modal.isOpen && modal.type === "movieForm"}
+        onClose={closeModal}
+        genresList={genres}
+        ageClassificationsList={ageClassifications}
+        lifecycleStatesList={lifecycleStates}
+        languagesList={languages}
+        projectionTypesList={projectionTypes}
+        initialData={modal.data}
+        onSuccess={handleMovieSuccess}
       />
 
-      <SuccessModal 
-        isOpen={isSuccessOpen} 
-        onClose={() => setIsSuccessOpen(false)}
-        title={successMessage.title}
-        message={successMessage.message} 
+      {/* FORMULARIO DE FUNCIONES (Pasa el id del cine actual dinámicamente) */}
+      <ShowtimeForm 
+        open={modal.isOpen && modal.type === "showtimeForm"}
+        onClose={closeModal}
+        movies={movies} 
+        roomsList={rooms} 
+        projectionTypes={projectionTypes}
+        languagesList={languages}
+        currenciesList={currencies} 
+        initialData={modal.data}
+        onSave={handleShowtimeSave}
+      />
+
+      {/* MODAL DE CONFIRMACIÓN DE BORRADO */}
+      <DeleteConfirmModal 
+        isOpen={modal.isOpen && modal.type === "delete"}
+        onClose={closeModal}
+        onConfirm={handleConfirmDelete}
+        itemName={
+          activeTab === "movies" 
+            ? modal.data?.title 
+            : (modal.data?.movie?.title || "esta función")
+        }
       />
     </div>
   );
