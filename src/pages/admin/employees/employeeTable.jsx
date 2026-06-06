@@ -1,7 +1,6 @@
 import { Pencil, Trash2, UserCog } from "lucide-react";
 
 export default function EmployeeTable({ employees, onEdit, onDelete, isLoading = false }) {
-  // Generamos 5 filas para el estado de carga
   const skeletonRows = Array(5).fill(0);
 
   return (
@@ -70,20 +69,18 @@ export default function EmployeeTable({ employees, onEdit, onDelete, isLoading =
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium flex justify-center gap-3">
-                  <button
-                    onClick={() => onEdit(emp)}
-                    className="text-blue-500 hover:scale-110 transition-transform"
-                    title="Editar empleado"
-                  >
-                    <Pencil className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={() => onDelete(emp)}
-                    className="text-red-500 hover:scale-110 transition-transform"
-                    title="Eliminar empleado"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
+                  <button 
+                      onClick={() => onEdit(emp)}
+                      className="p-2 bg-white border border-slate-200 text-brand-primary rounded-lg shadow-sm hover:bg-brand-primary hover:text-white transition-all"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button 
+                      onClick={() => onDelete(emp)}
+                      className="p-2 bg-white border border-slate-200 text-red-500 rounded-lg shadow-sm hover:bg-red-50 hover:text-white transition-all"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                 </td>
               </tr>
             ))}

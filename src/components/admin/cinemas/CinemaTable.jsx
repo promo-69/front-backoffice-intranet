@@ -86,17 +86,17 @@ const CinemaTable = ({
                   </td>
                   <td className="py-4 px-4">
                     <div className="flex justify-center gap-3">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); onEdit(item); }}
-                        className="text-brand-primary hover:scale-110 transition-transform"
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); onEdit(item); }} 
+                        className="p-2 bg-white border border-slate-200 text-brand-primary rounded-lg shadow-sm hover:bg-brand-primary hover:text-white transition-all"
                       >
-                        <Pencil className="w-4 h-4" />
+                        <Pencil className="w-3.5 h-3.5" />
                       </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}
-                        className="text-red-500 hover:scale-110 transition-transform"
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); onDelete(item.id); }} 
+                        className="p-2 bg-white border border-slate-200 text-red-500 rounded-lg shadow-sm hover:bg-red-50 hover:text-white transition-all"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </td>

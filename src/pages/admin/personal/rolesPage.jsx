@@ -67,12 +67,13 @@ export default function RolesPage() {
                   {role.code}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium flex justify-end gap-3">
-                  <button
+                  <button 
                     onClick={() => navigate(`/admin/personal/edit-role?roleId=${role.id}`)}
-                    className="text-blue-500 hover:scale-110 transition-transform"
+                    className="p-2 bg-white border border-slate-200 text-brand-primary rounded-lg shadow-sm hover:bg-brand-primary hover:text-white transition-all"
                     title="Editar rol"
+
                   >
-                    <Pencil className="w-5 h-5" />
+                    <Pencil className="w-3.5 h-3.5" />
                   </button>
                 </td>
               </tr>
