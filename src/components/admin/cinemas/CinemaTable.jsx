@@ -6,8 +6,10 @@ const CinemaTable = ({
   onDelete,
   onSelectBranch,
   selectedId,
+  isLoading = false, // ⭐ Nueva propiedad
 }) => {
   const safeData = Array.isArray(data) ? data : [];
+  const skeletonRows = Array(5).fill(0); // Cantidad de filas de carga
 
   return (
     <div className="overflow-x-auto bg-surface-container rounded-cineflix border border-border shadow-sm">
@@ -24,13 +26,30 @@ const CinemaTable = ({
         </thead>
 
         <tbody className="divide-y divide-border">
-          {safeData.length === 0 ? (
+          {/* ⭐ ESTADO DE CARGA (SKELETON) */}
+          {isLoading &&
+            skeletonRows.map((_, index) => (
+              <tr key={`skeleton-${index}`} className="animate-pulse">
+                <td className="py-4 px-4"><div className="w-3.5 h-3.5 bg-gray-200 rounded"></div></td>
+                <td className="py-4 px-4"><div className="h-4 bg-gray-200 rounded w-24"></div></td>
+                <td className="py-4 px-4"><div className="h-4 bg-gray-200 rounded w-32"></div></td>
+                <td className="py-4 px-4"><div className="h-4 bg-gray-200 rounded w-20"></div></td>
+                <td className="py-4 px-4"><div className="h-4 bg-gray-200 rounded w-28 mx-auto"></div></td>
+                <td className="py-4 px-4 flex justify-center gap-3"><div className="h-5 bg-gray-200 rounded w-16"></div></td>
+              </tr>
+            ))}
+
+          {/* ESTADO VACÍO */}
+          {!isLoading && safeData.length === 0 && (
             <tr>
               <td colSpan="6" className="text-center py-10 text-gray-400 font-montserrat">
                 No hay sucursales disponibles
               </td>
             </tr>
-          ) : (
+          )}
+
+          {/* DATOS REALES */}
+          {!isLoading &&
             safeData.map((item) => {
               const isSelected = String(selectedId) === String(item.id);
 
@@ -48,34 +67,15 @@ const CinemaTable = ({
                     <div
                       className={`
                         w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors
-                        ${
-                          isSelected
-                            ? "bg-brand-primary border-brand-primary"
-                            : "border-gray-400 bg-transparent group-hover:border-brand-primary/50"
-                        }
+                        ${isSelected ? "bg-brand-primary border-brand-primary" : "border-gray-400 bg-transparent group-hover:border-brand-primary/50"}
                       `}
                     >
-                      {isSelected && (
-                        <Check
-                          className="w-2.5 h-2.5 text-brand-gold"
-                          strokeWidth={4}
-                        />
-                      )}
+                      {isSelected && <Check className="w-2.5 h-2.5 text-brand-gold" strokeWidth={4} />}
                     </div>
                   </td>
-
-                  <td className="py-4 px-4 font-bold max-w-32 text-slate-700">
-                    {item.name}
-                  </td>
-
-                  <td className="py-4 px-4 text-gray-500 max-w-32 truncate">
-                    {item.address}
-                  </td>
-
-                  <td className="py-4 px-4 text-gray-500 max-w-32 truncate whitespace-nowrap text-xs font-medium">
-                    {item.phone}
-                  </td>
-
+                  <td className="py-4 px-4 font-bold max-w-32 text-slate-700">{item.name}</td>
+                  <td className="py-4 px-4 text-gray-500 max-w-32 truncate">{item.address}</td>
+                  <td className="py-4 px-4 text-gray-500 max-w-32 truncate whitespace-nowrap text-xs font-medium">{item.phone}</td>
                   <td className="py-4 px-4 text-center">
                     <div className="flex items-center justify-center gap-1.5 text-gray-500 font-medium">
                       <Clock className="w-3 h-3 text-brand-gold" />
@@ -84,24 +84,16 @@ const CinemaTable = ({
                       <span>{item.closing_time}</span>
                     </div>
                   </td>
-
                   <td className="py-4 px-4">
                     <div className="flex justify-center gap-3">
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onEdit(item);
-                        }}
+                        onClick={(e) => { e.stopPropagation(); onEdit(item); }}
                         className="text-brand-primary hover:scale-110 transition-transform"
                       >
                         <Pencil className="w-4 h-4" />
                       </button>
-
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDelete(item.id);
-                        }}
+                        onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}
                         className="text-red-500 hover:scale-110 transition-transform"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -110,8 +102,7 @@ const CinemaTable = ({
                   </td>
                 </tr>
               );
-            })
-          )}
+            })}
         </tbody>
       </table>
     </div>
