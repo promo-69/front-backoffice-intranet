@@ -35,7 +35,8 @@ const FALLBACKS = {
 
 const tabs = [
   { id: "movies", label: "Películas" },
-  { id: "showtimes", label: "Funciones" }
+  { id: "showtimes", label: "Funciones" },
+  { id: "room-events", label: "Eventos Especiales" }
 ];
 
 export default function ExhibitionPage() {
