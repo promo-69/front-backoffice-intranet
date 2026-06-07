@@ -35,7 +35,8 @@ const FALLBACKS = {
 
 const tabs = [
   { id: "movies", label: "Películas" },
-  { id: "showtimes", label: "Funciones" }
+  { id: "showtimes", label: "Funciones" },
+  { id: "room-events", label: "Eventos Especiales" }
 ];
 
 export default function ExhibitionPage() {
@@ -69,6 +70,8 @@ export default function ExhibitionPage() {
   const [currencies, setCurrencies] = useState([]);
   const [rooms, setRooms] = useState([]);
 
+  const [isLoading, setIsLoading] = useState(false); // Estado para el skeleton interno
+
   // --- MANEJADOR DEL BOTÓN DINÁMICO ---
   const handleAdd = () => {
     if (activeTab === "movies") {
@@ -94,7 +97,6 @@ export default function ExhibitionPage() {
 
   useEffect(() => {
     async function loadAllInitialData() {
-      showLoader();
       try {
         const cinemaRes = await getCinemas();
         const cinemaList = cinemaRes.data || (Array.isArray(cinemaRes) ? cinemaRes : null);
@@ -132,15 +134,19 @@ export default function ExhibitionPage() {
     loadRooms();
   }, [selectedCinemaId]);
 
+  // --- CARGA DE PELÍCULAS CON SKELETON ---
   useEffect(() => {
     async function loadMovies() {
-      showLoader();
+      setIsLoading(true); // <--- AHORA SÍ ACTIVAMOS EL SKELETON ANTES DE PEDIR DATOS
       try {
         const res = await getMovies(moviesCurrentPage, moviesPerPage);
         setMovies(res.data || []);
         if (res.metadata) setMoviesMetadata(res.metadata);
-      } catch (err) { toast.error("Error al sincronizar películas"); } 
-      finally { hideLoader(); }
+      } catch (err) { 
+        toast.error("Error al sincronizar películas"); 
+      } finally { 
+        setIsLoading(false); // <--- APAGAMOS EL SKELETON AL TERMINAR
+      }
     }
     loadMovies();
   }, [moviesCurrentPage, moviesPerPage]);
@@ -150,7 +156,6 @@ export default function ExhibitionPage() {
       if (activeTab !== "showtimes" || !selectedCinemaId) {
         setShowtimes([]); setShowtimesTotalCount(0); return;
       }
-      showLoader();
       try {
         const filters = { page: showtimesPage, limit: showtimesPerPage, movieId: filterMovieId || undefined, date: filterDate || undefined, startDate: filterStartDate || undefined, endDate: filterEndDate || undefined };
         const res = await getShowtimesByCinema(selectedCinemaId, filters);
@@ -169,7 +174,6 @@ export default function ExhibitionPage() {
   const handleShowtimeSuccess = async () => { closeModal(); setShowtimesPage(1); };
 
   const handleShowtimeSave = async (payload) => {
-    showLoader();
     try {
       const targetCinemaId = modal.data?.cinema_id || selectedCinemaId;
       const enrichedPayload = { ...payload, cinema_id: Number(targetCinemaId) };
@@ -187,7 +191,6 @@ export default function ExhibitionPage() {
 
   const handleConfirmDelete = async () => {
     if (!modal.data?.id) return;
-    showLoader();
     try {
       if (activeTab === "movies") { await deleteMovie(modal.data.id); await handleMovieSuccess(); }
       else { await deleteShowtime(modal.data.id); await handleShowtimeSuccess(); }
@@ -236,7 +239,21 @@ export default function ExhibitionPage() {
 
       </div>
       {/* TABS SELECTORES */}
-      <TabsCustom tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+        <div className="flex gap-4 border-b border-border pb-2 mb-6">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              className={`text-xs font-montserrat uppercase tracking-wide pb-1 border-b-2 transition-colors duration-300 ${
+                activeTab === tab.id
+                  ? "font-black text-brand-gold border-brand-gold" 
+                  : "text-slate-400 border-transparent hover:text-brand-primary"
+              }`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
       {/* 🔍 BARRA DE FILTROS EXCLUSIVA PARA LA PESTAÑA DE FUNCIONES */}
       {activeTab === "showtimes" && selectedCinemaId && (
@@ -293,6 +310,7 @@ export default function ExhibitionPage() {
         <div className="flex flex-col gap-4">
           <MoviesTab 
             data={movies}
+            isLoading={isLoading} // Se manda la prop correctamente
             onEdit={(type, data) => openModal(type, data)}
             onDelete={(type, data) => openModal(type, data)}
           />
