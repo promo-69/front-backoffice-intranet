@@ -63,7 +63,7 @@ export default function Step1Showtime({ movies, getShowtimes, onNext }) {
       {selectedMovieId && (
         <div className="animate-in fade-in slide-in-from-bottom-2">
           <h3 className="text-lg font-bold text-[#F6AD38] mb-3">
-            Funciones disponibles — <span className="text-white">{selectedMovie?.title}</span>
+            Funciones disponibles — <span className="text-[#F6AD38]">{selectedMovie?.title}</span>
           </h3>
           {showtimes.length === 0 ? (
             <p className="text-gray-500 text-sm">No hay funciones disponibles para hoy.</p>
@@ -86,7 +86,7 @@ export default function Step1Showtime({ movies, getShowtimes, onNext }) {
                   >
                     <div className="flex items-center gap-2 mb-2">
                       <Clock className="w-4 h-4 text-[#F6AD38]" />
-                      <span className="font-bold text-white text-lg">{show.time}</span>
+                      <span className="font-bold text-[#F6AD38] text-lg">{show.time}</span>
                     </div>
                     <div className="flex items-center gap-1 text-xs text-gray-400 mb-1">
                       <MonitorPlay className="w-3 h-3" />

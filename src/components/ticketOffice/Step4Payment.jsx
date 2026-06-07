@@ -159,7 +159,7 @@ export default function Step4Payment({ movie, showtime, selectedSeats, ticketsNe
       <div className="flex justify-between pt-4">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 px-6 py-3 rounded-xl border border-white/20 text-gray-300 hover:border-white/40 hover:text-white transition-all text-sm"
+          className="flex items-center gap-2 px-6 py-3 rounded-xl border border-white/20 text-gray-300 hover:border-white/40 hover:text-black transition-all text-sm"
         >
           <ArrowLeft className="w-4 h-4" /> Volver
         </button>
