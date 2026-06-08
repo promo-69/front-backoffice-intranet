@@ -26,7 +26,7 @@ const CinemaTable = ({
         </thead>
 
         <tbody className="divide-y divide-border">
-          {/* ⭐ ESTADO DE CARGA (SKELETON) */}
+          {/* ESTADO DE CARGA */}
           {isLoading &&
             skeletonRows.map((_, index) => (
               <tr key={`skeleton-${index}`} className="animate-pulse">
@@ -94,7 +94,7 @@ const CinemaTable = ({
                       </button>
                       <button 
                         onClick={(e) => { e.stopPropagation(); onDelete(item.id); }} 
-                        className="p-2 bg-white border border-slate-200 text-red-500 rounded-lg shadow-sm hover:bg-red-50 hover:text-white transition-all"
+                        className="p-2 bg-white border border-slate-200 text-red-500 rounded-lg shadow-sm hover:bg-red-400 hover:text-white transition-all"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>

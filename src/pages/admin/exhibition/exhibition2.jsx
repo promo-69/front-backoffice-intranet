@@ -4,7 +4,7 @@ import { TabsCustom } from "@/components/ui/TabsCustom";
 import { Plus, Building2 } from "lucide-react"; 
 import { useLoading } from "@/context/LoadingContext";
 import { toast } from "sonner";
-import { MoviesTab } from "@/components/admin/exhibition/movies/MoviesTab2";
+import { MoviesTab } from "@/components/admin/exhibition/movies/MoviesManager";
 import { ShowtimesTab } from "@/components/admin/exhibition/showtimes/ShowtimesTab2";
 import { ShowtimeForm } from "@/components/admin/exhibition/showtimes/ShowtimeForm2";
 import MovieForm from "@/components/admin/exhibition/movies/MovieForm";
