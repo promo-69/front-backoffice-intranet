@@ -275,7 +275,7 @@ export default function Showtimes({ catalogs, cinemaId, search, modal, openModal
       isOpen={isDeleteOpen} 
       onClose={closeModal} 
       onConfirm={handleConfirmDelete} 
-      itemName={`Función || "horario seleccionado"}`} />
+      itemName={` la función de ${modal.data?.movie.title} con fecha de {}`} />
       
       <SuccessModal 
       isOpen={isSuccessOpen} 

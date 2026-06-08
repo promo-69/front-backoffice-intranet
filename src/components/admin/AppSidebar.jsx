@@ -54,9 +54,9 @@ const navItems = [
     permission: "CRUD:READ:EMPLOYEES",
   },
   {
-    id: "exhibition",
+    id: "billboard",
     title: "Cartelera",
-    url: "/admin/exhibition",
+    url: "/admin/billboard",
     icon: Film,
     permission: "CRUD:READ:ROOM-EVENTS",
   },
