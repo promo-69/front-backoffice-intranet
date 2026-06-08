@@ -20,7 +20,7 @@ export default function UsersTable({
             <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600">Correo</th>
             <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600">Rol</th>
             <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600">Estado</th>
-            <th className="px-4 py-3 text-right text-[11px] font-black uppercase tracking-widest text-gray-600">Acciones</th>
+            <th className="px-4 py-3 text-center text-[11px] font-black uppercase tracking-widest text-gray-600">Acciones</th>
           </tr>
         </thead>
 
@@ -35,7 +35,7 @@ export default function UsersTable({
                 <td className="py-4 px-4"><div className="h-4 bg-gray-200 rounded w-40"></div></td>
                 <td className="py-4 px-4"><div className="h-4 bg-gray-200 rounded w-20"></div></td>
                 <td className="py-4 px-4"><div className="h-6 bg-gray-200 rounded-full w-16"></div></td>
-                <td className="py-4 px-4 flex justify-end gap-3"><div className="h-5 bg-gray-200 rounded w-24"></div></td>
+                <td className="py-4 px-8"><div className="h-5 bg-gray-200 rounded w-16 mx-auto"></div></td>
               </tr>
             ))}
 
@@ -70,15 +70,24 @@ export default function UsersTable({
                     {u.status === 1 ? "Activo" : "Inactivo"}
                   </span>
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap text-right flex justify-end gap-3">
-                  <button onClick={() => onEdit(u)} className="text-blue-500 hover:scale-110 transition-transform" title="Editar usuario">
-                    <Pencil className="w-5 h-5" />
+                <td className="px-4 py-4 whitespace-nowrap text-center flex justify-center gap-3">
+                  <button 
+                      onClick={() => onEdit(u)}
+                      className="p-2 bg-white border border-slate-350 text-brand-primary rounded-lg shadow-sm hover:bg-brand-primary hover:text-white transition-all"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
                   </button>
-                  <button onClick={() => onEditEmployee(u)} className="text-brand-gold hover:scale-110 transition-transform" title="Editar empleado asociado">
-                    <UserCog className="w-5 h-5" />
+                  <button 
+                    onClick={() => onEditEmployee(u)}
+                    className="p-2 bg-white border border-slate-350 text-brand-gold rounded-lg shadow-sm hover:bg-brand-gold hover:text-white transition-all"
+                    >
+                    <UserCog className="w-3.5 h-3.5" />
                   </button>
-                  <button onClick={() => onDelete(u)} className="text-red-500 hover:scale-110 transition-transform" title="Eliminar usuario">
-                    <Trash2 className="w-5 h-5" />
+                  <button 
+                    onClick={() => onDelete(u)}
+                    className="p-2 bg-white border border-slate-350 text-red-500 rounded-lg shadow-sm hover:bg-red-400 hover:text-white transition-all"
+                    >
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </td>
               </tr>

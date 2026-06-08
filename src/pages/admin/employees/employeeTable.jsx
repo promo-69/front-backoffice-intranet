@@ -77,7 +77,7 @@ export default function EmployeeTable({ employees, onEdit, onDelete, isLoading =
                     </button>
                     <button 
                       onClick={() => onDelete(emp)}
-                      className="p-2 bg-white border border-slate-200 text-red-500 rounded-lg shadow-sm hover:bg-red-50 hover:text-white transition-all"
+                      className="p-2 bg-white border border-slate-200 text-red-500 rounded-lg shadow-sm hover:bg-red-400 hover:text-white transition-all"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>

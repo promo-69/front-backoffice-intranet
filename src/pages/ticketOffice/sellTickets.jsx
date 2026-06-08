@@ -121,15 +121,13 @@ export default function SellTickets() {
   };
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(to_bottom,#231640_0%,#7B1A82_18%,#231640_53%,#420946_79%,#231640_87%)] text-white font-montserrat pb-16">
-      <HeaderCashier title="Venta de Boletos" />
-
+    <div className="min-h-screen bg-white text-gray-900 font-montserrat pb-16">
       <div className="max-w-5xl mx-auto px-4 mt-8">
         {/* Indicador de pasos */}
         <StepIndicator currentStep={step} />
 
         {/* Panel de paso activo */}
-        <div className="bg-[rgba(29,20,48,0.85)] backdrop-blur-sm rounded-3xl border border-white/10 shadow-2xl p-6 md:p-8">
+        <div className="bg-white rounded-3xl border border-gray-200 shadow-2xl p-6 md:p-8">
           {step === 1 && (
             <Step1Showtime
               movies={movies}
