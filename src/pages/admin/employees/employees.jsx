@@ -92,7 +92,7 @@ export default function Employees({ search }) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto w-full animate-in fade-in duration-300">
       {/* ⭐ TABLA CON PROPIEDAD LOADING */}
       <EmployeeTable
         employees={paginatedEmployees}
@@ -104,7 +104,6 @@ export default function Employees({ search }) {
       {/* ⭐ PAGINACIÓN (solo si no estamos cargando) */}
       {!loading && (
         <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6 rounded-b-xl shadow-sm">
-           {/* ... mantén tu lógica de paginación igual ... */}
            <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
              <p className="text-sm text-gray-700">
                Mostrando {(currentPage - 1) * itemsPerPage + 1} a {Math.min(currentPage * itemsPerPage, filteredEmployees.length)} de {filteredEmployees.length} resultados

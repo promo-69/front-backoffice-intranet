@@ -129,7 +129,7 @@ const CinemaPage = () => {
         />
       </div>
 
-      {/* ⭐ PASAMOS LOADING A LA TABLA */}
+      {/* PASAMOS LOADING A LA TABLA */}
       <CinemaTable
         data={branchesFiltradas} 
         isLoading={loading}
@@ -153,7 +153,7 @@ const CinemaPage = () => {
             </p>
             <nav className="inline-flex -space-x-px rounded-md shadow-sm">
               <button onClick={() => handlePageChange(metadata.prev_page)} disabled={!metadata.prev_page} className="relative inline-flex items-center px-2 py-2 text-gray-400 border border-gray-300 bg-white disabled:opacity-50"><ChevronLeft className="h-5 w-5"/></button>
-              <div className="px-4 py-2 text-sm font-semibold text-brand-primary border border-gray-300 bg-white">Pág {metadata.current_page} de {metadata.total_pages}</div>
+              <div className="px-4 py-2 text-sm font-semibold text-brand-primary border border-gray-300 bg-white">Página {metadata.current_page} de {metadata.total_pages}</div>
               <button onClick={() => handlePageChange(metadata.next_page)} disabled={!metadata.next_page} className="relative inline-flex items-center px-2 py-2 text-gray-400 border border-gray-300 bg-white disabled:opacity-50"><ChevronRight className="h-5 w-5"/></button>
             </nav>
           </div>

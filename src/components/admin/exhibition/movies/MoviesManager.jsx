@@ -4,11 +4,9 @@ import { getMovies, deleteMovie } from "@/services/movie.service";
 import { useModal } from "@/hooks/useModal";
 import { Pencil, Trash2, Film, Clock, Calendar } from "lucide-react";
 
-// --- DICCIONARIOS (Los que ya tenías) ---
 const GENRES_FALLBACK = { 1: 'Acción', 2: 'Comedia', 3: 'Drama', 4: 'Ciencia Ficción', 5: 'Terror / Suspenso', 6: 'Animación / Infantil' };
 const CLASSIFICATION_FALLBACK = { 1: "A (Todo Público)", 2: "B (+12)", 3: "C (+15)", 4: "D (+18)" };
 
-// --- FUNCIÓN HELPER (La que ya tenías) ---
 function getStateBadge(id, nestedObject) {
   const badges = { 1: "bg-blue-50 text-blue-600 border-blue-100", 2: "bg-emerald-50 text-emerald-600 border-emerald-100", 3: "bg-purple-50 text-purple-600 border-purple-100", 4: "bg-amber-50 text-amber-600 border-amber-100", 5: "bg-rose-50 text-rose-600 border-rose-100" };
   const labelsFallback = { 1: "Próximamente", 2: "En Cartelera (Estreno)", 3: "En Cartelera (Regular)", 4: "Últimos Días", 5: "Fuera de Cartelera" };
@@ -22,27 +20,19 @@ function getStateBadge(id, nestedObject) {
   return <span className={`px-2 py-1 rounded-md font-bold text-[9px] uppercase border ${badges[effectiveId] || "bg-gray-50 text-gray-400 border-gray-100"}`}>{description || labelsFallback[id] || "Oculto"}</span>;
 }
 
-// =====================================================================
-// COMPONENTE PRINCIPAL: MOVIES MANAGER (El "Cerebro")
-// =====================================================================
 export default function MoviesManager() {
   const { openModal } = useModal();
   
-  // Estados propios del Manager
   const [movies, setMovies] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [moviesPerPage, setMoviesPerPage] = useState(10);
-  const [metadata, setMetadata] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Efecto para buscar películas independientemente de las otras pestañas
   useEffect(() => {
     async function loadMovies() {
       setIsLoading(true);
       try {
-        const res = await getMovies(currentPage, moviesPerPage);
+        // Se llama al servicio sin paginación
+        const res = await getMovies();
         setMovies(res.data || []);
-        if (res.metadata) setMetadata(res.metadata);
       } catch (err) {
         toast.error("Error al sincronizar películas");
       } finally {
@@ -50,72 +40,19 @@ export default function MoviesManager() {
       }
     }
     loadMovies();
-  }, [currentPage, moviesPerPage]);
+  }, []);
 
   const handleEdit = (movie) => openModal("movieForm", movie);
-  const handleDelete = (movie) => openModal("delete", movie); // Asegúrate de que el modal de confirmación sepa manejar esto
+  const handleDelete = (movie) => openModal("delete", movie);
 
   return (
     <div className="flex flex-col gap-4">
-      {/* --- TU TABLA PRESENTACIONAL --- */}
       <MoviesTable 
         data={movies} 
         isLoading={isLoading} 
         onEdit={handleEdit} 
         onDelete={handleDelete} 
       />
-
-      {/* --- PAGINACIÓN INLINE (Mudada desde Billboard) --- */}
-      {metadata && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-5 py-4 bg-surface-container border border-border rounded-cineflix font-montserrat text-xs shadow-sm">
-          <div className="flex items-center gap-3 text-gray-500 font-bold uppercase text-[10px] tracking-wider">
-            <span>Mostrar</span>
-            <select
-              value={moviesPerPage}
-              onChange={(e) => { setMoviesPerPage(Number(e.target.value)); setCurrentPage(1); }}
-              className="border border-border bg-white py-1 px-2.5 rounded-xl text-gray-700 font-bold focus:outline-none focus:border-brand-primary cursor-pointer shadow-sm"
-            >
-              <option value={5}>5</option>
-              <option value={10}>10</option>
-              <option value={20}>20</option>
-            </select>
-            <span>Películas de {metadata.total} en total</span>
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              disabled={metadata.prev_page === null}
-              onClick={() => setCurrentPage(prev => prev - 1)}
-              className="px-3 py-1.5 rounded-xl border border-border bg-white text-gray-600 font-bold uppercase text-[9px] tracking-widest transition-all hover:bg-gray-50 disabled:opacity-40"
-            >
-              Anterior
-            </button>
-            {Array.from({ length: metadata.total_pages }, (_, i) => i + 1).map(pageNum => (
-              <button
-                key={pageNum}
-                type="button"
-                onClick={() => setCurrentPage(pageNum)}
-                className={`w-7 h-7 flex items-center justify-center rounded-xl font-black text-[10px] border shadow-sm ${
-                  metadata.current_page === pageNum
-                    ? "bg-brand-primary text-white border-brand-primary"
-                    : "bg-white text-gray-500 border-border hover:border-brand-primary/40"
-                }`}
-              >
-                {pageNum}
-              </button>
-            ))}
-            <button
-              type="button"
-              disabled={metadata.next_page === null}
-              onClick={() => setCurrentPage(prev => prev + 1)}
-              className="px-3 py-1.5 rounded-xl border border-border bg-white text-gray-600 font-bold uppercase text-[9px] tracking-widest transition-all hover:bg-gray-50 disabled:opacity-40"
-            >
-              Siguiente
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

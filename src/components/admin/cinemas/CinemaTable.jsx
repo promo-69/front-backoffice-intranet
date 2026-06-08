@@ -26,7 +26,7 @@ const CinemaTable = ({
         </thead>
 
         <tbody className="divide-y divide-border">
-          {/* ⭐ ESTADO DE CARGA (SKELETON) */}
+          {/* ESTADO DE CARGA */}
           {isLoading &&
             skeletonRows.map((_, index) => (
               <tr key={`skeleton-${index}`} className="animate-pulse">
