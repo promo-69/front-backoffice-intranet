@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { getMovies } from "@/services/movie.service";
+import { getMovies, deleteMovie } from "@/services/movie.service";
 import { useModal } from "@/hooks/useModal";
-import { Pencil, Trash2, Film, Clock, Calendar } from "lucide-react";
+import { Pencil, Trash2, Film, Clock, Calendar, Plus } from "lucide-react";
 
+// Fallbacks para datos en caso de que la API devuelva valores nulos o vacíos
 const GENRES_FALLBACK = { 1: 'Acción', 2: 'Comedia', 3: 'Drama', 4: 'Ciencia Ficción', 5: 'Terror / Suspenso', 6: 'Animación / Infantil' };
 const CLASSIFICATION_FALLBACK = { 1: "A (Todo Público)", 2: "B (+12)", 3: "C (+15)", 4: "D (+18)" };
 
@@ -20,44 +21,110 @@ function getStateBadge(id, nestedObject) {
   return <span className={`px-2 py-1 rounded-md font-bold text-[9px] uppercase border ${badges[effectiveId] || "bg-gray-50 text-gray-400 border-gray-100"}`}>{description || labelsFallback[id] || "Oculto"}</span>;
 }
 
-export default function MoviesManager() {
-  const { openModal } = useModal();
+export default function Bilboard() {
+  const { openModal, closeModal } = useModal();
   
   const [loading, setLoading] = useState(true);
   const [movies, setMovies] = useState([]);
   
-  // Paginación
+  // Estados para la lógica de paginación de 10 en 10
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  useEffect(() => {
-    async function loadMovies() {
-      setLoading(true);
-      try {
-        const res = await getMovies();
-        setMovies(res.data || []);
-      } catch (err) {
-        toast.error("Error al sincronizar películas");
-        setMovies([]);
-      } finally {
-        setLoading(false);
-      }
+  const loadMovies = async () => {
+    setLoading(true);
+    try {
+      const res = await getMovies();
+      setMovies(res.data || []);
+    } catch (err) {
+      toast.error("Error al sincronizar películas");
+      setMovies([]);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
     loadMovies();
   }, []);
 
-  // Lógica de paginación
+  // Callback unificado de éxito para refrescar la tabla y cerrar el modal activo
+  const handleSuccess = () => {
+    closeModal();
+    loadMovies();
+  };
+
+  // Lógica matemática de la paginación
   const totalPages = Math.ceil(movies.length / itemsPerPage);
   const paginatedMovies = movies.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
 
-  const handleEdit = (movie) => openModal("movieForm", movie);
-  const handleDelete = (movie) => openModal("delete", movie);
+  // Manejadores de acciones para abrir los modales correspondientes
+  const handleCreate = () => {
+    openModal("movieForm", {
+      initialData: null,
+      onSuccess: handleSuccess
+    });
+  };
+
+  const handleEdit = (movie) => {
+    openModal("movieForm", { 
+      initialData: movie,
+      onSuccess: handleSuccess
+    });
+  };
+
+  const handleDelete = (movie) => {
+    openModal("delete", {
+      item: movie,
+      onConfirm: async () => {
+        try {
+          await deleteMovie(movie.id);
+          toast.success("Película eliminada correctamente");
+          handleSuccess();
+        } catch (err) {
+          toast.error("Error al eliminar la película");
+        }
+      }
+    });
+  };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6 p-1 text-left font-montserrat">
+      
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white p-6 rounded-cineflix border border-gray-100 shadow-sm gap-4">
+        <div className="space-y-1">
+          <h2 className="text-lg font-bold text-brand-primary">Gestión de Películas</h2>
+          <p className="text-xs text-slate-500">
+            Administra el catálogo global de películas del sistema.
+          </p>
+        </div>
+        <button 
+          onClick={handleCreate}
+          className="bg-brand-primary text-white text-xs font-black px-5 py-3 rounded-xl shadow-md hover:bg-brand-primary/90 transition-all flex items-center gap-2 uppercase tracking-wider"
+        >
+          <Plus className="w-4 h-4" strokeWidth={3} /> Registrar Película
+        </button>
+      </div>
+
+      <div className="flex gap-6 border-b border-gray-200 text-xs font-bold uppercase tracking-wider text-slate-400 mt-2">
+        <button className="pb-3 border-b-2 border-brand-gold text-brand-gold font-black px-1">
+          Películas
+        </button>
+        <button className="pb-3 hover:text-brand-primary transition-colors px-1 cursor-not-allowed opacity-60">
+          Funciones
+        </button>
+        <button className="pb-3 hover:text-brand-primary transition-colors px-1 cursor-not-allowed opacity-60">
+          Eventos Especiales
+        </button>
+        <button className="pb-3 hover:text-brand-primary transition-colors px-1 cursor-not-allowed opacity-60">
+          Alquiler de Salas
+        </button>
+      </div>
+
+      {/* 4. TABLA DE DATOS */}
       <MoviesTable 
         data={paginatedMovies} 
         isLoading={loading} 
@@ -65,7 +132,7 @@ export default function MoviesManager() {
         onDelete={handleDelete} 
       />
 
-      {/* ⭐ PAGINACIÓN (Basada en tu componente Employees) */}
+      {/* 5. PANEL DE PAGINACIÓN */}
       {!loading && movies.length > 0 && (
         <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6 rounded-b-xl shadow-sm">
           <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
@@ -76,15 +143,15 @@ export default function MoviesManager() {
               <button 
                 onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))} 
                 disabled={currentPage === 1} 
-                className="px-3 py-2 border border-gray-300 bg-white text-gray-500 rounded-l-md disabled:opacity-50"
+                className="px-3 py-2 border border-gray-300 bg-white text-gray-500 rounded-l-md disabled:opacity-50 transition-opacity"
               >◀</button>
-              <div className="px-4 py-2 text-sm font-semibold text-brand-primary border border-gray-300 bg-white">
+              <div className="px-4 py-2 text-sm font-semibold text-brand-primary border border-gray-300 bg-white select-none">
                 Página {currentPage} de {totalPages || 1}
               </div>
               <button 
                 onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))} 
                 disabled={currentPage === totalPages || totalPages === 0} 
-                className="px-3 py-2 border border-gray-300 bg-white text-gray-500 rounded-r-md disabled:opacity-50"
+                className="px-3 py-2 border border-gray-300 bg-white text-gray-500 rounded-r-md disabled:opacity-50 transition-opacity"
               >▶</button>
             </nav>
           </div>
@@ -135,13 +202,13 @@ function MoviesTable({ data, onEdit, onDelete, isLoading }) {
                   </div>
                 </td>
                 <td className="py-4 px-4">
-                    <div className="space-y-1">
-                        <h4 className="font-bold text-brand-primary text-sm">{movie.title}</h4>
-                        <div className="flex items-center gap-3 text-[10px] text-slate-500">
-                            <span className="flex items-center gap-1 font-medium"><Clock className="w-3 h-3 text-brand-gold"/> {movie.duration_minutes} min</span>
-                            <span className="flex items-center gap-1 font-medium"><Calendar className="w-3 h-3 text-brand-gold"/> {movie.release_date?.split('T')[0]}</span>
-                        </div>
+                  <div className="space-y-1">
+                    <h4 className="font-bold text-brand-primary text-sm">{movie.title}</h4>
+                    <div className="flex items-center gap-3 text-[10px] text-slate-500">
+                      <span className="flex items-center gap-1 font-medium"><Clock className="w-3 h-3 text-brand-gold"/> {movie.duration_minutes} min</span>
+                      <span className="flex items-center gap-1 font-medium"><Calendar className="w-3 h-3 text-brand-gold"/> {movie.release_date?.split('T')[0]}</span>
                     </div>
+                  </div>
                 </td>
                 <td className="py-4 px-4"><div className="flex flex-wrap gap-1 max-w-[200px]">{movie.genres?.map((g) => (<span key={g.id} className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[9px] font-bold uppercase border border-slate-200">{g._Genres?.description || GENRES_FALLBACK[g.genre] || "Otro"}</span>)) || <span className="text-gray-300 italic text-[10px]">Sin géneros</span>}</div></td>
                 <td className="py-4 px-4"><div className="flex flex-wrap gap-1 max-w-[200px]">{movie.languages?.map((lang) => (<span key={lang.id} className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[9px] font-bold uppercase border border-slate-200">{lang._Languages?.description || "Otro"}</span>)) || <span className="text-gray-300 italic text-[10px]">Sin idiomas</span>}</div></td>
@@ -149,10 +216,10 @@ function MoviesTable({ data, onEdit, onDelete, isLoading }) {
                 <td className="py-4 px-4"><div className="flex flex-wrap gap-1 max-w-[200px]">{movie.projection_types?.map((pt) => (<span key={pt.id} className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[9px] font-bold uppercase border border-slate-200">{pt._ProjectionTypes?.description || "Otro"}</span>)) || <span className="text-gray-300 italic text-[10px]">Sin proyecciones</span>}</div></td>
                 <td className="py-4 px-4 text-center"><div className="flex justify-center">{getStateBadge(movie.lifecycle_state?.id, movie.lifecycle_state)}</div></td>
                 <td className="py-4 px-6">
-                    <div className="flex justify-center gap-2">
-                        <button onClick={() => onEdit(movie)} className="p-2 bg-white border border-slate-200 text-brand-primary rounded-lg shadow-sm hover:bg-brand-primary hover:text-white transition-all"><Pencil className="w-3.5 h-3.5" /></button>
-                        <button onClick={() => onDelete(movie)} className="p-2 bg-white border border-slate-200 text-red-500 rounded-lg shadow-sm hover:bg-red-400 hover:text-white transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
-                    </div>
+                  <div className="flex justify-center gap-2">
+                    <button onClick={() => onEdit(movie)} className="p-2 bg-white border border-slate-200 text-brand-primary rounded-lg shadow-sm hover:bg-brand-primary hover:text-white transition-all"><Pencil className="w-3.5 h-3.5" /></button>
+                    <button onClick={() => onDelete(movie)} className="p-2 bg-white border border-slate-200 text-red-500 rounded-lg shadow-sm hover:bg-red-400 hover:text-white transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
+                  </div>
                 </td>
               </tr>
             ))
