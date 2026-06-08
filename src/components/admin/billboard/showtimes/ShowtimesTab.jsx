@@ -2,6 +2,8 @@ import { Pencil, Trash2, Clock, Calendar } from "lucide-react";
 
 export function ShowtimesTab({ data, onEdit, onDelete, isLoading = false }) {
   
+  console.log("¿Qué le llega a la Tabla?", data);
+
   const formatTime = (dateStr) => {
     if (!dateStr) return "N/A";
     return new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -119,13 +121,13 @@ export function ShowtimesTab({ data, onEdit, onDelete, isLoading = false }) {
                   <td className="py-4 px-6">
                     <div className="flex justify-center gap-2">
                       <button 
-                        onClick={() => onEdit("showtimeForm", st)}
+                        onClick={() => onEdit(st)}
                         className="p-2 border rounded-lg text-brand-primary hover:bg-brand-primary hover:text-white transition-all shadow-sm"
                       >
                         <Pencil className="w-4 h-4" />
                       </button>
                       <button 
-                        onClick={() => onDelete("delete", st)}
+                        onClick={() => onDelete(st)}
                         className="p-2 border rounded-lg text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm"
                       >
                         <Trash2 className="w-4 h-4" />

@@ -87,8 +87,8 @@ export default function MovieModal({
         banner: initialData.banner_url,
         trailerUrl: initialData.trailer_url, 
         genres: (initialData.genres || initialData._MovieGenres)?.map(g => (g.genre || g.id).toString()) || [],
-        languages: initialData.languages?.map(lang => (lang.language || lang.id).toString()) || [],
-        projectionTypes: initialData.projection_types?.map(projt => (projt.projection_type || projt.id).toString()) || []
+        languages: (initialData.languages || initialData._MovieLanguages)?.map(lang => (lang.language || lang.id).toString()) || [],
+        projectionTypes: (initialData.projection_types || initialData._MovieProjectionTypes)?.map(projt => (projt.projection_type || projt.id).toString()) || []
       };
       reset(formattedData);
       setBannerPreview(initialData.banner_url);

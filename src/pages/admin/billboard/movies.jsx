@@ -9,8 +9,7 @@ import SuccessModal from "@/components/ui/SuccessModal";
 import { CustomPagination } from "@/components/ui/CustomPagination";
 import { toast } from "sonner";
 
-export default function Movies({ catalogs, search }) {
-  const { modal, openModal, closeModal } = useModal();
+export default function Movies({ catalogs, search, modal, openModal, closeModal }) {
   const [loading, setIsLoading] = useState(false);
   const { showLoader, hideLoader } = useLoading();
  

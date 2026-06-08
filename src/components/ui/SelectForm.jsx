@@ -31,7 +31,7 @@ export const SelectForm = forwardRef(({
           
           error 
             ? "border-red-500 focus:ring-0 focus:border-red-500" 
-            : "border-slate-200 focus:ring-0 focus:border-brand-primary",
+            : " focus:ring-0 focus:border-r-purple-700",
           selectClassName
         )}
       >

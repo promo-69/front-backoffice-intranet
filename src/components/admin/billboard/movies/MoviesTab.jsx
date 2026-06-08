@@ -3,13 +3,25 @@ import { Pencil, Trash2, Film, Clock, Calendar } from "lucide-react";
 export function MoviesTab({ data, onEdit, onDelete, isLoading = false }) {
   const skeletonRows = Array(5).fill(0);
 
+  // Formateador de fecha personalizado: (Viern, 26 Jun 2026)
+  const formatMovieDate = (dateStr) => {
+    if (!dateStr) return "N/A";
+    const days = ["Dom", "Lun", "Mar", "Mié", "Jue", "Viern", "Sáb"];
+    const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+    const d = new Date(dateStr);
+    // Usamos UTC para garantizar que la fecha sea exacta a la almacenada sin importar la zona horaria local
+    return `${days[d.getUTCDay()]}, ${d.getUTCDate()} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+  };
+
   return (
     <div className="overflow-x-auto bg-surface-container rounded-cineflix border border-border shadow-sm">
       <table className="w-full text-left text-xs font-montserrat">
         <thead>
           <tr className="text-left text-[11px] font-black uppercase tracking-widest text-gray-600">
             <th className="px-4 py-3 text-left">Póster</th>
-            <th className="py-4 px-4">Información</th>
+            <th className="py-4 px-4">Título</th>
+            <th className="py-4 px-4 text-center">Duración</th>
+            <th className="py-4 px-4 text-center">Fecha</th>
             <th className="py-4 px-4">Géneros</th>
             <th className="py-4 px-4">Idiomas</th>
             <th className="py-4 px-4 text-center">Clasificación</th>
@@ -25,6 +37,8 @@ export function MoviesTab({ data, onEdit, onDelete, isLoading = false }) {
               <tr key={`skeleton-${index}`} className="animate-pulse">
                 <td className="py-4 px-4"><div className="h-4 bg-gray-200 rounded w-32 mx-auto"></div></td>
                 <td className="py-4 px-4"><div className="h-4 bg-gray-200 rounded w-24 mx-auto"></div></td>
+                <td className="py-4 px-4"><div className="h-4 bg-gray-200 rounded w-20 mx-auto"></div></td>
+                <td className="py-4 px-4"><div className="h-4 bg-gray-200 rounded w-20 mx-auto"></div></td>
                 <td className="py-4 px-4"><div className="h-4 bg-gray-200 rounded w-20 mx-auto"></div></td>
                 <td className="py-4 px-4"><div className="h-4 bg-gray-200 rounded w-20 mx-auto"></div></td>
                 <td className="py-4 px-4"><div className="h-6 bg-gray-200 rounded-full mx-auto"></div></td>
@@ -50,16 +64,20 @@ export function MoviesTab({ data, onEdit, onDelete, isLoading = false }) {
                 </td>
 
                 <td className="py-4 px-4">
-                  <div className="space-y-1">
-                    <h4 className="font-bold text-brand-primary text-sm">{movie.title}</h4>
-                    <div className="flex items-center gap-3 text-[10px] text-slate-500">
-                      <span className="flex items-center gap-1 font-medium">
-                        <Clock className="w-3 h-3 text-brand-gold"/> {movie.duration_minutes} min
-                      </span>
-                      <span className="flex items-center gap-1 font-medium">
-                        <Calendar className="w-3 h-3 text-brand-gold"/> {movie.release_date?.split('T')[0]}
-                      </span>
-                    </div>
+                  <h4 className="font-bold text-brand-primary text-sm">{movie.title}</h4>
+                </td>
+
+                <td className="py-4 px-4 text-center">
+                  <div className="flex items-center justify-center gap-1.5 text-[11px] font-semibold text-slate-600">
+                    <Clock className="w-3.5 h-3.5 text-brand-gold" />
+                    <span>{movie.duration_minutes} min</span>
+                  </div>
+                </td>
+
+                <td className="py-4 px-4 text-center">
+                  <div className="flex items-center justify-center gap-1.5 text-[11px] font-semibold text-slate-600">
+                    <Calendar className="w-3.5 h-3.5 text-brand-gold" />
+                    <span className="whitespace-nowrap">{formatMovieDate(movie.release_date)}</span>
                   </div>
                 </td>
 
@@ -138,7 +156,7 @@ export function MoviesTab({ data, onEdit, onDelete, isLoading = false }) {
             ))
           ) : (
             <tr>
-              <td colSpan="8" className="text-center py-12 text-slate-400 uppercase text-[11px] tracking-widest font-bold">
+              <td colSpan="10" className="text-center py-12 text-slate-400 uppercase text-[11px] tracking-widest font-bold">
                 No hay películas disponibles en esta página
               </td>
             </tr>
@@ -176,7 +194,7 @@ function getStateBadge(id, nestedObject) {
     const badgeClass = badges[effectiveId] || "bg-gray-50 text-gray-400 border-gray-100";
 
     return (
-      <span className={`px-2 py-1 rounded-md font-bold text-[9px] uppercase border ${badgeClass}`}>
+      <span className={`px-3 py-1 rounded-full text-xs font-bold inline-block border ${badgeClass}`}>
         {textToShow}
       </span>
     );

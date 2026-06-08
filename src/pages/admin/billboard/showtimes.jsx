@@ -11,8 +11,7 @@ import { CustomPagination } from "@/components/ui/CustomPagination";
 import { SelectForm } from "@/components/ui/SelectForm"; 
 import { getShowtimesByCinema, deleteShowtime, createByCinema, updateShowtime } from "@/services/showtime.service";
 
-export default function Showtimes({ cinemas, catalogs, cinemaId, search }) {
-  const { modal, openModal, closeModal } = useModal();
+export default function Showtimes({ catalogs, cinemaId, search, modal, openModal, closeModal }) {
   const { showLoader, hideLoader } = useLoading();
   
   const [loading, setIsLoading] = useState(false);
@@ -33,8 +32,8 @@ export default function Showtimes({ cinemas, catalogs, cinemaId, search }) {
     prev_page: null
   });
 
-  const fetchShowtimes = async (currentPage, cinemaId) => {
-    if (!cinemaId) return;
+  const fetchShowtimes = async () => {
+    if (!cinemaId) return; // Utiliza el prop cinemaId del componente
     setIsLoading(true);
 
     try {
@@ -43,7 +42,7 @@ export default function Showtimes({ cinemas, catalogs, cinemaId, search }) {
       if (filterType === "all") onlyFutureParam = false;
 
       const responseData = await getShowtimesByCinema({
-        cinemaId: cinemaId,
+        cinemaId: cinemaId, // Utiliza el prop cinemaId
         page: currentPage,
         limit: metadata.per_page,
         onlyFuture: onlyFutureParam,
@@ -51,26 +50,21 @@ export default function Showtimes({ cinemas, catalogs, cinemaId, search }) {
         endDate: filterType === "custom" && endDate ? endDate : undefined
       });
 
-      // Normalizar payload (acepta { data: { rows: [...], count } } y variantes)
-      const payload = responseData?.data ?? responseData;
-      const rows = payload?.rows;
-      const normalizedRows = Array.isArray(rows) ? rows : [];
-
-      setShowtimes(normalizedRows);
-
+      const rows = responseData?.showtimes || [];
+      setShowtimes(rows);
       // Normalizar metadata
-      const total = payload?.count ?? payload?.total ?? payload?.metadata?.total ?? 0;
-      const per_page = payload?.per_page ?? payload?.limit ?? payload?.metadata?.per_page ?? metadata.per_page;
-      const current_page = payload?.current_page ?? payload?.page ?? payload?.metadata?.current_page ?? (currentPage);
-      const total_pages = payload?.total_pages ?? payload?.metadata?.total_pages ?? Math.max(1, Math.ceil(total / per_page));
+      const total = responseData?.count ?? responseData?.total ?? responseData?.metadata?.total ?? 0;
+      const per_page = metadata.per_page;
+      const current_page = currentPage;
+      const total_pages = Math.max(1, Math.ceil(total / per_page));
 
       setMetadata({
         total,
         per_page,
         current_page,
         total_pages,
-        next_page: payload?.next_page ?? payload?.metadata?.next_page ?? null,
-        prev_page: payload?.prev_page ?? payload?.metadata?.prev_page ?? null
+        next_page: current_page < total_pages ? current_page + 1 : null,
+        prev_page: current_page > 1 ? current_page - 1 : null
       });
     } catch (error) {
       console.error("Error en fetchShowtimes:", error);
@@ -92,7 +86,7 @@ export default function Showtimes({ cinemas, catalogs, cinemaId, search }) {
   // Efecto secundario: Monitorea mutaciones en los filtros cronológicos y paginación para re-ejecutar queries
   useEffect(() => {
     if (cinemaId) {
-      fetchShowtimes(currentPage);
+      fetchShowtimes();
     }
   }, [currentPage, cinemaId, filterType, startDate, endDate]);
 
@@ -124,7 +118,7 @@ export default function Showtimes({ cinemas, catalogs, cinemaId, search }) {
    */
   const handleFormClose = (shouldRefresh, customMessage) => {
     closeModal();
-    if (shouldRefresh) {
+    if (shouldRefresh === true) {
       setCurrentPage(1);
       fetchShowtimes(1); 
       openModal("success", {
@@ -138,13 +132,13 @@ export default function Showtimes({ cinemas, catalogs, cinemaId, search }) {
   /**
    * Ejecuta la persistencia de datos (Crear o Actualizar) invocada desde el Modal.
    */
-  const handleSave = async (payload) => {
+  const handleSave = async (responseData) => {
     showLoader();
     try {
-      if (payload.id) {
-        await updateShowtime(payload.id, payload);
+      if (responseData.id) {
+        await updateShowtime(responseData.id, responseData);
       } else {
-        await createByCinema(cinemaId, payload);
+        await createByCinema(cinemaId, responseData);
       }
       handleFormClose(true);
     } catch (error) {
@@ -270,6 +264,8 @@ export default function Showtimes({ cinemas, catalogs, cinemaId, search }) {
       open={isFormOpen} 
       onClose={handleFormClose} 
       onSave={handleSave}
+      cinemaId={cinemaId}
+      projectionTypes={catalogs.projectionTypes}
       languagesList={catalogs.languages} 
       currenciesList={catalogs.currencies} 
       initialData={modal.data} 

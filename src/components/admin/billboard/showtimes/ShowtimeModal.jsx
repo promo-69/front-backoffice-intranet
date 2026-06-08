@@ -20,9 +20,10 @@ export function ShowtimeModal({
   const isEdit = !!initialData?.id;
   const [movies, setMovies] = useState([]);
   const [roomsList, setRoomsList] = useState([]);
+  const [filteredRooms, setFilteredRooms] = useState([]);
   const [isLoadingAux, setIsLoadingAux] = useState(false);
   
-  const { register, handleSubmit, reset, control, setValue, formState: { errors } } = useForm({
+  const { register, handleSubmit, reset, control, setValue, formState} = useForm({
     defaultValues: {
       movie: "",
       room: "",
@@ -37,9 +38,11 @@ export function ShowtimeModal({
     }
   });
 
-  const watchCurrency = useWatch({ control, name: "currency", defaultValue: "" });
+  const { errors, isDirty } = formState;
   const watchMovie = useWatch({ control, name: "movie", defaultValue: "" });
   const watchStartTime = useWatch({ control, name: "start_time_raw", defaultValue: "" });
+  const watchProjection = useWatch({ control, name: "projection_type", defaultValue: "" });
+  const watchLanguage = useWatch({ control, name: "language", defaultValue: "" });
 
   // Carga automática de películas y salas al abrir el modal
   useEffect(() => {
@@ -68,18 +71,35 @@ export function ShowtimeModal({
 
   const filteredProjections = selectedMovie?.projection_types?.length > 0
     ? projectionTypes.filter(p => 
-        selectedMovie.projection_types.some(mp => String(mp.projection_type_id || mp.id || mp) === String(p.id))
+        selectedMovie.projection_types.some(mp => String(mp.projection_type || mp.projection_type_id || mp.id || mp) === String(p.id))
       )
     : projectionTypes;
 
   const filteredLanguages = selectedMovie?.languages?.length > 0
     ? languagesList.filter(l => 
-        selectedMovie.languages.some(ml => String(ml.language_id || ml.id || ml) === String(l.id))
+        selectedMovie.languages.some(ml => String(ml.language || ml.language_id || ml.id || ml) === String(l.id))
       )
     : languagesList;
 
+  // Efecto para limpiar campos si dejan de ser válidos al cambiar la película
+  useEffect(() => {
+    if (watchMovie) {
+      if (watchProjection && !filteredProjections.some(p => String(p.id) === String(watchProjection))) {
+        setValue("projection_type", "");
+      }
+      if (watchLanguage && !filteredLanguages.some(l => String(l.id) === String(watchLanguage))) {
+        setValue("language", "");
+      }
+    }
+  }, [watchMovie, filteredProjections, filteredLanguages, setValue, watchProjection, watchLanguage]);
+
   // cálculo de la Hora de Fin Estimada
   useEffect(() => {
+    if (isEdit && !isDirty) {
+      setFilteredRooms([]);
+    return;
+    }
+
     if (watchMovie && watchStartTime && selectedMovie?.duration_minutes) {
       const [hours, minutes] = watchStartTime.split(':').map(Number);
       
@@ -189,13 +209,18 @@ export function ShowtimeModal({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* SELECCIÓN DE PELÍCULA */}
-            <SelectForm label="Película" error={errors.movie?.message} {...register("movie", { required: "Obligatorio" })}>
+            <SelectForm label="Película" error={errors.movie?.message} {...register("movie", { required: "Este campo es obligatorio" })}>
               <option value="">Seleccionar película...</option>
               {movies.map(m => <option key={m.id} value={m.id}>{m.title}</option>)}
             </SelectForm>
 
             {/* SELECCIÓN DE SALA REAL DISPONIBLE */}
-            <SelectForm label="Sala de Cine" error={errors.room?.message} {...register("room", { required: "Obligatorio" })}>
+            <SelectForm 
+              label="Sala de Cine" 
+              error={errors.room?.message} 
+              disabled={!watchMovie}
+              {...register("room", { required: "Este campo es obligatorio" })}
+            >
               <option value="">Seleccionar sala...</option>
               {roomsList.map(r => (
                 <option key={r.id} value={r.id}>
@@ -211,7 +236,7 @@ export function ShowtimeModal({
               label="Fecha de la Función"
               type="date"
               error={errors.date?.message}
-              {...register("date", { required: "Obligatorio" })}
+              {...register("date", { required: "Este campo es obligatorio" })}
             />
 
             {/* PUNTOS DE LEALTAD */}
@@ -230,24 +255,24 @@ export function ShowtimeModal({
               label="Hora Inicio"
               type="time"
               error={errors.start_time_raw?.message}
-              {...register("start_time_raw", { required: "Obligatorio" })}
+              {...register("start_time_raw", { required: "Este campo es obligatorio" })}
             />
             <InputForm
               label="Hora Fin (Estimada)"
               type="time"
               error={errors.end_time_raw?.message}
-              {...register("end_time_raw", { required: "Obligatorio" })}
+              {...register("end_time_raw", { required: "Este campo es obligatorio" })}
             />
           </div>
 
           {/* PROYECCIÓN E IDIOMA */}
           <div className="grid grid-cols-2 gap-4">
-            <SelectForm label="Tipo Proyección" error={errors.projection_type?.message} {...register("projection_type", { required: "Obligatorio" })}>
+            <SelectForm label="Tipo Proyección" error={errors.projection_type?.message} {...register("projection_type", { required: "Este campo es obligatorio" })}>
               <option value="">Seleccionar...</option>
               {filteredProjections.map(p => <option key={p.id} value={p.id}>{p.description}</option>)}
             </SelectForm>
 
-            <SelectForm label="Idioma Audio" error={errors.language?.message} {...register("language", { required: "Obligatorio" })}>
+            <SelectForm label="Idioma Audio" error={errors.language?.message} {...register("language", { required: "Este campo es obligatorio" })}>
               <option value="">Seleccionar idioma...</option>
               {filteredLanguages.map(lang => (
                 <option key={lang.id} value={lang.id}>{lang.description || lang.name}</option>
@@ -257,7 +282,7 @@ export function ShowtimeModal({
 
           {/* MONEDA Y PRECIO */}
           <div className="grid grid-cols-2 gap-4">
-            <SelectForm label="Moneda" error={errors.currency?.message} {...register("currency", { required: "Obligatorio" })}>
+            <SelectForm label="Moneda" error={errors.currency?.message} {...register("currency", { required: "Este campo es obligatorio" })}>
               <option value="">Seleccionar...</option>
               {currenciesList.map(c => <option key={c.id} value={c.id}>{`${c.description} (${c.symbol})`}</option>)}
             </SelectForm>
@@ -268,7 +293,7 @@ export function ShowtimeModal({
               placeholder="0.00"
               error={errors.price?.message}
               {...register("price", {
-                required: "Obligatorio",
+                required: "Este campo es obligatorio",
                 onChange: (e) => {
                   const rawValue = e.target.value.replace(/\D/g, "");
                   if (!rawValue) { e.target.value = ""; return; }
@@ -280,8 +305,17 @@ export function ShowtimeModal({
           </div>
 
           <DialogFooter className="mt-6 flex justify-end gap-3 pt-4 border-t">
-            <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-            <Button type="submit" className="bg-brand-primary text-white font-bold px-6">
+            <Button 
+            type="button" 
+            variant="outline" 
+            onClick={onClose}
+            >
+              Cancelar
+            </Button>
+            <Button 
+            type="submit" 
+            className="bg-brand-primary text-white font-bold px-6"
+            >
               {isEdit ? "Guardar Cambios" : "Registrar Función"}
             </Button>
           </DialogFooter>

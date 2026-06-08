@@ -8,7 +8,7 @@ import { getCatalogByName } from "@/services/catalog.service";
 import { toast } from "sonner";
 
 export default function BillboardPage() {
-  const { openModal } = useModal();
+  const { modal, openModal, closeModal } = useModal();
   const [activeTab, setActiveTab] = useState("movies");
   const [search, setSearch] = useState("");
   const [selectedCinemaId, setSelectedCinemaId] = useState("");
@@ -176,6 +176,9 @@ export default function BillboardPage() {
           <Movies 
             catalogs={catalogs} 
             search={search}
+            modal={modal}
+            openModal={openModal}
+            closeModal={closeModal}
           />
         )}
 
@@ -185,6 +188,9 @@ export default function BillboardPage() {
             catalogs={catalogs} 
             cinemaId={selectedCinemaId} 
             search={search}
+            modal={modal}
+            openModal={openModal}
+            closeModal={closeModal}
           />
         )}
       </div>
