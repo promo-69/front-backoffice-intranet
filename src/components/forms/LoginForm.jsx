@@ -106,11 +106,11 @@ export default function LoginForm() {
       </div>
 
       {/* Contenedor de Botones */}
-      <div className="w-full flex items-center justify-center gap-3 pt-4">
+      <div className=" flex flex-col sm:flex-row items-center justify-between gap-3 pt-4">
         <Button
           type="button"
           variant="ghost"
-          className="text-white hover:bg-white"
+          className="px-5 py-2.5 rounded-lg text-sm font-bold tracking-wider text-purple-300 hover:text-white hover:bg-white/5 transition-all cursor-pointer"
           onClick={() => window.history.back()}
           disabled={isSubmitting}
         >
@@ -119,7 +119,7 @@ export default function LoginForm() {
 
         <Button
           type="submit"
-          className="bg-[#b07c28] hover:bg-[#8B6600] text-white font-bold px-8 rounded-cineflix tracking-wide"
+          className="px-6 py-2 bg-yellow-600 hover:brightness-110 active:scale-95 text-slate-200 font-bold text-sm  tracking-widest rounded-lg transition-all shadow-lg cursor-pointer disabled:opacity-50"
           disabled={isSubmitting}
         >
           Iniciar sesión
