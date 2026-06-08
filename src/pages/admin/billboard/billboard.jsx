@@ -27,31 +27,35 @@ export default function BillboardPage() {
   const tabs = [
     { id: "movies", label: "Películas" },
     { id: "showtimes", label: "Funciones" },
-    { id: "events", label: "Eventos" },
+    { id: "room-events", label: "Eventos" },
   ];
 
   const titles = {
     movies: "Gestión de Películas",
     showtimes: "Gestión de Funciones",
     events: "Gestión de Eventos",
+    
   };
 
   const descriptions = {
     movies: "Administra la información de las películas de los cines",
     showtimes: "Administra las funciones de proyección",
-    events: "Administra los eventos programados",
+    events: "Administra los eventos especiales y funciones exclusivas.",
+    rentals: "Administra las solicitudes y reservas de alquiler de salas.",
   };
 
   const placeholders = {
     movies: "Buscar película...",
     showtimes: "Buscar función...",
     events: "Buscar evento...",
+    rentals: "Buscar alquiler...",
   };
 
   const modalTypes = {
     movies: "movieModal",
     showtimes: "showtimeModal",
     events: "eventModal",
+    rentals: null,
   };
 
    const fetchCatalogsData = async () => {
