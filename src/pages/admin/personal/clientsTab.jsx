@@ -14,10 +14,10 @@ export default function ClientsTable({ clients, isLoading = false }) {
           </tr>
         </thead>
 
-        {/* ⭐ CUERPO */}
+        {/* CUERPO */}
         <tbody className="divide-y divide-[#4B2E83]/40">
           
-          {/* ⭐ ESTADO DE CARGA - Alineado con las celdas de datos */}
+          {/* ESTADO DE CARGA - Alineado con las celdas de datos */}
           {isLoading &&
             skeletonRows.map((_, index) => (
               <tr key={`skeleton-${index}`} className="animate-pulse">
@@ -37,7 +37,7 @@ export default function ClientsTable({ clients, isLoading = false }) {
             </tr>
           )}
 
-          {/* ⭐ ESTADO CON DATOS */}
+          {/* ESTADO CON DATOS */}
           {!isLoading &&
             clients.map((c) => (
               <tr key={c.person.id} className="hover:bg-gray-50 transition-colors">

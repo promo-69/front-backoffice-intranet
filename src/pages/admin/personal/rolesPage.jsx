@@ -41,7 +41,7 @@ export default function RolesPage() {
         {/* CUERPO */}
         <tbody className="divide-y divide-[#4B2E83]/40">
           
-          {/* ⭐ ESTADO DE CARGA (SKELETON) */}
+          {/* ESTAD O DE CARGA (SKELETON) */}
           {loading &&
             skeletonRows.map((_, index) => (
               <tr key={`skeleton-${index}`} className="animate-pulse">

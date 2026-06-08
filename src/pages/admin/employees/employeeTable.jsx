@@ -6,7 +6,7 @@ export default function EmployeeTable({ employees, onEdit, onDelete, isLoading =
   return (
     <div className="overflow-x-auto bg-surface-container rounded-cineflix border border-border shadow-sm">
       <table className="min-w-full divide-y divide-[#4B2E83]/60">
-        {/* ⭐ ENCABEZADOS */}
+        {/* ENCABEZADOS */}
         <thead className="bg-gray-50">
           <tr>
             <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600">Nombre</th>

@@ -1,6 +1,6 @@
 import { Pencil, Trash2, Clock, Calendar } from "lucide-react";
 
-export function ShowtimesTab({ data = [], onEdit, onDelete }) {
+export function ShowtimesTab({ data, onEdit, onDelete, isLoading = false }) {
   
   const formatTime = (dateStr) => {
     if (!dateStr) return "N/A";
@@ -11,6 +11,8 @@ export function ShowtimesTab({ data = [], onEdit, onDelete }) {
     if (!isoStr) return "N/A";
     return new Date(isoStr).toLocaleDateString();
   };
+  
+  const skeletonRows = Array(5).fill(0);
 
   return (
     <div className="mt-4 overflow-hidden bg-surface-container rounded-cineflix border border-border shadow-sm">
@@ -26,14 +28,31 @@ export function ShowtimesTab({ data = [], onEdit, onDelete }) {
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
-          {data.length === 0 ? (
+           {/* ESTADO DE CARGA (SKELETON) */}
+          {isLoading &&
+            skeletonRows.map((_, index) => (
+              <tr key={`skeleton-${index}`} className="animate-pulse">
+                <td className="py-4 px-4"><div className="h-4 bg-gray-200 rounded w-32 mx-auto"></div></td>
+                <td className="py-4 px-4"><div className="h-4 bg-gray-200 rounded w-24 mx-auto"></div></td>
+                <td className="py-4 px-4"><div className="h-4 bg-gray-200 rounded w-20 mx-auto"></div></td>
+                <td className="py-4 px-4"><div className="h-4 bg-gray-200 rounded w-20 mx-auto"></div></td>
+                <td className="py-4 px-4"><div className="h-6 bg-gray-200 rounded-full w-16 mx-auto"></div></td>
+                <td className="py-4 px-4"><div className="h-5 bg-gray-200 rounded w-16 mx-auto"></div></td>
+              </tr>
+            ))}
+
+          {/*ESTA DO VACÍO (Solo si NO está cargando) */}
+          {!isLoading && 
+          data.length === 0 && (
             <tr>
-              <td colSpan="6" className="text-center py-10 text-gray-400 font-bold">
-                No hay funciones planificadas para los filtros seleccionados.
+              <td colSpan="6" className="text-center py-6 text-gray-500 font-montserrat">
+               No hay funciones planificadas para los filtros seleccionados.
               </td>
             </tr>
-          ) : (
-            data.map((st) => {
+          )}
+          
+          {!isLoading &&
+          data.map((st) => {
               // Desestructuramos la rica información anidada provista por el backend
               const movieTitle = st.movie?.title || `Película #${st.movie_id}`;
               const movieDuration = st.movie?.duration_minutes;
@@ -117,7 +136,7 @@ export function ShowtimesTab({ data = [], onEdit, onDelete }) {
                 </tr>
               );
             })
-          )}
+          }
         </tbody>
       </table>
     </div>

@@ -93,7 +93,7 @@ export default function CreateRolePage() {
         </p>
       </div>
 
-      {/* TABS */}
+      {/* NAVEGACION POR PESTAÑAS (TABS) */}
       <Tabs
         value={activeTab}
         onValueChange={setActiveTab}

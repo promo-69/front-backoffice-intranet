@@ -1,22 +1,26 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { InputForm } from "@/components/ui/inputForm"; 
 import { SelectForm } from "@/components/ui/SelectForm";
+import { getMovies } from "@/services/movie.service";
+import { getRoomsByCinema } from "@/services/room.service";
 
-export function ShowtimeForm({ 
+export function ShowtimeModal({ 
   open, 
   onClose, 
   onSave, 
   initialData, 
-  movies = [], 
-  roomsList = [], 
+  cinemaId,
   projectionTypes = [],
   languagesList=[],
   currenciesList = []
 }) {
   const isEdit = !!initialData?.id;
+  const [movies, setMovies] = useState([]);
+  const [roomsList, setRoomsList] = useState([]);
+  const [isLoadingAux, setIsLoadingAux] = useState(false);
   
   const { register, handleSubmit, reset, control, setValue, formState: { errors } } = useForm({
     defaultValues: {
@@ -37,22 +41,44 @@ export function ShowtimeForm({
   const watchMovie = useWatch({ control, name: "movie", defaultValue: "" });
   const watchStartTime = useWatch({ control, name: "start_time_raw", defaultValue: "" });
 
-  // 🔍 Lógica de Filtrado Dinámico basada en la Película Seleccionada
+  // Carga automática de películas y salas al abrir el modal
+  useEffect(() => {
+    if (open && cinemaId) {
+      const loadData = async () => {
+        setIsLoadingAux(true);
+        try {
+          const [moviesRes, roomsRes] = await Promise.all([
+            getMovies({ limit: 100 }),
+            getRoomsByCinema(cinemaId)
+          ]);
+          setMovies(moviesRes.data || []);
+          setRoomsList(Array.isArray(roomsRes) ? roomsRes : (roomsRes?.rows || []));
+        } catch (error) {
+          console.error("Error cargando datos auxiliares:", error);
+        } finally {
+          setIsLoadingAux(false);
+        }
+      };
+      loadData();
+    }
+  }, [open, cinemaId]);
+
+  // Lógica de Filtrado: Cruza la película seleccionada con los catálogos globales
   const selectedMovie = movies.find(m => String(m.id) === String(watchMovie));
 
   const filteredProjections = selectedMovie?.projection_types?.length > 0
     ? projectionTypes.filter(p => 
-        selectedMovie.projection_types.some(mp => String(mp.projection_type || mp.id || mp) === String(p.id))
+        selectedMovie.projection_types.some(mp => String(mp.projection_type_id || mp.id || mp) === String(p.id))
       )
     : projectionTypes;
 
   const filteredLanguages = selectedMovie?.languages?.length > 0
     ? languagesList.filter(l => 
-        selectedMovie.languages.some(ml => String(ml.language || ml.id || ml) === String(l.id))
+        selectedMovie.languages.some(ml => String(ml.language_id || ml.id || ml) === String(l.id))
       )
     : languagesList;
 
-  // ⏱️ Auto-cálculo de la Hora de Fin Estimada
+  // cálculo de la Hora de Fin Estimada
   useEffect(() => {
     if (watchMovie && watchStartTime && selectedMovie?.duration_minutes) {
       const [hours, minutes] = watchStartTime.split(':').map(Number);
@@ -71,14 +97,15 @@ export function ShowtimeForm({
     }
   }, [watchMovie, watchStartTime, selectedMovie, setValue]);
 
-  // EFECTO: CARGAR O RESETEAR EL FORMULARIO
+  // CARGAR O RESETEAR EL FORMULARIO
   useEffect(() => {
     if (!open) return;
 
     if (initialData && initialData.id) {
       // 1. Formatear precio según moneda
+      const currencyId = initialData.currency?.id || initialData.currency;
       const basePrice = parseFloat(initialData.price).toFixed(2);
-      const formattedPrice = Number(initialData.currency) === 2 
+      const formattedPrice = Number(currencyId) === 2 
         ? basePrice.replace(".", ",") 
         : basePrice;
 

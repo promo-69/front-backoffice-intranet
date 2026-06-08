@@ -84,7 +84,7 @@ export default function EditRolePage() {
   // 3. Guardar cambios (Ejecuta el POST )
   // ============================
   const handleSave = async () => {
-    // 🔍 LOG 1: Verificar si la función se ejecuta al dar clic
+    // Verificar si la función se ejecuta al dar clic
     console.log("¡Botón Guardar presionado!");
     console.log("ID del Rol actual (roleId):", roleId);
 
@@ -105,13 +105,13 @@ export default function EditRolePage() {
       // Aquí hacemos la llamada
       const response = await updateRolePermissions(roleId, permissionsArray);
 
-      // 🔍 LOG 2: Si el backend responde con éxito
+      // Si el backend responde con éxito
       console.log("Respuesta exitosa del backend:", response);
 
       alert("¡Permisos guardados correctamente!");
       navigate("/admin/personal");
     } catch (error) {
-      // 🔍 LOG 3: Si la petición falla (Ej: Error 400, 404, 500)
+      // Si la petición falla (Ej: Error 400, 404, 500)
       console.error("Error capturado en handleSave al ejecutar el servicio:");
       if (error.response) {
         console.error("Datos del error de respuesta:", error.response.data);
@@ -141,7 +141,7 @@ export default function EditRolePage() {
         </p>
       </div>
 
-      {/* TABS */}
+      {/* NAVEGACION POR PESTAÑAS (TABS) */}
       <Tabs
         value={activeTab}
         onValueChange={setActiveTab}

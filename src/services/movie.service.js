@@ -18,18 +18,10 @@ export const getMovies = async (params) => {
   return response.data;
 };*/
 
-export const getMovies = async (page = 1, limit = 10) => {
-  let queryParams = { page: 1, limit: 10 };
-
-  if (typeof page === 'object' && page !== null) {
-    queryParams.page = String(page.page || 1);
-    queryParams.limit = String(page.limit || 10);
-  } else {
-    queryParams.page = String(page);
-    queryParams.limit = String(limit);
-  }
-
-  const response = await api.get('/movies', { params: queryParams }); 
+export const getMovies = async (params = { page: 1 }) => {
+  const response = await api.get('/movies', { 
+    params: params  
+  }); 
   return response.data;
 };
 

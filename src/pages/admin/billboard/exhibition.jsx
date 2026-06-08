@@ -4,17 +4,17 @@ import { TabsCustom } from "@/components/ui/TabsCustom";
 import { Plus, Building2 } from "lucide-react"; 
 import { useLoading } from "@/context/LoadingContext";
 import { toast } from "sonner";
-import { MoviesTab } from "@/components/admin/exhibition/movies/MoviesTab";
-import { ShowtimesTab } from "@/components/admin/exhibition/showtimes/ShowtimesTab";
-import { ShowtimeForm } from "@/components/admin/exhibition/showtimes/ShowtimesForm";
-import MovieForm from "@/components/admin/exhibition/movies/MovieForm";
+import { MoviesTab } from "@/components/admin/billboard/movies/MoviesTab";
+import { ShowtimesTab } from "@/components/admin/billboard/showtimes/ShowtimesTab";
+import { ShowtimeModal } from "@/components/admin/billboard/showtimes/ShowtimeModal";
+import MovieModal from "@/components/admin/billboard/movies/MovieModal";
 import DeleteConfirmModal from "@/components/ui/DialogConfirmModal";
 import { getMovies, deleteMovie } from "@/services/movie.service";
 import { 
   getShowtimesByCinema, 
   deleteShowtime,
   createByCinema,
-  patchShowtime
+  updateShowtime
 } from "@/services/showtime.service";
 import { getCatalogByName } from "@/services/catalog.service"; 
 import { getRoomsByCinema } from "@/services/room.service"; 
@@ -176,7 +176,7 @@ export default function ExhibitionPage() {
       const enrichedPayload = { ...payload, cinema_id: Number(targetCinemaId) };
       if (modal.data?.id) {
         const { id, ...updateData } = enrichedPayload;
-        await patchShowtime(id, updateData);
+        await updateShowtime(id, updateData);
       } else {
         await createByCinema(targetCinemaId, enrichedPayload);
       }
@@ -236,7 +236,7 @@ export default function ExhibitionPage() {
         </div>
 
       </div>
-      {/* TABS SELECTORES */}
+      {/* NAVEGACION POR PESTAÑAS (TABS) SELECTORES */}
       <TabsCustom tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
 
       {/* 🔍 BARRA DE FILTROS EXCLUSIVA PARA LA PESTAÑA DE FUNCIONES */}
@@ -425,7 +425,7 @@ export default function ExhibitionPage() {
       )}
 
       {/* FORMULARIO DE PELÍCULAS */}
-      <MovieForm 
+      <MovieModal 
         open={modal.isOpen && modal.type === "movieForm"}
         onClose={closeModal}
         genresList={genres}
@@ -438,7 +438,7 @@ export default function ExhibitionPage() {
       />
 
       {/* FORMULARIO DE FUNCIONES (Pasa el id del cine actual dinámicamente) */}
-      <ShowtimeForm 
+      <ShowtimeModal 
         open={modal.isOpen && modal.type === "showtimeForm"}
         onClose={closeModal}
         movies={movies} 

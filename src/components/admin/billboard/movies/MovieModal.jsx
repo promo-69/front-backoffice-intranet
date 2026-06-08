@@ -18,7 +18,7 @@ import { Label } from "@/components/ui/label";
 import { createMovie, updateMovie } from "@/services/movie.service";
 import { toast } from "sonner";
 
-export default function MovieForm({ 
+export default function MovieModal({ 
   open, 
   onClose, 
   onSuccess, 
