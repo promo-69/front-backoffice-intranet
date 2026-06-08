@@ -176,12 +176,11 @@ export default function MovieModal({
     }
     if (isEdit) {
         await updateMovie(initialData.id, formData);
-        toast.success("Película actualizada de manera exitosa");
+        onSuccess(`"${data.title}" ha sido actualizada correctamente.`);
       } else {
         await createMovie(formData);
-        toast.success("Película creada en cartelera");
+        onSuccess(`"${data.title}" se ha registrado exitosamente en la cartelera.`);
       }
-      onSuccess();
 
     }
     catch (error) {

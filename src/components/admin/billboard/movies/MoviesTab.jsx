@@ -85,12 +85,12 @@ export function MoviesTab({ data, onEdit, onDelete, isLoading = false }) {
                   <div className="flex flex-wrap gap-1 max-w-[200px]">
                     {movie.genres && movie.genres.length > 0 ? (
                       movie.genres.map((g) => (
-                        <span key={g.id} className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[9px] font-bold uppercase border border-slate-200">
+                        <span key={g.id} className="px-3 py-1 rounded-full text-xs font-bold inline-block border  bg-slate-100 text-slate-600 border-slate-200">
                           {g._Genres?.description || g.description || "Otro"}
                         </span>
                       ))
                     ) : (
-                      <span className="text-gray-300 italic text-[10px]">Sin géneros</span>
+                      <span className="text-gray-700 italic text-[11px]">Sin géneros</span>
                     )}
                   </div>
                 </td>
@@ -99,18 +99,18 @@ export function MoviesTab({ data, onEdit, onDelete, isLoading = false }) {
                   <div className="flex flex-wrap gap-1 max-w-[200px]">
                     {movie.languages && movie.languages.length > 0 ? (
                       movie.languages.map((lang) => (
-                        <span key={lang.id} className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[9px] font-bold uppercase border border-slate-200">
+                        <span key={lang.id} className="px-3 py-1 rounded-full text-xs font-bold inline-block border  bg-slate-100 text-slate-600 border-slate-200">
                           {lang._Languages?.description || lang.description || "Otro"}
                         </span>
                       ))
                     ) : (
-                      <span className="text-gray-300 italic text-[10px]">Sin idiomas</span>
+                      <span className="text-gray-700 italic text-[11px]">Sin idiomas</span>
                     )}
                   </div>
                 </td>
                 
                 <td className="py-4 px-4 text-center">
-                  <span className="px-2 py-1 rounded bg-brand-primary/5 text-brand-primary font-black text-[10px] border border-brand-primary/10 whitespace-nowrap">
+                  <span className="px-3 py-1 rounded-full text-xs font-bold inline-block border  bg-slate-100 text-slate-600 border-slate-200 border-brand-primary/10 whitespace-nowrap">
                     {movie.age_classification?.description || "N/A"}
                   </span>
                 </td>
@@ -119,12 +119,12 @@ export function MoviesTab({ data, onEdit, onDelete, isLoading = false }) {
                   <div className="flex flex-wrap gap-1 max-w-[200px]">
                     {movie.projection_types && movie.projection_types.length > 0 ? (
                       movie.projection_types.map((pt) => (
-                        <span key={pt.id} className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[9px] font-bold uppercase border border-slate-200">
+                        <span key={pt.id} className="px-3 py-1 rounded-full text-xs font-bold inline-block border  bg-slate-100 text-slate-600 border-slate-200">
                           {pt._ProjectionTypes?.description || pt.description || "Otro"}
                         </span>
                       ))
                     ) : (
-                      <span className="text-gray-300 italic text-[10px]">Sin proyecciones</span>
+                      <span className="text-gray-700 italic text-[11px]">Sin proyecciones</span>
                     )}
                   </div>
                 </td>

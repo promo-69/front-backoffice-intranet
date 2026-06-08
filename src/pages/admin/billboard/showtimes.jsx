@@ -46,8 +46,8 @@ export default function Showtimes({ catalogs, cinemaId, search, modal, openModal
         page: currentPage,
         limit: metadata.per_page,
         onlyFuture: onlyFutureParam,
-        startDate: filterType === "custom" && startDate ? startDate : undefined,
-        endDate: filterType === "custom" && endDate ? endDate : undefined
+        startDate: filterType === "all" && startDate ? startDate : undefined,
+        endDate: filterType === "all" && endDate ? endDate : undefined
       });
 
       const rows = responseData?.showtimes || [];
@@ -137,10 +137,11 @@ export default function Showtimes({ catalogs, cinemaId, search, modal, openModal
     try {
       if (responseData.id) {
         await updateShowtime(responseData.id, responseData);
+        handleFormClose(true, "Los cambios en la programación se guardaron correctamente.");
       } else {
         await createByCinema(cinemaId, responseData);
+        handleFormClose(true, "La nueva función ha sido añadida al calendario del cine.");
       }
-      handleFormClose(true);
     } catch (error) {
       console.error("Error al guardar función:", error);
       const errorMessage = error.response?.data?.message || "Error al procesar la operación en el servidor";
@@ -209,11 +210,10 @@ export default function Showtimes({ catalogs, cinemaId, search, modal, openModal
           >
             <option value="future">Ver funciones futuras</option>
             <option value="all">Ver todo el historial</option>
-            <option value="custom">Personalizar rango de fechas...</option>
           </SelectForm>
 
           {/* Renderizado condicional basado en cortocircuito lóbico AND para el modo por rango */}
-          {filterType === "custom" && (
+          {filterType === "all" && (
             <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto animate-in fade-in slide-in-from-left-2 duration-200">
               
               <div className="relative w-full sm:w-40 h-14 bg-white border border-slate-200 rounded-2xl px-4 flex flex-col justify-center">

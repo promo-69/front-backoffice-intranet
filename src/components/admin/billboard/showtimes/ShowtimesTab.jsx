@@ -26,6 +26,7 @@ export function ShowtimesTab({ data, onEdit, onDelete, isLoading = false }) {
             <th className="py-4 px-4">Fecha</th>
             <th className="py-4 px-4">Horario</th>
             <th className="py-4 px-4">Precio</th>
+            <th className="py-4 px-4 text-center">Puntos</th>
             <th className="py-4 px-6 text-center">Acciones</th>
           </tr>
         </thead>
@@ -39,6 +40,7 @@ export function ShowtimesTab({ data, onEdit, onDelete, isLoading = false }) {
                 <td className="py-4 px-4"><div className="h-4 bg-gray-200 rounded w-20 mx-auto"></div></td>
                 <td className="py-4 px-4"><div className="h-4 bg-gray-200 rounded w-20 mx-auto"></div></td>
                 <td className="py-4 px-4"><div className="h-6 bg-gray-200 rounded-full w-16 mx-auto"></div></td>
+                <td className="py-4 px-4"><div className="h-5 bg-gray-200 rounded w-12 mx-auto"></div></td>
                 <td className="py-4 px-4"><div className="h-5 bg-gray-200 rounded w-16 mx-auto"></div></td>
               </tr>
             ))}
@@ -47,7 +49,7 @@ export function ShowtimesTab({ data, onEdit, onDelete, isLoading = false }) {
           {!isLoading && 
           data.length === 0 && (
             <tr>
-              <td colSpan="6" className="text-center py-6 text-gray-500 font-montserrat">
+              <td colSpan="7" className="text-center py-6 text-gray-500 font-montserrat">
                No hay funciones planificadas para los filtros seleccionados.
               </td>
             </tr>
@@ -112,9 +114,13 @@ export function ShowtimesTab({ data, onEdit, onDelete, isLoading = false }) {
                         <span>{currencySymbol} {parseFloat(st.price).toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
                       )}
                     </div>
-                    <div className="text-[9px] text-slate-400 uppercase tracking-wider">
-                      {st.earned_loyalty_points ? `+ ${st.earned_loyalty_points} Pts` : "0 Pts"}
-                    </div>
+                  </td>
+
+                  {/* COLUMNA PUNTOS DE FIDELIDAD */}
+                  <td className="py-4 px-4 text-center">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-600 border border-amber-100 uppercase tracking-tighter">
+                      {st.earned_loyalty_points ? `+${st.earned_loyalty_points}` : "0"} Pts
+                    </span>
                   </td>
 
                   {/* ACCIONES */}
