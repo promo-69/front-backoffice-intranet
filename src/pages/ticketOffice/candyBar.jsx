@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { AiOutlinePlus, AiOutlineMinus, AiOutlineDelete, AiOutlineShopping } from "react-icons/ai";
+import { ArrowLeft, CheckCircle, Smartphone, CreditCard, Banknote, ShoppingBag } from "lucide-react";
 import PopcornImg from "../../assets/images/candy/popcorn.png";
 import SodaImg from "../../assets/images/candy/soda.png";
 import ComboImg from "../../assets/images/candy/combo.png";
@@ -15,9 +16,21 @@ const PRODUCTS = [
 
 const CATEGORIES = ["Todos", "Popcorn", "Drinks", "Combos", "Candies"];
 
+const PAYMENT_METHODS = [
+  { id: "pago_movil", label: "Pago Móvil", icon: Smartphone, fields: ["Banco", "Teléfono", "Referencia"] },
+  { id: "efectivo", label: "Efectivo", icon: Banknote, fields: [] },
+  { id: "tarjeta", label: "Tarjeta", icon: CreditCard, fields: ["Últimos 4 dígitos", "Referencia"] },
+];
+
 export default function CandyBar() {
+  const [step, setStep] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState("Todos");
   const [cart, setCart] = useState([]);
+
+  // Payment states
+  const [paymentMethod, setPaymentMethod] = useState("pago_movil");
+  const [paymentFields, setPaymentFields] = useState({});
+  const [confirmed, setConfirmed] = useState(false);
 
   const filteredProducts = selectedCategory === "Todos" 
     ? PRODUCTS 
@@ -50,9 +63,188 @@ export default function CandyBar() {
   };
 
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const grandTotal = total * 1.03;
 
+  const handleConfirm = () => {
+    setConfirmed(true);
+  };
+
+  const handleNewSale = () => {
+    setCart([]);
+    setStep(1);
+    setConfirmed(false);
+    setPaymentFields({});
+  };
+
+  // ----------------------------------------------------
+  // STEP 2: PAYMENT SCREEN & SUCCESS
+  // ----------------------------------------------------
+  if (step === 2) {
+    const selectedMethod = PAYMENT_METHODS.find((m) => m.id === paymentMethod);
+
+    if (confirmed) {
+      return (
+        <div className="flex flex-col items-center justify-center py-20 font-montserrat animate-in fade-in zoom-in-95 bg-white min-h-[calc(100vh-100px)] rounded-3xl shadow-sm border border-gray-100">
+          <div className="relative mb-6">
+            <div className="absolute inset-0 bg-brand-gold/20 rounded-full scale-150 animate-ping" />
+            <div className="relative w-24 h-24 rounded-full bg-brand-gold flex items-center justify-center shadow-xl shadow-brand-gold/30">
+              <CheckCircle className="w-12 h-12 text-white" strokeWidth={2.5} />
+            </div>
+          </div>
+          <h2 className="text-3xl font-bold text-slate-800 mb-2 uppercase tracking-widest">¡Venta Exitosa!</h2>
+          <p className="text-gray-500 text-center max-w-sm">
+            Los productos han sido registrados correctamente. Entrega el pedido al cliente.
+          </p>
+          <div className="mt-8 bg-gray-50 border border-gray-200 rounded-2xl p-6 text-center w-full max-w-sm">
+            <h3 className="font-bold text-slate-700 mb-4 border-b border-gray-200 pb-2">Resumen</h3>
+            {cart.map(item => (
+              <div key={item.id} className="flex justify-between text-sm text-gray-600 mb-1">
+                <span>{item.name} ×{item.quantity}</span>
+                <span>${(item.price * item.quantity).toFixed(2)}</span>
+              </div>
+            ))}
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <p className="text-3xl font-black text-brand-gold">${grandTotal.toFixed(2)}</p>
+              <p className="text-xs text-gray-400 mt-1 uppercase font-semibold">Método: {selectedMethod?.label}</p>
+            </div>
+          </div>
+          
+          <button 
+            onClick={handleNewSale}
+            className="mt-8 px-8 py-3 bg-white border-2 border-brand-gold text-brand-gold rounded-xl font-bold hover:bg-brand-gold/5 transition-all shadow-sm"
+          >
+            + Nueva Venta
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="font-montserrat text-slate-800 bg-white rounded-3xl p-6 lg:p-10 shadow-sm border border-gray-100 min-h-[calc(100vh-100px)] animate-in fade-in slide-in-from-bottom-4">
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-black text-slate-800">Procesar Pago</h2>
+            <p className="text-gray-500 text-sm mt-1">Confirma los productos de confitería y el método de pago</p>
+          </div>
+          <div className="hidden sm:flex bg-gray-100 px-4 py-2 rounded-lg font-bold text-gray-500 gap-2 items-center">
+            <span className="w-6 h-6 rounded-full bg-brand-gold text-white flex items-center justify-center text-xs">2</span>
+            Pago de Confitería
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+          {/* Resumen de compra */}
+          <div className="bg-gray-50 border border-gray-200 rounded-3xl p-6 space-y-6">
+            <h3 className="font-bold text-slate-700 flex items-center gap-2 uppercase tracking-wider">
+              <ShoppingBag className="w-5 h-5 text-brand-gold" /> Resumen de Productos
+            </h3>
+            
+            <div className="space-y-3">
+              {cart.map((item) => (
+                <div key={item.id} className="flex items-center gap-4 bg-white p-3 rounded-xl border border-gray-100">
+                  <img src={item.image} className="w-12 h-12 object-cover rounded-lg" alt="" />
+                  <div className="flex-1">
+                    <p className="font-bold text-sm text-slate-700">{item.name}</p>
+                    <p className="text-xs text-gray-400">Cant: {item.quantity}</p>
+                  </div>
+                  <span className="font-bold text-brand-gold">${(item.price * item.quantity).toFixed(2)}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="space-y-2 pt-4 border-t border-gray-200 text-sm">
+              <div className="flex justify-between text-gray-500">
+                <span>Subtotal</span>
+                <span className="font-medium text-slate-700">${total.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-gray-500">
+                <span>Impuestos (IGTF 3%)</span>
+                <span className="font-medium text-slate-700">${(total * 0.03).toFixed(2)}</span>
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center text-xl font-black pt-4 border-t-2 border-gray-200">
+              <span className="text-slate-800 flex items-center gap-2">
+                Total a Pagar
+              </span>
+              <span className="text-brand-gold text-2xl">${grandTotal.toFixed(2)}</span>
+            </div>
+          </div>
+
+          {/* Método de pago */}
+          <div className="space-y-6">
+            <h3 className="font-bold text-slate-700 uppercase tracking-wider">Seleccionar Método de Pago</h3>
+            <div className="space-y-3">
+              {PAYMENT_METHODS.map((method) => {
+                const Icon = method.icon;
+                const isSelected = paymentMethod === method.id;
+                return (
+                  <button
+                    key={method.id}
+                    onClick={() => setPaymentMethod(method.id)}
+                    className={`
+                      w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left
+                      ${isSelected ? "border-brand-gold bg-brand-gold/5" : "border-gray-200 hover:border-gray-300 bg-white"}
+                    `}
+                  >
+                    <div className={`p-2 rounded-xl ${isSelected ? "bg-brand-gold text-white" : "bg-gray-100 text-gray-500"}`}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <span className={`font-bold ${isSelected ? "text-slate-800" : "text-gray-600"}`}>{method.label}</span>
+                    {isSelected && (
+                      <div className="ml-auto w-6 h-6 rounded-full bg-brand-gold text-white flex items-center justify-center">
+                        <CheckCircle className="w-4 h-4" />
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Campos dinámicos */}
+            {selectedMethod?.fields?.length > 0 && (
+              <div className="space-y-4 pt-4">
+                {selectedMethod.fields.map((field) => (
+                  <div key={field} className="relative">
+                    <label className="absolute top-2 left-4 text-[10px] font-bold text-brand-gold uppercase tracking-wider bg-white px-1">{field}</label>
+                    <input
+                      type="text"
+                      placeholder={`Ingresar ${field.toLowerCase()}`}
+                      onChange={(e) => setPaymentFields((p) => ({ ...p, [field]: e.target.value }))}
+                      className="w-full bg-white border-2 border-gray-200 rounded-xl px-4 pt-6 pb-3 text-sm text-slate-800 placeholder:text-gray-300 focus:outline-none focus:border-brand-gold transition-colors"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Botones */}
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-8 mt-8 border-t border-gray-100">
+          <button
+            onClick={() => setStep(1)}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-4 rounded-xl border-2 border-gray-200 text-gray-500 hover:bg-gray-50 transition-all font-bold"
+          >
+            <ArrowLeft className="w-5 h-5" /> Volver a Productos
+          </button>
+
+          <button
+            onClick={handleConfirm}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-10 py-4 bg-brand-gold text-white font-black rounded-xl text-sm uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-brand-gold/30"
+          >
+            Confirmar Pago · ${grandTotal.toFixed(2)}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ----------------------------------------------------
+  // STEP 1: PRODUCTS SCREEN
+  // ----------------------------------------------------
   return (
-    <div className="flex flex-col lg:flex-row gap-8 font-montserrat text-slate-800">
+    <div className="flex flex-col lg:flex-row gap-8 font-montserrat text-slate-800 animate-in fade-in">
       
       {/* Left Side: Categories and Products */}
       <div className="flex-1 space-y-6">
@@ -81,7 +273,7 @@ export default function CandyBar() {
               key={product.id}
               className="bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-md transition-all group flex flex-col"
             >
-              <div className="h-40 overflow-hidden relative">
+              <div className="h-40 overflow-hidden relative bg-gray-50 flex justify-center items-center">
                 <img 
                   src={product.image} 
                   alt={product.name} 
@@ -180,10 +372,11 @@ export default function CandyBar() {
             </div>
             <div className="flex justify-between items-center text-xl font-bold text-slate-800 pt-2">
               <span>Total</span>
-              <span className="text-brand-gold">${(total * 1.03).toFixed(2)}</span>
+              <span className="text-brand-gold">${grandTotal.toFixed(2)}</span>
             </div>
             
             <button 
+              onClick={() => setStep(2)}
               disabled={cart.length === 0}
               className="w-full bg-brand-gold disabled:bg-gray-200 disabled:text-gray-400 text-white font-bold py-3.5 rounded-xl text-sm shadow-md hover:shadow-lg transition-all mt-2 active:scale-95"
             >
