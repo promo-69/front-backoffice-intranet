@@ -50,7 +50,7 @@ export default api;
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "https://backend-jog6.onrender.com/api/v1", // Usar ruta relativa para que Vite intercepte con su proxy
+  baseURL: "https://127.0.0.1/api/v1",//"https://backend-jog6.onrender.com/api/v1", // Usar ruta relativa para que Vite intercepte con su proxy
   withCredentials: true,     
   headers: {
     "x-client-channel": "web", 
