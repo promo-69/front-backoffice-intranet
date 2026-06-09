@@ -18,6 +18,13 @@ export default defineConfig({
     host: false,
     port: 5174,  
     strictPort: true,
+    proxy: {
+      '/api/v1': {
+        target: 'https://backend-jog6.onrender.com',
+        changeOrigin: true,
+        secure: false,
+      },
+    }
   },
 
   resolve: {
