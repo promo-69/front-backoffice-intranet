@@ -129,12 +129,13 @@ const handleConfirmDelete = async () => {
       )}
 
       {/* MODAL DE FORMULARIO DE EVENTOS */}
-      <EventModal 
-        open={isFormOpen} 
-        onClose={() => handleFormClose(false)} 
-        onSuccess={(msg) => handleFormClose(true, msg)} 
-        currenciesList={catalogs.currencies} 
-        initialData={modal.data} 
+      <EventModal
+        open={isFormOpen}
+        onClose={() => handleFormClose(false)}
+        onSuccess={(msg) => handleFormClose(true, msg)}
+        initialData={modal.data}
+        ageClassificationsList={catalogs.classifications || []}
+        lifecycleStatesList={catalogs.lifecycles || []}
       />
 
       {/* MODAL DE CONFIRMACIÓN DE BAJA */}

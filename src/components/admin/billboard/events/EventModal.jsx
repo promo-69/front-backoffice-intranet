@@ -17,13 +17,13 @@ import { Label } from "@/components/ui/label";
 import { createEvent, updateEvent } from "@/services/events.service";
 import { toast } from "sonner";
 
-export default function EventModal({ 
-  open, 
-  onClose, 
-  onSuccess, 
+export default function EventModal({
+  open,
+  onClose,
+  onSuccess,
   initialData,
-  ageClassificationsList = [], // Lista para el dropdown de clasificación
-  lifecycleStatesList = []     // Lista para el dropdown de estados
+  ageClassificationsList = [],
+  lifecycleStatesList = []
 }) {
   const isEdit = !!initialData;
   const fileInputRef = useRef(null);
@@ -69,62 +69,191 @@ export default function EventModal({
 
   useEffect(() => {
     if (open && initialData) {
+
+      const getNormalizedId = (list, fieldData) => {
+        if (!fieldData) return "";
+
+        if (typeof fieldData === "number") {
+          return fieldData;
+        }
+
+        if (
+          typeof fieldData === "string" &&
+          !isNaN(fieldData) &&
+          fieldData.trim() !== ""
+        ) {
+          return Number(fieldData);
+        }
+
+        if (typeof fieldData === "object") {
+
+          if (fieldData.id) {
+            return fieldData.id;
+          }
+
+          if (fieldData.description && list?.length > 0) {
+            const found = list.find(
+              item =>
+                item.description?.toLowerCase() ===
+                  fieldData.description?.toLowerCase() ||
+                item.name?.toLowerCase() ===
+                  fieldData.description?.toLowerCase()
+            );
+
+            return found?.id || "";
+          }
+        }
+
+        return "";
+      };
+
       reset({
         title: initialData.title || "",
         description: initialData.description || "",
         durationMinutes: initialData.duration_minutes || "",
-        ageClassification: initialData.age_classification || "",
-        lifecycleState: initialData.lifecycle_state || "",
         trailerUrl: initialData.trailer_url || "",
-        releaseDate: initialData.release_date?.split('T')[0] || "",
-        endDate: initialData.end_date?.split('T')[0] || ""
+        releaseDate:
+          initialData.release_date?.split("T")[0] || "",
+        endDate:
+          initialData.end_date?.split("T")[0] || "",
+
+        ageClassification: getNormalizedId(
+          ageClassificationsList,
+          initialData.age_classification
+        ),
+
+        lifecycleState: getNormalizedId(
+          lifecycleStatesList,
+          initialData.lifecycle_state
+        )
       });
+
       setPosterPreview(initialData.poster_url);
       setBannerPreview(initialData.banner_url);
+
     } else if (open) {
-      reset({ 
-        title: "", 
-        description: "", 
-        durationMinutes: "", 
-        ageClassification: "", 
-        lifecycleState: "", 
-        trailerUrl: "", 
-        releaseDate: "", 
-        endDate: "" 
+
+      reset({
+        title: "",
+        description: "",
+        durationMinutes: "",
+        ageClassification: "",
+        lifecycleState: "",
+        trailerUrl: "",
+        releaseDate: "",
+        endDate: ""
       });
+
       setPosterPreview(null);
       setBannerPreview(null);
     }
-  }, [initialData, open, reset]);
 
-  const onSubmit = async (data) => {
-    try {
-      const formData = new FormData();
-      formData.append('title', data.title);
-      formData.append('description', data.description);
-      formData.append('durationMinutes', Number(data.durationMinutes));
-      formData.append('ageClassification', Number(data.ageClassification));
-      formData.append('lifecycleState', Number(data.lifecycleState));
-      formData.append('trailerUrl', data.trailerUrl || "");
-      formData.append('releaseDate', data.releaseDate);
-      formData.append('endDate', data.endDate || "");
+  }, [
+    initialData,
+    open,
+    reset,
+    ageClassificationsList,
+    lifecycleStatesList
+  ]);
 
-      // Manejo de archivos binarios para el backend
-      if (data.poster instanceof FileList && data.poster[0]) formData.append('poster', data.poster[0]);
-      if (data.banner instanceof FileList && data.banner[0]) formData.append('banner', data.banner[0]);
+const onSubmit = async (data) => {
+  try {
 
-      if (isEdit) {
-        await updateEvent(initialData.id, formData);
-        onSuccess(`Evento "${data.title}" actualizado.`);
-      } else {
-        await createEvent(formData);
-        onSuccess(`Evento "${data.title}" registrado.`);
-      }
-      onClose();
-    } catch (error) {
-      toast.error("Error al guardar el evento");
+    const formData = new FormData();
+
+    formData.append("title", data.title);
+    formData.append("description", data.description);
+    formData.append(
+      "durationMinutes",
+      Number(data.durationMinutes)
+    );
+
+    formData.append(
+      "ageClassification",
+      Number(data.ageClassification)
+    );
+
+    formData.append(
+      "lifecycleState",
+      Number(data.lifecycleState)
+    );
+
+    formData.append(
+      "trailerUrl",
+      data.trailerUrl || ""
+    );
+
+    formData.append(
+      "releaseDate",
+      data.releaseDate
+    );
+
+    formData.append(
+      "endDate",
+      data.endDate || ""
+    );
+
+  if (
+    data.poster &&
+    data.poster instanceof FileList &&
+    data.poster[0]
+  ) {
+
+    formData.append(
+      "poster",
+       data.poster[0]
+    );
+
+  } else if (data.poster === null) {
+    formData.append("poster_url", "");
+  }
+
+  if (
+    data.banner &&
+    data.banner instanceof FileList &&
+    data.banner[0]
+  ) {
+    formData.append(
+      "banner",
+       data.banner[0]
+      ); 
+
+  } else if (data.banner === null) {
+    formData.append("banner_url", "");
+  }
+
+    if (isEdit) {
+
+      await updateEvent(
+        initialData.id,
+        formData
+      );
+
+      onSuccess(
+        `"${data.title}" ha sido actualizado correctamente.`
+      );
+
+    } else {
+
+      await createEvent(formData);
+
+      onSuccess(
+        `"${data.title}" ha sido registrado exitosamente.`
+      );
     }
-  };
+
+  } catch (error) {
+
+    console.error(
+      "Error guardando evento:",
+      error
+    );
+
+    toast.error(
+      "Error al procesar la operación en el servidor"
+    );
+  }
+};
 
   // Validaciones de archivos vinculadas a react-hook-form
   const posterRegister = register("poster", { 
