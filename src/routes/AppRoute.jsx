@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import Login from "../pages/auth/login";
 import Dashboard from "../pages/admin/dashboard";
@@ -178,6 +178,11 @@ function AppRoute() {
             </ProtectedRoute>
           }
         />
+
+        {/* ============================
+            CATCH-ALL (RUTA NO ENCONTRADA)
+        ============================ */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
 
       {loading && <GlobalLoader />}
