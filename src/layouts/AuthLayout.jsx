@@ -2,6 +2,8 @@ import imageninit from "../assets/images/fondoinit.webp";
 import logotipo from "../assets/images/logotype/logoCiineflix.webp";
 
 export default function AuthLayout({ children }) {
+
+  console.log('llegue al layout', children)
   return (
     <div className="min-h-screen grid grid-cols-1 md:grid-cols-2">
       {/* LADO IZQUIERDO – Branding */}
