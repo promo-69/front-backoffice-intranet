@@ -7,17 +7,17 @@ export function EventsTab({ data = [], onEdit, onDelete, isLoading }) {
   const skeletonRows = Array(6).fill(null);
 
   return (
-    <div className="overflow-x-auto w-full bg-white rounded-xl shadow-sm border border-slate-100">
-      <table className="w-full text-left border-collapse font-montserrat text-sm">
+    <div className="overflow-x-auto bg-surface-container rounded-cineflix border border-border shadow-sm">
+      <table className="w-full text-left text-xs">
         <thead>
-          <tr className="border-b border-slate-100 bg-slate-50/70 text-slate-500 font-bold text-[11px] uppercase tracking-wider">
-            <th className="py-3 px-4 text-center w-20">Póster</th>
-            <th className="py-3 px-4">Título</th>
-            <th className="py-3 px-4">Duración</th>
-            <th className="py-3 px-4">Fecha Estreno</th>
-            <th className="py-3 px-4 text-center">Clasificación</th>
-            <th className="py-3 px-4 text-center">Estado</th>
-            <th className="py-3 px-4 text-center w-28">Acciones</th>
+          <tr className="text-gray-600 uppercase tracking-wider border-b border-border font-montserrat">
+            <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600">Póster</th>
+            <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600">Título</th>
+            <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600">Duración</th>
+            <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600">Fecha Estreno</th>
+            <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600 text-center ">Clasificación</th>
+            <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600 text-center">Estado</th>
+            <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600 text-center w-28">Acciones</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-50">
