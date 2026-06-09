@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { useModal } from "@/hooks/useModal";
 import { useLoading } from "@/context/LoadingContext"; 
 import { getEvents, deleteEvent } from "@/services/events.service";
-import { EventsTab } from "@/components/admin/billboard/events/eventsTab"; 
-// import EventModal from "@/components/admin/billboard/events/EventModal";
+import { EventsTab } from "@/components/admin/billboard/events/EventsTab"; 
+import EventModal from "@/components/admin/billboard/events/EventModal"; 
 import DeleteConfirmModal from "@/components/ui/DialogConfirmModal";
 import SuccessModal from "@/components/ui/SuccessModal";
 import { CustomPagination } from "@/components/ui/CustomPagination";
@@ -23,7 +23,7 @@ export default function Events({ catalogs, search, modal, openModal, closeModal 
     setIsLoading(true); 
     try {
       const res = await getEvents({ page: pageToFetch || currentPage });
-      // Manejo seguro por si la API responde estructurada con filas u objeto plano
+      // Manejo seguro por si la API responde con .rows o array plano
       const rawData = res.data?.rows || res.data || [];
       setEvents(rawData);
       
@@ -39,17 +39,17 @@ export default function Events({ catalogs, search, modal, openModal, closeModal 
     }
   };
 
-  // Observador de paginación activa
+  // Escucha del índice de paginación activa
   useEffect(() => {
     fetchEvents(currentPage);
   }, [currentPage]);
 
-  // Si cambia el criterio de búsqueda superior, vuelve a fojas cero (pág. 1)
+  // Si cambia el criterio de búsqueda superior, vuelve a la primera página
   useEffect(() => {
     setCurrentPage(1);
   }, [search]);
 
-  // Filtrado de eventos reactivo al buscador (soporta título o nombre alternativamente)
+  // Filtrado reactivo al buscador principal (evalúa título o nombre de evento)
   const filteredEvents = events.filter((e) =>
     (e.title || e.name || "").toLowerCase().includes(search.toLowerCase())
   );
@@ -63,7 +63,7 @@ export default function Events({ catalogs, search, modal, openModal, closeModal 
   const handleEditClick = (eventItem) => openModal("form", eventItem, "event");
   const handleDeleteClick = (eventItem) => openModal("delete", eventItem, "event");
 
-  // Orquestación del cierre del Modal de registro/actualización
+  // Sincronización del cierre y mutación del formulario
   const handleFormClose = (shouldRefresh, customMessage) => {
     closeModal();
     if (shouldRefresh) {
@@ -87,19 +87,19 @@ export default function Events({ catalogs, search, modal, openModal, closeModal 
 
       openModal("success", {
         title: "Evento Removido",
-        message: `"${modal.data?.title || modal.data?.name}" ha sido cancelado y purgado del sistema.`,
+        message: `"${modal.data?.title || modal.data?.name}" ha sido removido del catálogo correctamente.`,
         onConfirm: () => closeModal()
       }, "event");
     } catch (error) {
-      console.error("Error al dar de baja el evento:", error);
-      const errorMessage = error.response?.data?.message || "No se pudo eliminar el evento en el servidor operativo";
+      console.error("Error eliminando evento:", error);
+      const errorMessage = error.response?.data?.message || "No se pudo dar de baja el evento en el servidor";
       toast.error(errorMessage);
     } finally {
       hideLoader();
     }
   };
 
-  // Contextualización para evitar choques entre las ventanas de películas y eventos
+  // Contextualización para evitar interferencias visuales con los modales de películas
   const isEventContext = modal.context === "event" || modal.type === "eventModal";
   const isFormOpen = modal.isOpen && (modal.type === "eventModal" || modal.type === "form") && isEventContext;
   const isDeleteOpen = modal.isOpen && modal.type === "delete" && isEventContext;
@@ -122,15 +122,16 @@ export default function Events({ catalogs, search, modal, openModal, closeModal 
         />
       )}
 
-      {/* MODALES OPERATIVOS AISLADOS POR CONTEXTO "EVENT" */}
+      {/* MODAL DE FORMULARIO DE EVENTOS */}
       <EventModal 
         open={isFormOpen} 
         onClose={() => handleFormClose(false)} 
         onSuccess={(msg) => handleFormClose(true, msg)} 
-        currenciesList={catalogs.currencies} // Puedes pasarle los catálogos globales si los necesita tu formulario
+        currenciesList={catalogs.currencies} // Por si requiere monedas u otros diccionarios del padre
         initialData={modal.data} 
       />
 
+      {/* MODAL DE CONFIRMACIÓN DE BAJA */}
       <DeleteConfirmModal 
         isOpen={isDeleteOpen} 
         onClose={closeModal} 
@@ -138,10 +139,11 @@ export default function Events({ catalogs, search, modal, openModal, closeModal 
         itemName={modal.data?.title || modal.data?.name} 
       />
 
+      {/* MODAL DE ÉXITO */}
       <SuccessModal 
         isOpen={isSuccessOpen}
         onClose={closeModal}
-        title={modal.data?.title}
+        title={modal.data?.title || "Operación Exitosa"}
         message={modal.data?.message}
         onConfirm={modal.data?.onConfirm}
       />

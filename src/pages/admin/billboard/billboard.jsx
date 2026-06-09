@@ -3,7 +3,7 @@ import { Plus, Building2 } from "lucide-react";
 import { useModal } from "@/hooks/useModal";
 import Movies from "./movies";
 import Showtimes from "./showtimes";
-import Events from "./events"; 
+import Events from "./events";
 import { getCinemas } from "@/services/cinema.service";
 import { getCatalogByName } from "@/services/catalog.service";
 import { toast } from "sonner";
@@ -14,6 +14,7 @@ export default function BillboardPage() {
   const [search, setSearch] = useState("");
   const [selectedCinemaId, setSelectedCinemaId] = useState("");
   
+  // ESTADOS GLOBALES DE CATÁLOGOS (Diccionarios compartidos)
   const [cinemas, setCinemas] = useState([]);
   const [catalogs, setCatalogs] = useState({
     genres: [],
@@ -27,61 +28,71 @@ export default function BillboardPage() {
   const tabs = [
     { id: "movies", label: "Películas" },
     { id: "showtimes", label: "Funciones" },
-    { id: "room-events", label: "Eventos" }, 
+    { id: "events", label: "Eventos" },
   ];
 
   const titles = {
     movies: "Gestión de Películas",
     showtimes: "Gestión de Funciones",
-    "room-events": "Gestión de Eventos Especiales",
+    events: "Gestión de Eventos",
+    rentals: "Gestión de Alquileres"
   };
 
   const descriptions = {
-    movies: "Administra la información de las películas de los cines.",
-    showtimes: "Administra las funciones de proyección y horarios.",
-    "room-events": "Administra funciones únicas, premieres y transmisiones exclusivas.",
+    movies: "Administra la información de las películas de los cines",
+    showtimes: "Administra las funciones de proyección",
+    events: "Administra los eventos especiales y funciones exclusivas.",
+    rentals: "Administra las solicitudes y reservas de alquiler de salas.",
   };
 
   const placeholders = {
     movies: "Buscar película...",
     showtimes: "Buscar función...",
-    "room-events": "Buscar evento...",
+    events: "Buscar evento...",
+    rentals: "Buscar alquiler...",
   };
 
   const modalTypes = {
     movies: "movieModal",
     showtimes: "showtimeModal",
-    "room-events": "eventModal",
+    events: "eventModal",
+    rentals: null,
   };
 
-  const fetchCatalogsData = async () => {
-    try {
+   const fetchCatalogsData = async () => {
+      try {
+        // Ejecutamos las llamadas en paralelo para optimizar tiempos de respuesta por red
       const cinemasData = await getCinemas();
-      setCinemas(Array.isArray(cinemasData?.data) ? cinemasData.data : []);
+      const cinemasList = cinemasData?.data;
+      setCinemas(Array.isArray(cinemasList) ? cinemasList : []);
+      
 
-      const [genres, classifications, lifecycles, languages, projectionTypes, currencies] = await Promise.all([
-        getCatalogByName("genres"),
-        getCatalogByName("age-classifications"),
-        getCatalogByName("movie-lifecycle-states"),
-        getCatalogByName("languages"),
-        getCatalogByName("projection-types"),
-        getCatalogByName("currencies")
-      ]);
+      // Bloque 1 de catálogos
+      const genresData = await getCatalogByName("genres");
+      const classificationsData = await getCatalogByName("age-classifications");
+      const lifecyclesData = await getCatalogByName("movie-lifecycle-states");
+
+      // Bloque 2 de catálogos
+      const languagesData = await getCatalogByName("languages");
+      const projectionTypesData = await getCatalogByName("projection-types");
+      const currenciesData = await getCatalogByName("currencies");
 
       setCatalogs({
-        genres: genres || [],
-        classifications: classifications || [],
-        lifecycles: lifecycles || [],
-        languages: languages || [],
-        projectionTypes: projectionTypes || [],
-        currencies: currencies || []
+        genres: genresData || [],
+        classifications: classificationsData || [],
+        lifecycles: lifecyclesData || [],
+        languages: languagesData || [],
+        projectionTypes: projectionTypesData || [],
+        currencies: currenciesData || []
       });
-    } catch (error) {
-      console.error("Error cargando catálogos operativos:", error);
-      toast.error("Fallo crítico al sincronizar diccionarios de configuración");
     }
-  };
+    catch (error){
+        console.error("Error cargando catálogos operativos:", error);
+        toast.error("Fallo crítico al sincronizar diccionarios de configuración");
+    }
+  }
 
+  // Carga e inicialización de diccionarios operativos para evitar peticiones duplicadas
   useEffect(() => {
     fetchCatalogsData();
   }, []);
@@ -93,14 +104,17 @@ export default function BillboardPage() {
       <header className="flex justify-between items-center bg-white p-6 rounded-cineflix border border-gray-100 shadow-sm">
         <div>
           <h3 className="text-lg font-bold text-brand-primary leading-tight">
-            {titles[activeTab] || "Gestión de Cartelera"}
+            {titles[activeTab]}
           </h3>
           <p className="text-xs text-muted-foreground">
             {descriptions[activeTab]}
           </p>
         </div>
 
+        {/* Bloque de Acciones y Filtros Maestros */}
         <div className="flex items-center gap-4">
+          
+          {/* Selector de Sucursales condicional para Funciones */}
           {activeTab === "showtimes" && (
             <div className="flex items-center gap-2 bg-slate-100/80 border p-2 px-3 rounded-xl shadow-sm">
               <Building2 className="w-4 h-4 text-slate-500 shrink-0" />
@@ -117,6 +131,7 @@ export default function BillboardPage() {
             </div>
           )}
 
+          {/* BUSCADOR DINÁMICO  */}
           <input
             type="text"
             placeholder={placeholders[activeTab]}
@@ -125,6 +140,7 @@ export default function BillboardPage() {
             className="w-64 px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-brand-primary/20 outline-none transition-all"
           />
 
+          {/* BOTÓN DE INSERCIÓN */}
           <button
             onClick={() => {
               if (activeTab === "showtimes" && !selectedCinemaId) {
@@ -142,7 +158,7 @@ export default function BillboardPage() {
         </div>
       </header>
 
-      {/* PESTAÑAS */}
+      {/* NAVEGACION POR PESTAÑAS (TABS) */}
       <div className="flex gap-4 border-b pb-2">
         {tabs.map((tab) => (
           <button
@@ -152,17 +168,14 @@ export default function BillboardPage() {
                 ? "font-bold text-brand-gold border-brand-gold"
                 : "text-muted-foreground border-transparent hover:text-brand-primary"
             }`}
-            onClick={() => {
-              setActiveTab(tab.id);
-              setSearch(""); 
-            }}
+            onClick={() => setActiveTab(tab.id)}
           >
             {tab.label}
           </button>
         ))}
       </div>
 
-      {/* CONTENIDO DINÁMICO */}
+      {/* CONTENIDO DINAMICO */}
       <div className="transition-all duration-200">
         {activeTab === "movies" && (
           <Movies 
@@ -186,8 +199,7 @@ export default function BillboardPage() {
           />
         )}
 
-        {/* NUEVA RENDERIZACIÓN CONDICIONAL */}
-        {activeTab === "room-events" && (
+        {activeTab === "events" && (
           <Events 
             catalogs={catalogs}
             search={search}
@@ -197,6 +209,7 @@ export default function BillboardPage() {
           />
         )}
       </div>
+
     </div>
   );
 }
