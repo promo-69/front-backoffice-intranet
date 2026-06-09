@@ -16,15 +16,7 @@ export default defineConfig({
   server: {
     https: true,
     host: false,
-    port: 5174,  
-    strictPort: true,
-    proxy: {
-      '/api/v1': {
-        target: 'https://backend-jog6.onrender.com',
-        changeOrigin: true,
-        secure: false,
-      },
-    }
+    port: 5174, 
   },
 
   resolve: {
