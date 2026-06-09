@@ -7,7 +7,6 @@ export const loginRequest = async (data) => {
 
 export const loginAdminRequest = async (data) => {
   const response = await api.post("/auth/login/admin", data);
-  console.log(response)
   return response.data.data.user
 }
 

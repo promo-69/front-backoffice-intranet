@@ -31,8 +31,6 @@ import PublicRoute from "./PublicRoute";
 function AppRoute() {
   const { loading } = useLoading();
 
-  console.log(' aqui estamos', loading)
-
   return (
     <BrowserRouter>
       <Routes>
