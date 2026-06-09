@@ -26,8 +26,12 @@ import NoAccess from "@/pages/noAccess";
 
 import { ROUTE_PERMISSIONS } from "@/lib/route-permissions";
 
+import PublicRoute from "./PublicRoute";
+
 function AppRoute() {
   const { loading } = useLoading();
+
+  console.log(' aqui estamos', loading)
 
   return (
     <BrowserRouter>
@@ -36,18 +40,22 @@ function AppRoute() {
         <Route
           path="/"
           element={
-            <AuthLayout>
-              <Login />
-            </AuthLayout>
+            <PublicRoute>
+              <AuthLayout>
+                <Login />
+              </AuthLayout>
+            </PublicRoute>
           }
         />
 
         <Route
           path="/login"
           element={
-            <AuthLayout>
-              <Login />
-            </AuthLayout>
+            <PublicRoute>
+              <AuthLayout>
+                <Login />
+              </AuthLayout>
+            </PublicRoute>
           }
         />
 

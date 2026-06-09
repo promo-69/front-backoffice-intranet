@@ -1,4 +1,4 @@
-import { createContext, useState, useContext, useEffect } from "react";
+import { createContext, useState, useContext, useEffect, useRef } from "react";
 import {
   loginRequest,
   refreshSession,
@@ -15,18 +15,27 @@ export function AuthProvider({ children }) {
   });
 
   const { showLoader, hideLoader } = useLoading();
+  const initialized = useRef(false);
+
+  console.log('existe sesión')
 
   // ============================
   //   REFRESH DE SESIÓN
   // ============================
   useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
+
     async function initSession() {
       const saved = localStorage.getItem("user");
       if (!saved) return;
 
+      console.log('intaremos refrescar la sesión');
+
       showLoader();
       try {
         const refreshed = await refreshSession();
+        console.log("Respuesta de refreshSession:", refreshed);
 
         if (refreshed) {
           // El backend debe devolver nuevamente roleCode y permissions
@@ -36,13 +45,17 @@ export function AuthProvider({ children }) {
             permissions: refreshed.permissions || [],
           };
 
+          console.log("Usuario actualizado tras refresh:", updatedUser);
+
           localStorage.setItem("user", JSON.stringify(updatedUser));
           setUser(updatedUser);
         } else {
+          console.log("refreshSession devolvió false o nulo. Borrando usuario.");
           localStorage.removeItem("user");
           setUser(null);
         }
-      } catch {
+      } catch (error) {
+        console.log("Excepción en initSession:", error);
         setUser(null);
       } finally {
         hideLoader();
@@ -101,6 +114,8 @@ export function AuthProvider({ children }) {
       hideLoader();
     }
   };
+
+  console.log('llegue aqui')
 
   return (
     <AuthContext.Provider value={{ user, setUser, login, logout }}>

@@ -50,9 +50,8 @@ export default api;
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "https://backend-jog6.onrender.com/api/v1/test",
-  withCredentials: true, 
-  timeout: 30000,        
+  baseURL: "https://127.0.0.1/api/v1",//"https://backend-jog6.onrender.com/api/v1",
+  withCredentials: true,     
   headers: {
     "x-client-channel": "web", 
   },
@@ -73,6 +72,37 @@ const processQueue = (error) => {
   failedQueue = [];
 };
 
+// Función unificada para refrescar el token usando los locks
+export const refreshToken = async () => {
+  if (isRefreshing) {
+    return new Promise((resolve, reject) => {
+      failedQueue.push({ resolve, reject });
+    });
+  }
+
+  isRefreshing = true;
+  try {
+    const response = await axios.post(
+      api.defaults.baseURL + "/auth/refresh",
+      {},
+      { withCredentials: true }
+    );
+    processQueue(null);
+    isRefreshing = false;
+    return response.data?.data?.user || response.data?.user;
+  } catch (refreshError) {
+    processQueue(refreshError);
+    isRefreshing = false;
+
+    localStorage.removeItem("user");
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("auth-expired"));
+      window.location.href = "/login";
+    }
+    throw refreshError;
+  }
+};
+
 // INTERCEPTOR DE RESPUESTA
 api.interceptors.response.use(
   (response) => response, 
@@ -80,58 +110,17 @@ api.interceptors.response.use(
     const originalRequest = error.config;
 
     if (error.response?.status === 401 && !originalRequest._retry) {
-      
-      // Validación más segura usando .includes() para evitar problemas con URLs absolutas
       if (originalRequest.url.includes("/auth/refresh")) {
         return Promise.reject(error);
       }
 
-      // Si ya se está ejecutando un refresh, encolamos de forma correcta
-      if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        })
-          .then(() => {
-            // Al resolverse la cola, se ejecuta la petición original limpia
-            return api(originalRequest);
-          })
-          .catch((err) => {
-            return Promise.reject(err);
-          });
-      }
-
       originalRequest._retry = true; 
-      isRefreshing = true; 
 
       try {
-        // Intentamos renovar la sesión de fondo de manera transparente
-        // Eliminamos el segmento "/test" si el backend tiene la ruta en /api/v1/auth/refresh
-        await axios.post(
-          "https://backend-jog6.onrender.com/api/v1/auth/refresh",
-          {},
-          { withCredentials: true }
-        );
-        
-        // Desbloqueamos y procesamos todas las peticiones encoladas
-        processQueue(null);
-        isRefreshing = false;
-
-        // Reintentamos la operación original (ej: Eliminar) con el nuevo contexto de sesión
+        await refreshToken();
+        // Reintentamos la operación original con el nuevo contexto de sesión
         return api(originalRequest);
       } catch (refreshError) {
-        // Si el refresh falla (el refresh token expiró de verdad tras mucha inactividad)
-        processQueue(refreshError);
-        isRefreshing = false;
-
-        // Limpieza segura del almacenamiento
-        localStorage.removeItem("user");
-        
-        if (typeof window !== "undefined") {
-          // Despachamos un evento personalizado por si el Contexto necesita enterarse en tiempo real
-          window.dispatchEvent(new Event("auth-expired"));
-          window.location.href = "/login"; 
-        }
-
         return Promise.reject(refreshError);
       }
     }
