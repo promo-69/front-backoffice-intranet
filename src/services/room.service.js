@@ -60,7 +60,14 @@ export const deleteRoom = async (roomId) => {
   return await api.delete(`/rooms/${roomId}`);
 };
 
+
 // Eliminar Asientos Individuales por Sala - Mary
 export const deleteSeatIndividual = async (roomId) => {
   return await api.delete(`/seats/room/${roomId}`);
 };
+
+// Editar lista de asientos - Mary
+export const updateSeatsBatch = async (roomId, seatsArray) => {
+  return await api.patch(`/rooms/${roomId}/seats`, seatsArray);
+};  
+  

@@ -6,7 +6,7 @@ export default function SeatGridDesigner({
   initialLayout, 
   externalFormData, 
   setExternalFormData,
-  isEdit = false // Sincronizado como isEdit
+  isEdit = false
 }) {
   if (!externalFormData) return null;
 

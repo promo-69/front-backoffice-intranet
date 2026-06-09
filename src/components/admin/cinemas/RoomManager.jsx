@@ -12,7 +12,7 @@ import {
   updateRoom,
   createRoomSeats,
   getSeatsByRoom,
-  updateSeatIndividual,
+  updateSeatsBatch, // <-- Agregado aquí
   deleteSeatIndividual 
 } from "../../../services/room.service";
 
@@ -160,7 +160,9 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
 
         await updateRoom(editingRoomId, updatePayload);
 
-        const seatUpdates = [];
+        // --- INICIO DE LA MODIFICACIÓN ---
+        const seatsToBatchUpdate = []; // Construimos el array para el Batch
+
         roomLayout.forEach((row, rowIndex) => {
           row.forEach((seat, colIndex) => {
             const originalSeat = originalSeatsSnapshot[rowIndex]?.[colIndex];
@@ -172,19 +174,22 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
               const origCondition = originalSeat.type === 'empty' ? 3 : Number(originalSeat.condition);
 
               if (current.seat_condition !== origCondition || current.seat_category !== origCategory) {
-                const updateSeatPayload = {
-                  seatCategory: current.seat_category,
-                  seatCondition: current.seat_condition
-                };
-                seatUpdates.push(updateSeatIndividual(seat.id, updateSeatPayload));
+                // Formateamos exactamente como espera el backend: { seatId, seatCategoryId, seatConditionId }
+                seatsToBatchUpdate.push({
+                  seatId: seat.id,
+                  seatCategoryId: current.seat_category,
+                  seatConditionId: current.seat_condition
+                });
               }
             }
           });
         });
 
-        if (seatUpdates.length > 0) {
-          await Promise.all(seatUpdates);
+        if (seatsToBatchUpdate.length > 0) {
+          // Llamamos al endpoint pasándole el array completo
+          await updateSeatsBatch(editingRoomId, seatsToBatchUpdate);
         }
+        // --- FIN DE LA MODIFICACIÓN ---
 
       } else {
 
