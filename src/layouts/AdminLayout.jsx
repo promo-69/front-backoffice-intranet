@@ -29,7 +29,7 @@ function AdminLayoutContent({ location, children }) {
   const getPageTitle = (pathname) => {
     const titles = {
       "/admin/dashboard": "Dashboard",
-      "/admin/exhibition": "Gestión de Cartelera",
+      "/admin/billboard": "Gestión de Cartelera",
       "/admin/sucursales": "Gestión de Sucursales y Salas",
       "/admin/personal": "Gestión de Personal",
       "/admin/transacciones": "Registro de Transacciones",

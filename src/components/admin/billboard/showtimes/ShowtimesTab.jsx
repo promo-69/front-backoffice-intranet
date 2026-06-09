@@ -1,7 +1,9 @@
 import { Pencil, Trash2, Clock, Calendar } from "lucide-react";
 
-export function ShowtimesTab({ data = [], onEdit, onDelete }) {
+export function ShowtimesTab({ data, onEdit, onDelete, isLoading = false }) {
   
+  console.log("¿Qué le llega a la Tabla?", data);
+
   const formatTime = (dateStr) => {
     if (!dateStr) return "N/A";
     return new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -11,6 +13,8 @@ export function ShowtimesTab({ data = [], onEdit, onDelete }) {
     if (!isoStr) return "N/A";
     return new Date(isoStr).toLocaleDateString();
   };
+  
+  const skeletonRows = Array(5).fill(0);
 
   return (
     <div className="mt-4 overflow-hidden bg-surface-container rounded-cineflix border border-border shadow-sm">
@@ -22,18 +26,37 @@ export function ShowtimesTab({ data = [], onEdit, onDelete }) {
             <th className="py-4 px-4">Fecha</th>
             <th className="py-4 px-4">Horario</th>
             <th className="py-4 px-4">Precio</th>
+            <th className="py-4 px-4 text-center">Puntos</th>
             <th className="py-4 px-6 text-center">Acciones</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
-          {data.length === 0 ? (
+           {/* ESTADO DE CARGA (SKELETON) */}
+          {isLoading &&
+            skeletonRows.map((_, index) => (
+              <tr key={`skeleton-${index}`} className="animate-pulse">
+                <td className="py-4 px-4"><div className="h-4 bg-gray-200 rounded w-32 mx-auto"></div></td>
+                <td className="py-4 px-4"><div className="h-4 bg-gray-200 rounded w-24 mx-auto"></div></td>
+                <td className="py-4 px-4"><div className="h-4 bg-gray-200 rounded w-20 mx-auto"></div></td>
+                <td className="py-4 px-4"><div className="h-4 bg-gray-200 rounded w-20 mx-auto"></div></td>
+                <td className="py-4 px-4"><div className="h-6 bg-gray-200 rounded-full w-16 mx-auto"></div></td>
+                <td className="py-4 px-4"><div className="h-5 bg-gray-200 rounded w-12 mx-auto"></div></td>
+                <td className="py-4 px-4"><div className="h-5 bg-gray-200 rounded w-16 mx-auto"></div></td>
+              </tr>
+            ))}
+
+          {/*ESTA DO VACÍO (Solo si NO está cargando) */}
+          {!isLoading && 
+          data.length === 0 && (
             <tr>
-              <td colSpan="6" className="text-center py-10 text-gray-400 font-bold">
-                No hay funciones planificadas para los filtros seleccionados.
+              <td colSpan="7" className="text-center py-6 text-gray-500 font-montserrat">
+               No hay funciones planificadas para los filtros seleccionados.
               </td>
             </tr>
-          ) : (
-            data.map((st) => {
+          )}
+          
+          {!isLoading &&
+          data.map((st) => {
               // Desestructuramos la rica información anidada provista por el backend
               const movieTitle = st.movie?.title || `Película #${st.movie_id}`;
               const movieDuration = st.movie?.duration_minutes;
@@ -91,22 +114,26 @@ export function ShowtimesTab({ data = [], onEdit, onDelete }) {
                         <span>{currencySymbol} {parseFloat(st.price).toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
                       )}
                     </div>
-                    <div className="text-[9px] text-slate-400 uppercase tracking-wider">
-                      {st.earned_loyalty_points ? `+ ${st.earned_loyalty_points} Pts` : "0 Pts"}
-                    </div>
+                  </td>
+
+                  {/* COLUMNA PUNTOS DE FIDELIDAD */}
+                  <td className="py-4 px-4 text-center">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-600 border border-amber-100 uppercase tracking-tighter">
+                      {st.earned_loyalty_points ? `+${st.earned_loyalty_points}` : "0"} Pts
+                    </span>
                   </td>
 
                   {/* ACCIONES */}
                   <td className="py-4 px-6">
                     <div className="flex justify-center gap-2">
                       <button 
-                        onClick={() => onEdit("showtimeForm", st)}
+                        onClick={() => onEdit(st)}
                         className="p-2 border rounded-lg text-brand-primary hover:bg-brand-primary hover:text-white transition-all shadow-sm"
                       >
                         <Pencil className="w-4 h-4" />
                       </button>
                       <button 
-                        onClick={() => onDelete("delete", st)}
+                        onClick={() => onDelete(st)}
                         className="p-2 border rounded-lg text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -117,7 +144,7 @@ export function ShowtimesTab({ data = [], onEdit, onDelete }) {
                 </tr>
               );
             })
-          )}
+          }
         </tbody>
       </table>
     </div>
