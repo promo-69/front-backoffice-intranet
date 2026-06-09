@@ -34,8 +34,7 @@ const CATALOG_FALLBACKS = {
 };
 // Catálogos que tienen endpoints específicos en el backend
 const CATALOG_API_ROUTES = {
-  "currencies": "/rates/currencies",
-  "room-bookings": "/bookings/rooms",
+  
 };
 
 function hasSpecialRoute(catalogName) {

@@ -9,7 +9,7 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <LoadingProvider>
       <App />
-     <Toaster richColors closeButton position="top-right" />
+     <Toaster richColors closeButton position="top-center" /> 
     </LoadingProvider>
   </StrictMode>,
 )

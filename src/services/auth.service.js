@@ -25,12 +25,12 @@ export const refreshSession = async () => {
 
 export const refreshSession = async () => {
   try {
-    await api.post(
+    const response = await api.post(
       "/auth/refresh",
       {},
-      { withCredentials: true } // Forzamos el envío y recepción de cookies SameSite=None
+      { withCredentials: true }
     );
-    return true;
+    return response.data?.data || response.data; // Retornamos el objeto con roleCode y permissions
   } catch (error) {
     if (error.response?.status !== 401) {
       console.error("Error técnico en el servidor:", error);

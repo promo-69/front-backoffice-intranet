@@ -50,24 +50,24 @@ export default api;
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "https://backend-jog6.onrender.com/api/v1/test", // Tu URL de Render
-  withCredentials: true, // Crucial para que viajen siempre las cookies SameSite=None
-  timeout: 30000,        // 30 segundos de margen para que Render se despierte si está dormido
+  baseURL: "https://backend-jog6.onrender.com/api/v1/test",
+  withCredentials: true, 
+  timeout: 30000,        
   headers: {
     "x-client-channel": "web", 
   },
 });
 
-// Variables para controlar el refresco concurrente
 let isRefreshing = false;
 let failedQueue = [];
 
-const processQueue = (error, token = null) => {
+// Procesamos la cola pasando el error si lo hay
+const processQueue = (error) => {
   failedQueue.forEach((prom) => {
     if (error) {
       prom.reject(error);
     } else {
-      prom.resolve(token);
+      prom.resolve(); // Al resolver con éxito, las promesas avanzan al reintento
     }
   });
   failedQueue = [];
@@ -81,16 +81,18 @@ api.interceptors.response.use(
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       
-      if (originalRequest.url === "/auth/refresh") {
+      // Validación más segura usando .includes() para evitar problemas con URLs absolutas
+      if (originalRequest.url.includes("/auth/refresh")) {
         return Promise.reject(error);
       }
 
-      // Si ya se está ejecutando un refresh, mandamos esta petición a la cola de espera
+      // Si ya se está ejecutando un refresh, encolamos de forma correcta
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
           .then(() => {
+            // Al resolverse la cola, se ejecuta la petición original limpia
             return api(originalRequest);
           })
           .catch((err) => {
@@ -99,27 +101,34 @@ api.interceptors.response.use(
       }
 
       originalRequest._retry = true; 
-      isRefreshing = true; // Bloqueamos el paso para las demás peticiones
+      isRefreshing = true; 
 
       try {
-        // Intentamos renovar la sesión una única vez para todo el sistema
-        await api.post("/auth/refresh");
+        // Intentamos renovar la sesión de fondo de manera transparente
+        // Eliminamos el segmento "/test" si el backend tiene la ruta en /api/v1/auth/refresh
+        await axios.post(
+          "https://backend-jog6.onrender.com/api/v1/auth/refresh",
+          {},
+          { withCredentials: true }
+        );
         
-        // Desbloqueamos y procesamos todas las peticiones que quedaron esperando
+        // Desbloqueamos y procesamos todas las peticiones encoladas
         processQueue(null);
         isRefreshing = false;
 
-        // Reintentamos la petición que inició el refresco
+        // Reintentamos la operación original (ej: Eliminar) con el nuevo contexto de sesión
         return api(originalRequest);
       } catch (refreshError) {
-        // Si falla, cancelamos toda la cola y limpiamos sesión
-        processQueue(refreshError, null);
+        // Si el refresh falla (el refresh token expiró de verdad tras mucha inactividad)
+        processQueue(refreshError);
         isRefreshing = false;
 
+        // Limpieza segura del almacenamiento
         localStorage.removeItem("user");
         
-        // Opcional: Redirigir al login de forma limpia si estás en el navegador
         if (typeof window !== "undefined") {
+          // Despachamos un evento personalizado por si el Contexto necesita enterarse en tiempo real
+          window.dispatchEvent(new Event("auth-expired"));
           window.location.href = "/login"; 
         }
 

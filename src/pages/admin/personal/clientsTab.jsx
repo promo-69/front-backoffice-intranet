@@ -4,7 +4,7 @@ export default function ClientsTable({ clients, isLoading = false }) {
   return (
     <div className="overflow-x-auto bg-surface-container rounded-cineflix border border-border shadow-sm">
       <table className="min-w-full divide-y divide-[#4B2E83]/60">
-        {/* ⭐ ENCABEZADOS */}
+        {/* ENCABEZADOS */}
         <thead className="bg-gray-50">
           <tr>
             <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600">Nombre</th>
@@ -14,10 +14,10 @@ export default function ClientsTable({ clients, isLoading = false }) {
           </tr>
         </thead>
 
-        {/* ⭐ CUERPO */}
+        {/* CUERPO */}
         <tbody className="divide-y divide-[#4B2E83]/40">
           
-          {/* ⭐ ESTADO DE CARGA - Alineado con las celdas de datos */}
+          {/* ESTADO DE CARGA - Alineado con las celdas de datos */}
           {isLoading &&
             skeletonRows.map((_, index) => (
               <tr key={`skeleton-${index}`} className="animate-pulse">
@@ -28,7 +28,7 @@ export default function ClientsTable({ clients, isLoading = false }) {
               </tr>
             ))}
 
-          {/* ⭐ ESTADO VACÍO */}
+          {/* ESTADO VACÍO */}
           {!isLoading && clients.length === 0 && (
             <tr>
               <td colSpan="4" className="text-center py-6 text-gray-500 font-montserrat">
@@ -37,7 +37,7 @@ export default function ClientsTable({ clients, isLoading = false }) {
             </tr>
           )}
 
-          {/* ⭐ ESTADO CON DATOS */}
+          {/* ESTADO CON DATOS */}
           {!isLoading &&
             clients.map((c) => (
               <tr key={c.person.id} className="hover:bg-gray-50 transition-colors">

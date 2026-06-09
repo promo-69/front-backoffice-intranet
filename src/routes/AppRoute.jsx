@@ -3,7 +3,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "../pages/auth/login";
 import Dashboard from "../pages/admin/dashboard";
 import DashboardCashier from "../pages/ticketOffice/dashboardCashier";
-import Exhibition from "@/pages/admin/exhibition/bilboardPage";
+import Billboard from "../pages/admin/billboard/billboard"
+//import Exhibition from "@/pages/admin/exhibition/bilboardPage";
 import SellTickets from "../pages/ticketOffice/sellTickets";
 import CandyBar from "../pages/ticketOffice/candyBar";
 
@@ -68,11 +69,11 @@ function AppRoute() {
         />
 
         <Route
-          path="/admin/exhibition"
+          path="/admin/billboard"
           element={
             <ProtectedRoute permission={ROUTE_PERMISSIONS.EXHIBITION_READ}>
               <AdminLayout>
-                <Exhibition />
+                <Billboard />
               </AdminLayout>
             </ProtectedRoute>
           }

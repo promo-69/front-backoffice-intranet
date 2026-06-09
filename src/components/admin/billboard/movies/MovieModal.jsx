@@ -18,8 +18,7 @@ import { Label } from "@/components/ui/label";
 import { createMovie, updateMovie } from "@/services/movie.service";
 import { toast } from "sonner";
 
-
-export default function MovieForm({ 
+export default function MovieModal({ 
   open, 
   onClose, 
   onSuccess, 
@@ -88,8 +87,8 @@ export default function MovieForm({
         banner: initialData.banner_url,
         trailerUrl: initialData.trailer_url, 
         genres: (initialData.genres || initialData._MovieGenres)?.map(g => (g.genre || g.id).toString()) || [],
-        languages: initialData.languages?.map(lang => (lang.language || lang.id).toString()) || [],
-        projectionTypes: initialData.projection_types?.map(projt => (projt.projection_type || projt.id).toString()) || []
+        languages: (initialData.languages || initialData._MovieLanguages)?.map(lang => (lang.language || lang.id).toString()) || [],
+        projectionTypes: (initialData.projection_types || initialData._MovieProjectionTypes)?.map(projt => (projt.projection_type || projt.id).toString()) || []
       };
       reset(formattedData);
       setBannerPreview(initialData.banner_url);
@@ -177,12 +176,11 @@ export default function MovieForm({
     }
     if (isEdit) {
         await updateMovie(initialData.id, formData);
-        toast.success("Película actualizada de manera exitosa");
+        onSuccess(`"${data.title}" ha sido actualizada correctamente.`);
       } else {
         await createMovie(formData);
-        toast.success("Película creada en cartelera");
+        onSuccess(`"${data.title}" se ha registrado exitosamente en la cartelera.`);
       }
-      onSuccess();
 
     }
     catch (error) {

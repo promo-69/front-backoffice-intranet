@@ -5,24 +5,30 @@ export const getShowtimes = async (page = 1, limit = 10) => {
   return res.data;
 };
 
-export const getShowtimesByCinema = async (cinemaId, filters = {}) => {
-  const { page = 1, limit = 10, date, startDate, endDate, movieId } = filters;
+export const getShowtimesByCinema = async ({ cinemaId, page = 1, limit = 10, startDate, endDate, onlyFuture = true }) => {
+  try {
+    // Construimos los query params dinámicamente
+    const params = {
+      page,
+      limit,
+      onlyFuture
+    };
+    
+    if (startDate) params.startDate = startDate;
+    if (endDate) params.endDate = endDate;
 
-  // Construimos dinámicamente los parámetros presentes
-  const params = new URLSearchParams();
-  params.append("page", page);
-  params.append("limit", limit);
-
-  if (date) params.append("date", date);
-  if (startDate && endDate) {
-    params.append("startDate", startDate);
-    params.append("endDate", endDate);
+    // Realiza la petición inyectando el id en la ruta de forma segura
+    const res = await api.get(`/showtimes/admin/cinemas/${cinemaId}/showtimes`, { params });
+     return {
+      showtimes: res.data?.data?.rows || [],
+      total: res.data?.data?.count || 0
+    }; 
+  } catch (error) {
+    console.error("Error en getShowtimes service:", error);
+    return { showtimes: [], total: 0 };
   }
-  if (movieId) params.append("movieId", movieId);
-
-  const res = await api.get(`/cinemas/${cinemaId}/showtimes?${params.toString()}`);
-  return res.data;
 };
+
 
 export const getShowtimeById = async (id) => {
   const res = await api.get(`/showtimes/${id}`);
@@ -34,15 +40,12 @@ export const createShowtime = async (payload) => {
   return res.data;
 };
 
-/**
- * Programar una funcion en una sucursal
- */
 export const createByCinema = async (cinemaId, payload) => {
   const res = await api.post(`/cinemas/${cinemaId}/showtimes`, payload);
   return res.data;
 };
 
-export const patchShowtime = async (id, payload) => {
+export const updateShowtime = async (id, payload) => {
   const res = await api.patch(`/showtimes/${id}`, payload);
   return res.data;
 };
