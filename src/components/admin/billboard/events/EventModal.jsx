@@ -21,8 +21,9 @@ export default function EventModal({
   open, 
   onClose, 
   onSuccess, 
-  initialData, 
-  currenciesList = []
+  initialData,
+  ageClassificationsList = [], // Lista para el dropdown de clasificación
+  lifecycleStatesList = []     // Lista para el dropdown de estados
 }) {
   const isEdit = !!initialData;
   const fileInputRef = useRef(null);
@@ -33,59 +34,26 @@ export default function EventModal({
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm({
     defaultValues: {
       title: "",
-      synopsis: "",
+      description: "",
       durationMinutes: "",
-      eventDate: "",
-      price: "0",
-      currencyId: ""
+      ageClassification: "",
+      lifecycleState: "",
+      trailerUrl: "",
+      releaseDate: "",
+      endDate: ""
     }
   });
 
-  useEffect(() => {
-    if (open && initialData) {
-      const getNormalizedId = (list, fieldData) => {
-        if (!fieldData) return "";
-        if (typeof fieldData === "number" || typeof fieldData === "string") return Number(fieldData);
-        if (typeof fieldData === "object" && fieldData.id) return fieldData.id;
-        return "";
-      };
-
-      const formattedData = {
-        title: initialData.title || initialData.name || "",
-        synopsis: initialData.synopsis || initialData.description || "",
-        durationMinutes: initialData.duration_minutes || initialData.durationMinutes || "", 
-        eventDate: (initialData.event_date || initialData.eventDate || "") .split('T')[0], 
-        price: initialData.price || "0",
-        currencyId: getNormalizedId(currenciesList, initialData.currency || initialData.currency_id || initialData.currencyId),
-        poster: initialData.poster_url || initialData.posterUrl,
-        banner: initialData.banner_url || initialData.bannerUrl,
-      };
-
-      reset(formattedData);
-      setBannerPreview(formattedData.banner);
-      setPosterPreview(formattedData.poster);
-    } else if (open) {
-      reset({ 
-        title: "", 
-        synopsis: "", 
-        durationMinutes: "", 
-        eventDate: "", 
-        price: "", 
-        currencyId: ""
-      });
-      setBannerPreview(null);
-      setPosterPreview(null);
-    }
-  }, [initialData, open, reset, currenciesList]);
-
-  // Manejadores de archivos multimedia de la interfaz
-  const handleImageChange = (e) => {
+  // --- Funciones para el manejo y limpieza de imágenes ---
+  const handleImageChange = (e, setPreview) => {
     const file = e.target.files[0];
-    if (file) setPosterPreview(URL.createObjectURL(file));
+    if (file) {
+      setPreview(URL.createObjectURL(file));
+    }
   };
 
   const handleRemovePoster = (e) => {
-    e.stopPropagation();
+    e.stopPropagation(); // Evita disparar el click del contenedor principal
     setPosterPreview(null);
     setValue("poster", null);
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -97,45 +65,68 @@ export default function EventModal({
     setValue("banner", null);
     if (bannerInputRef.current) bannerInputRef.current.value = "";
   };
+  // -------------------------------------------------------
+
+  useEffect(() => {
+    if (open && initialData) {
+      reset({
+        title: initialData.title || "",
+        description: initialData.description || "",
+        durationMinutes: initialData.duration_minutes || "",
+        ageClassification: initialData.age_classification || "",
+        lifecycleState: initialData.lifecycle_state || "",
+        trailerUrl: initialData.trailer_url || "",
+        releaseDate: initialData.release_date?.split('T')[0] || "",
+        endDate: initialData.end_date?.split('T')[0] || ""
+      });
+      setPosterPreview(initialData.poster_url);
+      setBannerPreview(initialData.banner_url);
+    } else if (open) {
+      reset({ 
+        title: "", 
+        description: "", 
+        durationMinutes: "", 
+        ageClassification: "", 
+        lifecycleState: "", 
+        trailerUrl: "", 
+        releaseDate: "", 
+        endDate: "" 
+      });
+      setPosterPreview(null);
+      setBannerPreview(null);
+    }
+  }, [initialData, open, reset]);
 
   const onSubmit = async (data) => {
     try {
       const formData = new FormData();
-  
       formData.append('title', data.title);
-      formData.append('synopsis', data.synopsis);
-      formData.append('durationMinutes', Number(data.durationMinutes)); 
-      formData.append('eventDate', data.eventDate);
-      formData.append('price', Number(data.price));
-      formData.append('currencyId', Number(data.currencyId));
+      formData.append('description', data.description);
+      formData.append('durationMinutes', Number(data.durationMinutes));
+      formData.append('ageClassification', Number(data.ageClassification));
+      formData.append('lifecycleState', Number(data.lifecycleState));
+      formData.append('trailerUrl', data.trailerUrl || "");
+      formData.append('releaseDate', data.releaseDate);
+      formData.append('endDate', data.endDate || "");
 
-      // Adjuntar archivos binarios si fueron modificados en el cliente
-      if (data.poster && data.poster instanceof FileList && data.poster[0]) {
-        formData.append('poster', data.poster[0]);
-      } else if (data.poster === null) {
-        formData.append('poster', ''); 
-      }
-    
-      if (data.banner && data.banner instanceof FileList && data.banner[0]) {
-        formData.append('banner', data.banner[0]);
-      } else if (data.banner === null) {
-        formData.append('banner', ''); 
-      }
+      // Manejo de archivos binarios para el backend
+      if (data.poster instanceof FileList && data.poster[0]) formData.append('poster', data.poster[0]);
+      if (data.banner instanceof FileList && data.banner[0]) formData.append('banner', data.banner[0]);
 
       if (isEdit) {
         await updateEvent(initialData.id, formData);
-        onSuccess(`"${data.title}" ha sido actualizado correctamente.`);
+        onSuccess(`Evento "${data.title}" actualizado.`);
       } else {
         await createEvent(formData);
-        onSuccess(`"${data.title}" se ha registrado exitosamente como evento.`);
+        onSuccess(`Evento "${data.title}" registrado.`);
       }
+      onClose();
     } catch (error) {
-      console.error("Error guardando evento:", error);
-      toast.error("Error al procesar la operación en el servidor");
+      toast.error("Error al guardar el evento");
     }
   };
 
-  // Validaciones de tamaño y formato para el póster y banner
+  // Validaciones de archivos vinculadas a react-hook-form
   const posterRegister = register("poster", { 
     validate: {
       lessThan2MB: files => {
@@ -146,8 +137,7 @@ export default function EventModal({
         if (!files || !files[0] || typeof files === "string") return true;
         return ['image/jpeg', 'image/png', 'image/webp'].includes(files[0].type) || "Solo se permite JPG, PNG o WebP";
       }
-    },
-    onChange: handleImageChange 
+    }
   });
 
   const bannerRegister = register("banner", {
@@ -161,10 +151,6 @@ export default function EventModal({
         if (!files || !files[0] || typeof files === "string") return true;
         return ['image/jpeg', 'image/png', 'image/webp'].includes(files[0].type) || "Formato de banner no válido";
       }
-    },
-    onChange: (e) => {
-      const file = e.target.files[0];
-      if (file) setBannerPreview(URL.createObjectURL(file));
     }
   });
 
@@ -230,8 +216,11 @@ export default function EventModal({
               className="hidden" 
               accept="image/jpeg,image/png,image/webp"
               name={posterRegister.name}
-              onChange={posterRegister.onChange}
               onBlur={posterRegister.onBlur}
+              onChange={(e) => {
+                posterRegister.onChange(e);
+                handleImageChange(e, setPosterPreview);
+              }}
               ref={(e) => {
                 posterRegister.ref(e);
                 fileInputRef.current = e;
@@ -251,8 +240,8 @@ export default function EventModal({
               <InputForm 
                 label="Fecha de Ejecución" 
                 type="date" 
-                {...register("eventDate", { required: "Este campo es obligatorio"})}
-                error={errors.eventDate?.message}
+                {...register("releaseDate", { required: "Este campo es obligatorio"})}
+                error={errors.releaseDate?.message}
               />
 
               <InputForm 
@@ -270,36 +259,54 @@ export default function EventModal({
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <InputForm 
-                label="Precio de la Entrada" 
-                type="number" 
-                step="0.01"
-                onKeyDown={(e) => {
-                  if (["-", "e", "E"].includes(e.key)) e.preventDefault();
-                }}
-                {...register("price", { required: "Este campo es obligatorio", valueAsNumber: true })}
-                error={errors.price?.message}
-              />
+              <SelectForm 
+                label="Clasificación por Edad" 
+                {...register("ageClassification", { required: "Este campo es obligatorio", valueAsNumber: true })}
+                error={errors.ageClassification?.message}
+              >
+                <option value="">Seleccionar Clasificación...</option>
+                {ageClassificationsList.map(item => (
+                  <option key={item.id} value={item.id}>
+                    {item.description || item.name || `Clasificación ${item.id}`}
+                  </option>
+                ))}
+              </SelectForm>
 
               <SelectForm 
-                label="Moneda" 
-                {...register("currencyId", { required: "Este campo es obligatorio", valueAsNumber: true })}
-                error={errors.currencyId?.message}
+                label="Estado en Cartelera" 
+                {...register("lifecycleState", { required: "Este campo es obligatorio", valueAsNumber: true })}
+                error={errors.lifecycleState?.message}
               >
-                <option value="">Seleccionar Moneda...</option>
-                {currenciesList.map(item => (
+                <option value="">Seleccionar Estado...</option>
+                {lifecycleStatesList.map(item => (
                   <option key={item.id} value={item.id}>
-                    {item.name || item.description || item.code}
+                    {item.description || item.name || `Estado ${item.id}`}
                   </option>
                 ))}
               </SelectForm>
             </div>
 
+            <div className="grid grid-cols-2 gap-4">
+              <InputForm 
+                label="URL del Trailer (Opcional)" 
+                type="url" 
+                {...register("trailerUrl")}
+                error={errors.trailerUrl?.message}
+              />
+
+              <InputForm 
+                label="Fecha de Finalización (Opcional)" 
+                type="date" 
+                {...register("endDate")}
+                error={errors.endDate?.message}
+              />
+            </div>
+
             <TextAreaCustom 
               label="Descripción / Detalles Especiales"
               rows={3}
-              {...register("synopsis", { required: "Este campo es obligatorio" })}
-              error={errors.synopsis?.message}
+              {...register("description", { required: "Este campo es obligatorio" })}
+              error={errors.description?.message}
             />
 
             {/* SECCIÓN BANNER HORIZONTAL */}
@@ -346,8 +353,11 @@ export default function EventModal({
                 className="hidden" 
                 accept="image/jpeg,image/png,image/webp"
                 name={bannerRegister.name}
-                onChange={bannerRegister.onChange}
                 onBlur={bannerRegister.onBlur}
+                onChange={(e) => {
+                  bannerRegister.onChange(e);
+                  handleImageChange(e, setBannerPreview);
+                }}
                 ref={(e) => {
                   bannerRegister.ref(e); 
                   bannerInputRef.current = e; 

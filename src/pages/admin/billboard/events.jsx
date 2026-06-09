@@ -23,7 +23,6 @@ export default function Events({ catalogs, search, modal, openModal, closeModal 
     setIsLoading(true); 
     try {
       const res = await getEvents({ page: pageToFetch || currentPage });
-      // Manejo seguro por si la API responde con .rows o array plano
       const rawData = res.data?.rows || res.data || [];
       setEvents(rawData);
       
@@ -77,29 +76,36 @@ export default function Events({ catalogs, search, modal, openModal, closeModal 
     }
   };
 
-  const handleConfirmDelete = async () => {
-    if (!modal.data?.id) return;
-    showLoader();
-    try {
-      await deleteEvent(modal.data.id);
-      closeModal();
-      await fetchEvents(currentPage); 
+const handleConfirmDelete = async () => {
+  // Extraemos el identificador tolerando ambos formatos
+  const targetId = modal.data?.id || modal.data?.event_id;
+  
+  if (!targetId) {
+    console.error("No se pudo ejecutar la acción: El objeto del evento no contiene un ID válido.", modal.data);
+    toast.error("Error interno: Identificador de evento no encontrado");
+    return;
+  }
 
-      openModal("success", {
-        title: "Evento Removido",
-        message: `"${modal.data?.title || modal.data?.name}" ha sido removido del catálogo correctamente.`,
-        onConfirm: () => closeModal()
-      }, "event");
-    } catch (error) {
-      console.error("Error eliminando evento:", error);
-      const errorMessage = error.response?.data?.message || "No se pudo dar de baja el evento en el servidor";
-      toast.error(errorMessage);
-    } finally {
-      hideLoader();
-    }
-  };
+  showLoader();
+  try {
+    await deleteEvent(targetId);
+    closeModal();
+    await fetchEvents(currentPage); 
 
-  // Contextualización para evitar interferencias visuales con los modales de películas
+    openModal("success", {
+      title: "Evento Removido",
+      message: `"${modal.data?.title || modal.data?.name}" ha sido removido del catálogo correctamente.`,
+      onConfirm: () => closeModal()
+    }, "event");
+  } catch (error) {
+    console.error("Error eliminando evento:", error);
+    const errorMessage = error.response?.data?.message || "No se pudo dar de baja el evento en el servidor";
+    toast.error(errorMessage);
+  } finally {
+    hideLoader();
+  }
+};
+
   const isEventContext = modal.context === "event" || modal.type === "eventModal";
   const isFormOpen = modal.isOpen && (modal.type === "eventModal" || modal.type === "form") && isEventContext;
   const isDeleteOpen = modal.isOpen && modal.type === "delete" && isEventContext;
@@ -127,7 +133,7 @@ export default function Events({ catalogs, search, modal, openModal, closeModal 
         open={isFormOpen} 
         onClose={() => handleFormClose(false)} 
         onSuccess={(msg) => handleFormClose(true, msg)} 
-        currenciesList={catalogs.currencies} // Por si requiere monedas u otros diccionarios del padre
+        currenciesList={catalogs.currencies} 
         initialData={modal.data} 
       />
 
