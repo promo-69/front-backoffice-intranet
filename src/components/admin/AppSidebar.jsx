@@ -29,6 +29,7 @@ import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 import { usePermission } from "@/hooks/usePermission";
+import { useAuth } from "@/context/AuthContext";
 
 // Menú base con permisos REALES
 const navItems = [
@@ -108,6 +109,7 @@ const navItems = [
 
 export function AppSidebar({ className, ...props }) {
   const { can } = usePermission();
+  const { logout } = useAuth();
 
   // Filtrar por permisos reales
   const visibleMenu = navItems.filter((item) => can(item.permission));
@@ -167,12 +169,12 @@ export function AppSidebar({ className, ...props }) {
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              className="hover:bg-red-500/10 hover:text-red-400 py-6 px-6"
+              className="hover:bg-red-500/10 hover:text-red-400 py-6 px-6 cursor-pointer"
             >
-              <a href="/login">
+              <button onClick={logout}>
                 <LogOut />
                 <span className="font-bold">Cerrar sesión</span>
-              </a>
+              </button>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

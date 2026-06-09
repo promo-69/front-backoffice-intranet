@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import Login from "../pages/auth/login";
 import Dashboard from "../pages/admin/dashboard";
@@ -26,6 +26,8 @@ import NoAccess from "@/pages/noAccess";
 
 import { ROUTE_PERMISSIONS } from "@/lib/route-permissions";
 
+import PublicRoute from "./PublicRoute";
+
 function AppRoute() {
   const { loading } = useLoading();
 
@@ -36,18 +38,22 @@ function AppRoute() {
         <Route
           path="/"
           element={
-            <AuthLayout>
-              <Login />
-            </AuthLayout>
+            <PublicRoute>
+              <AuthLayout>
+                <Login />
+              </AuthLayout>
+            </PublicRoute>
           }
         />
 
         <Route
           path="/login"
           element={
-            <AuthLayout>
-              <Login />
-            </AuthLayout>
+            <PublicRoute>
+              <AuthLayout>
+                <Login />
+              </AuthLayout>
+            </PublicRoute>
           }
         />
 
@@ -172,6 +178,11 @@ function AppRoute() {
             </ProtectedRoute>
           }
         />
+
+        {/* ============================
+            CATCH-ALL (RUTA NO ENCONTRADA)
+        ============================ */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
 
       {loading && <GlobalLoader />}
