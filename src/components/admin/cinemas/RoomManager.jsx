@@ -12,7 +12,7 @@ import {
   updateRoom,
   createRoomSeats,
   getSeatsByRoom,
-  updateSeatsBatch, // <-- Agregado aquí
+  updateSeatsBatch, 
   deleteSeatIndividual 
 } from "../../../services/room.service";
 

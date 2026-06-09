@@ -15,19 +15,19 @@ export function MoviesTab({ data, onEdit, onDelete, isLoading = false }) {
 
   return (
     <div className="overflow-x-auto bg-surface-container rounded-cineflix border border-border shadow-sm">
-      <table className="w-full text-left text-xs font-montserrat">
+      <table className="w-full text-left text-xs">
         <thead>
-          <tr className="text-left text-[11px] font-black uppercase tracking-widest text-gray-600">
-            <th className="px-4 py-3 text-left">Póster</th>
-            <th className="py-4 px-4">Título</th>
-            <th className="py-4 px-4 text-center">Duración</th>
-            <th className="py-4 px-4 text-center">Fecha</th>
-            <th className="py-4 px-4">Géneros</th>
-            <th className="py-4 px-4">Idiomas</th>
-            <th className="py-4 px-4 text-center">Clasificación</th>
-            <th className="py-4 px-4 text-center">Tipos de Proyección</th>
-            <th className="py-4 px-4 text-center">Estado</th>
-            <th className="py-4 px-6 text-center">Acciones</th>
+          <tr className="text-gray-600 uppercase tracking-wider border-b border-border font-montserrat">
+            <th className=" px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600">Póster</th>
+            <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600">Título</th>
+            <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600">Duración</th>
+            <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600 text-center">Fecha</th>
+            <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600 text-center">Géneros</th>
+            <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600">Idiomas</th>
+            <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600 text-center">Clasificación</th>
+            <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600 text-center">Tipos de Proyección</th>
+            <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600 text-center">Estado</th>
+            <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600 text-center w-28">Acciones</th>
           </tr>
         </thead>
 

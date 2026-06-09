@@ -3,6 +3,7 @@ import { Plus, Building2 } from "lucide-react";
 import { useModal } from "@/hooks/useModal";
 import Movies from "./movies";
 import Showtimes from "./showtimes";
+import Events from "./events";
 import { getCinemas } from "@/services/cinema.service";
 import { getCatalogByName } from "@/services/catalog.service";
 import { toast } from "sonner";
@@ -27,14 +28,14 @@ export default function BillboardPage() {
   const tabs = [
     { id: "movies", label: "Películas" },
     { id: "showtimes", label: "Funciones" },
-    { id: "room-events", label: "Eventos" },
+    { id: "events", label: "Eventos" },
   ];
 
   const titles = {
     movies: "Gestión de Películas",
     showtimes: "Gestión de Funciones",
     events: "Gestión de Eventos",
-    
+    rentals: "Gestión de Alquileres"
   };
 
   const descriptions = {
@@ -191,6 +192,16 @@ export default function BillboardPage() {
             cinemas={cinemas} 
             catalogs={catalogs} 
             cinemaId={selectedCinemaId} 
+            search={search}
+            modal={modal}
+            openModal={openModal}
+            closeModal={closeModal}
+          />
+        )}
+
+        {activeTab === "events" && (
+          <Events 
+            catalogs={catalogs}
             search={search}
             modal={modal}
             openModal={openModal}

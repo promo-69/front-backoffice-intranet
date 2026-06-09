@@ -11,6 +11,7 @@ const CinemaTable = ({
   const safeData = Array.isArray(data) ? data : [];
   const skeletonRows = Array(5).fill(0); // Cantidad de filas de carga
 
+  
   return (
     <div className="overflow-x-auto bg-surface-container rounded-cineflix border border-border shadow-sm">
       <table className="w-full text-left text-xs">

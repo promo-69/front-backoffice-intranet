@@ -43,8 +43,6 @@ export const createRoomSeats = async (roomId, seatsArray) => {
 };
 
 export const getRoomProjectionTypes = async (roomId) =>{
-//rooms/:id/projection-types
-
   const response = await api.get(`/rooms/${roomId}/projection-types`);
   return response.data;
 }
