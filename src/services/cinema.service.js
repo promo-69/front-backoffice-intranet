@@ -25,3 +25,9 @@ export const deleteCinema = async (id) => {
   const response = await api.delete(`/cinemas/${id}`);
   return response.data;
 };
+
+// Obtener sucursales con salas existentes - Mary
+export const getCinemasWithRooms = async () => {
+  const response = await api.get('/cinemas/rooms-available');
+  return response.data;
+}

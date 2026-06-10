@@ -33,7 +33,7 @@ export default function Showtimes({ catalogs, cinemaId, search, modal, openModal
   });
 
   const fetchShowtimes = async () => {
-    if (!cinemaId) return; // Utiliza el prop cinemaId del componente
+    if (!cinemaId) return; 
     setIsLoading(true);
 
     try {
@@ -42,7 +42,7 @@ export default function Showtimes({ catalogs, cinemaId, search, modal, openModal
       if (filterType === "all") onlyFutureParam = false;
 
       const responseData = await getShowtimesByCinema({
-        cinemaId: cinemaId, // Utiliza el prop cinemaId
+        cinemaId: cinemaId,
         page: currentPage,
         limit: metadata.per_page,
         onlyFuture: onlyFutureParam,
@@ -52,7 +52,7 @@ export default function Showtimes({ catalogs, cinemaId, search, modal, openModal
 
       const rows = responseData?.showtimes || [];
       setShowtimes(rows);
-      // Normalizar metadata
+      
       const total = responseData?.count ?? responseData?.total ?? responseData?.metadata?.total ?? 0;
       const per_page = metadata.per_page;
       const current_page = currentPage;
@@ -68,8 +68,20 @@ export default function Showtimes({ catalogs, cinemaId, search, modal, openModal
       });
     } catch (error) {
       console.error("Error en fetchShowtimes:", error);
-      toast.error("Error al sincronizar el cuadrante de funciones");
-      setShowtimes([]);
+      
+      // ==========================================
+      // CONTROL INTELIGENTE DEL 404 (SUCURSAL NUEVA)
+      // ==========================================
+      if (error.response && error.response.status === 404) {
+        // Si es 404, asumimos que simplemente no hay funciones aún. 
+        // No mandamos toast.error para no asustar al usuario.
+        setShowtimes([]); 
+      } else {
+        // Si es un error 500 o de red real, ahí sí avisamos
+        toast.error("Error al sincronizar el cuadrante de funciones");
+        setShowtimes([]);
+      }
+
       setMetadata({
         total: 0,
         per_page: metadata.per_page,
@@ -82,7 +94,6 @@ export default function Showtimes({ catalogs, cinemaId, search, modal, openModal
       setIsLoading(false);
     }
   };
-
   // Efecto secundario: Monitorea mutaciones en los filtros cronológicos y paginación para re-ejecutar queries
   useEffect(() => {
     if (cinemaId) {

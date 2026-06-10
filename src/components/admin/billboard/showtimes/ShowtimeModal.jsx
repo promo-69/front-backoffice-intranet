@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { useForm, useWatch, Controller} from "react-hook-form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { InputForm } from "@/components/ui/inputForm"; 
 import { SelectForm } from "@/components/ui/SelectForm";
 import { getMovies } from "@/services/movie.service";
 import { getRoomsByCinema } from "@/services/room.service";
-import { getEvents } from "@/services/events.service"; // Importación del servicio de eventos
+import { getEvents } from "@/services/events.service"; 
 
 export function ShowtimeModal({ 
   open, 
@@ -49,22 +50,30 @@ export function ShowtimeModal({
   const watchLanguage = useWatch({ control, name: "language", defaultValue: "" });
   const watchCurrency = useWatch({ control, name: "currency", defaultValue: "" });
 
-  // Carga de datos
   useEffect(() => {
     if (open && cinemaId) {
       const loadData = async () => {
         setIsLoadingAux(true);
         try {
+          const cleanCinemaId = cinemaId?.id || cinemaId;
+
           const [moviesRes, roomsRes, eventsRes] = await Promise.all([
             getMovies({ limit: 100 }),
-            getRoomsByCinema(cinemaId),
+            getRoomsByCinema(cleanCinemaId),
             getEvents({ limit: 100 })
           ]);
 
           setMovies(moviesRes.data || []);
-          setRoomsList(Array.isArray(roomsRes) ? roomsRes : (roomsRes?.rows || []));
 
-          // Eventos: cubrir todos los posibles formatos de respuesta
+          const allRooms = Array.isArray(roomsRes) ? roomsRes : (roomsRes?.rows || []);
+          
+          const filteredRoomsByCinema = allRooms.filter(
+            (room) => String(room.cinema) === String(cleanCinemaId)
+          );
+
+          setRoomsList(filteredRoomsByCinema);
+
+          // Manejo de eventos
           if (Array.isArray(eventsRes)) setEvents(eventsRes);
           else if (Array.isArray(eventsRes?.data)) setEvents(eventsRes.data);
           else if (Array.isArray(eventsRes?.data?.rows)) setEvents(eventsRes.data.rows);
@@ -274,19 +283,55 @@ export function ShowtimeModal({
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <SelectForm label="Moneda" error={errors.currency?.message} {...register("currency",{ required: "Este campo es obligatorio" })}>
-              <option value="">Seleccionar...</option>
-              {currenciesList.map(c => <option key={c.id} value={c.id}>{`${c.description} (${c.symbol})`}</option>)}
-            </SelectForm>
+            {/* Moneda */}
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-bold text-brand-primary uppercase">Moneda</label>
+              <Controller
+                control={control}
+                name="currency"
+                rules={{ required: "Este campo es obligatorio" }}
+                render={({ field }) => (
+                  <Select onValueChange={field.onChange} value={String(field.value || "")}>
+                    <SelectTrigger className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-brand-primary h-10 text-left">
+                      <SelectValue placeholder="Seleccionar..." />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white shadow-lg rounded-md border">
+                      {currenciesList.map(c => (
+                        <SelectItem key={c.id} value={String(c.id)}>
+                          {`${c.description} (${c.symbol})`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.currency && <span className="text-xs text-red-500">{errors.currency.message}</span>}
+            </div>
 
-            {/* Precio editable con opciones predeterminadas */}
-            <select
-              {...register("price",{ required: "Este campo es obligatorio" })}
-              className="border rounded px-3 py-2 w-full"
-              onChange={e => setValue("price", e.target.value)}
-            >
-              {priceOptions.map(p => <option key={p} value={p}>{p}</option>)}
-            </select>
+            {/* Precio */}
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-bold text-brand-primary uppercase">Precio</label>
+              <Controller
+                control={control}
+                name="price"
+                rules={{ required: "Este campo es obligatorio" }}
+                render={({ field }) => (
+                  <Select onValueChange={field.onChange} value={String(field.value || "")}>
+                    <SelectTrigger className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-brand-primary h-10 text-left">
+                      <SelectValue placeholder="Seleccionar..." />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white shadow-lg rounded-md border">
+                      {priceOptions.map(p => (
+                        <SelectItem key={p} value={p}>
+                          {p}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.price && <span className="text-xs text-red-500">{errors.price.message}</span>}
+            </div>
           </div>
 
           <DialogFooter className="mt-6 flex justify-end gap-3 pt-4 border-t">

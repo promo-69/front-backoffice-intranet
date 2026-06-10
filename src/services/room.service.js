@@ -12,8 +12,6 @@ export const getRooms = async () => {
   return response.data;
 };
 
-
-
 // Guardar Sala - Mary
 export const saveRoom = async (cinemaId, roomData) => {
   const response = await api.post(`/cinemas/${cinemaId}/rooms`, roomData);
