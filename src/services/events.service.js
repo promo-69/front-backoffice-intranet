@@ -25,3 +25,9 @@ export const deleteEvent = async (id) => {
   const response = await api.delete(`/special-events/${id}`);
   return response.data;
 };
+
+// Obtener salas por sucursal - Mary
+export const getRoomsByCinema = async (cinemaId) => {
+  const response = await api.get(`/cinemas/${cinemaId}/rooms`);
+  return response.data.data || response.data || [];
+};

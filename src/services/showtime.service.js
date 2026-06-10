@@ -54,3 +54,15 @@ export const deleteShowtime = async (id) => {
   const res = await api.delete(`/showtimes/${id}`);
   return res.data;
 };
+
+// Creacion de una funcion de Evento - Mary
+export const createShowtimesByEvent = async (cinemaId, payload) => {
+    const res = await api.post(`/cinemas/${cinemaId}/showtimes`, payload);
+    return res.data;
+};
+
+// Obtener Eventos completos - Mary
+export const getEvents = async () => {
+  const response = await api.get('/special-events/admin?limit=-1');
+  return response.data;
+};

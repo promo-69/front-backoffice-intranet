@@ -52,14 +52,12 @@ export function EventsTab({ data = [], onEdit, onDelete, isLoading }) {
               </tr>
             ))
           ) : data.length === 0 ? (
-            // --- MENSAJE DE TABLA VACÍA ---
             <tr>
               <td colSpan={7} className="py-8 text-center text-slate-400 font-medium">
                 No se encontraron eventos registrados.
               </td>
             </tr>
           ) : (
-            // --- RENDERIZADO DE DATOS DEL EVENTO ---
             data.map((event) => {
               const effectiveId = event.id || event.event_id;
 

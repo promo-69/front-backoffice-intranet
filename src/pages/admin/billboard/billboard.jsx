@@ -4,7 +4,7 @@ import { useModal } from "@/hooks/useModal";
 import Movies from "./movies";
 import Showtimes from "./showtimes";
 import Events from "./events";
-import { getCinemas } from "@/services/cinema.service";
+import { getCinemasWithRooms } from "@/services/cinema.service";
 import { getCatalogByName } from "@/services/catalog.service";
 import { toast } from "sonner";
 
@@ -15,7 +15,7 @@ export default function BillboardPage() {
   const [selectedCinemaId, setSelectedCinemaId] = useState("");
   
   // ESTADOS GLOBALES DE CATÁLOGOS (Diccionarios compartidos)
-  const [cinemas, setCinemas] = useState([]);
+const [cinemas, setCinemas] = useState([]);
   const [catalogs, setCatalogs] = useState({
     genres: [],
     classifications: [],
@@ -27,8 +27,8 @@ export default function BillboardPage() {
 
   const tabs = [
     { id: "movies", label: "Películas" },
+        { id: "events", label: "Eventos" },
     { id: "showtimes", label: "Funciones" },
-    { id: "events", label: "Eventos" },
   ];
 
   const titles = {
@@ -62,7 +62,7 @@ export default function BillboardPage() {
    const fetchCatalogsData = async () => {
       try {
         // Ejecutamos las llamadas en paralelo para optimizar tiempos de respuesta por red
-      const cinemasData = await getCinemas();
+      const cinemasData = await getCinemasWithRooms();
       const cinemasList = cinemasData?.data;
       setCinemas(Array.isArray(cinemasList) ? cinemasList : []);
       
@@ -76,6 +76,12 @@ export default function BillboardPage() {
       const languagesData = await getCatalogByName("languages");
       const projectionTypesData = await getCatalogByName("projection-types");
       const currenciesData = await getCatalogByName("currencies");
+
+      const validCinemas = (Array.isArray(cinemasList) ? cinemasList : []).filter(
+        cinema => cinema._Rooms && cinema._Rooms.length > 0
+      )
+
+      setCinemas(validCinemas);
 
       setCatalogs({
         genres: genresData || [],
@@ -96,6 +102,8 @@ export default function BillboardPage() {
   useEffect(() => {
     fetchCatalogsData();
   }, []);
+
+  console.log("🚨 ESTADO ACTUAL DE CINEMAS:", cinemas);
 
   return (
     <div className="max-w-7xl mx-auto font-montserrat space-y-6">
