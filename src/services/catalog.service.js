@@ -57,22 +57,11 @@ const MOCK_ROOM_BOOKINGS = [
 export const getAvailableCatalogs = async () => {
   try {
     let allCatalogs = [];
-    let currentPage = 1;
-    let totalPages = 1;
 
     // Hacemos el primer llamado para saber cuántas páginas hay
-    const firstResponse = await api.get("/catalogs?page=1");
+    const firstResponse = await api.get("/catalogs?limit=-1");
     if (firstResponse.data && firstResponse.data.data) {
       allCatalogs = [...firstResponse.data.data];
-      totalPages = firstResponse.data.metadata.total_pages;
-
-      // Si hay más páginas, las pedimos todas
-      for (let i = 2; i <= totalPages; i++) {
-        const nextResponse = await api.get(`/catalogs?page=${i}`);
-        if (nextResponse.data && nextResponse.data.data) {
-          allCatalogs = [...allCatalogs, ...nextResponse.data.data];
-        }
-      }
     }
 
     return { data: allCatalogs };
