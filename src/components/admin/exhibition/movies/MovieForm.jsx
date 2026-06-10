@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import {
   Dialog,
@@ -99,9 +99,40 @@ export default function MovieForm({ open, onClose, onSuccess, initialData, lifec
   onSuccess(testData); 
 };
 
-  const { ref: registerRef, ...registerProps } = register("posterUrl", { 
-  onChange: handleImageChange 
-});
+  const { ref: posterRegisterRef, ...posterRegisterRest } = register("poster", { 
+    required: isEdit ? false : "El póster es obligatorio para registrar la película",
+    validate: {
+      lessThan2MB: files => !files[0] || files[0].size < 2 * 1024 * 1024 || "La imagen excede los 2MB",
+      acceptedFormats: files => 
+        !files[0] || 
+        ['image/jpeg', 'image/png', 'image/webp'].includes(files[0].type) || 
+        "Solo se permite JPG, PNG o WebP"
+    },
+    onChange: handleImageChange 
+  });
+  const setPosterRef = useCallback((node) => {
+    posterRegisterRef(node);
+    fileInputRef.current = node;
+  }, [posterRegisterRef]);
+
+  const { ref: bannerRegisterRef, ...bannerRegisterRest } = register("banner", {
+    required: false,
+    validate: {
+      lessThan3MB: files => !files[0] || files[0].size < 3 * 1024 * 1024 || "El banner no puede pesar más de 3MB",
+      acceptedFormats: files => 
+        !files[0] || 
+        ['image/jpeg', 'image/png', 'image/webp'].includes(files[0].type) || 
+        "Formato de banner no válido"
+    },
+    onChange: (e) => {
+      const file = e.target.files[0];
+      if (file) setBannerPreview(URL.createObjectURL(file));
+    }
+  });
+  const setBannerRef = useCallback((node) => {
+    bannerRegisterRef(node);
+    bannerInputRef.current = node;
+  }, [bannerRegisterRef]);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -150,21 +181,8 @@ export default function MovieForm({ open, onClose, onSuccess, initialData, lifec
             type="file" 
             className="hidden" 
             accept="image/jpeg,image/png,image/webp"
-            {...register("poster", { 
-              required: isEdit ? false : "El póster es obligatorio para registrar la película",
-              validate: {
-                lessThan2MB: files => !files[0] || files[0].size < 2 * 1024 * 1024 || "La imagen excede los 2MB",
-                acceptedFormats: files => 
-                  !files[0] || 
-                  ['image/jpeg', 'image/png', 'image/webp'].includes(files[0].type) || 
-                  "Solo se permite JPG, PNG o WebP"
-              },
-              onChange: handleImageChange 
-            })}
-            ref={(e) => {
-              register("poster").ref(e);
-              fileInputRef.current = e;
-            }}
+            {...posterRegisterRest}
+            ref={setPosterRef}
           />
         </div>
 
@@ -290,24 +308,8 @@ export default function MovieForm({ open, onClose, onSuccess, initialData, lifec
                 type="file" 
                 className="hidden" 
                 accept="image/jpeg,image/png,image/webp"
-                {...register("banner", {
-                  required: false, // El banner suele ser opcional
-                  validate: {
-                    lessThan3MB: files => !files[0] || files[0].size < 3 * 1024 * 1024 || "El banner no puede pesar más de 3MB",
-                    acceptedFormats: files => 
-                      !files[0] || 
-                      ['image/jpeg', 'image/png', 'image/webp'].includes(files[0].type) || 
-                      "Formato de banner no válido"
-                  },
-                  onChange: (e) => {
-                    const file = e.target.files[0];
-                    if (file) setBannerPreview(URL.createObjectURL(file));
-                  }
-                })}
-                ref={(e) => {
-                  register("banner").ref(e);
-                  bannerInputRef.current = e;
-                }}
+                {...bannerRegisterRest}
+                ref={setBannerRef}
               />
             </div>
             <DialogFooter className="pt-6 border-t">

@@ -45,34 +45,34 @@ export default function EmployeeTable({ employees, onEdit, onDelete }) {
             <tr key={emp.id} className="hover:bg-gray-50 transition-colors">
               {/* ⭐ NOMBRE */}
               <td className="px-6 py-4 whitespace-nowrap text-sm font-montserrat text-gray-800">
-                {emp.person?.first_name} {emp.person?.last_name}
+                {emp.people?.first_name} {emp.people?.last_name}
               </td>
 
               {/* ⭐ DOCUMENTO */}
               <td className="px-6 py-4 whitespace-nowrap text-sm font-montserrat text-gray-700">
-                {emp.person?.document_number}
+                {emp.people?.document_number}
               </td>
 
               {/* ⭐ CARGO */}
               <td className="px-6 py-4 whitespace-nowrap text-sm font-montserrat text-gray-700">
-                {emp.jobPositionName || "—"}
+                {emp._User?._Roles?.code?.replace("_", " ") || "—"}
               </td>
 
               {/* ⭐ SUCURSAL */}
               <td className="px-6 py-4 whitespace-nowrap text-sm font-montserrat text-gray-700">
-                {emp.cinemaName || "—"}
+                {emp._cinema_name || "—"}
               </td>
 
               {/* ⭐ ESTADO */}
               <td className="px-6 py-4 whitespace-nowrap">
                 <span
                   className={`px-3 py-1 rounded-full text-xs font-bold ${
-                    emp.status === 1
+                    emp._User?.signup_verified_at
                       ? "bg-green-100 text-green-700"
                       : "bg-red-100 text-red-700"
                   }`}
                 >
-                  {emp.status === 1 ? "Activo" : "Inactivo"}
+                  {emp._User?.signup_verified_at ? "Activo" : "Inactivo"}
                 </span>
               </td>
 

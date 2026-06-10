@@ -11,6 +11,8 @@ import { Plus } from "lucide-react";
 import { useLoading } from "@/context/LoadingContext";
 import { moviesService } from "@/services/movie.service";
 import { showtimesService } from "@/services/showtime.service";
+import { getRoomsByCinema } from "@/services/room.service";
+import { getCatalogRecords } from "@/services/catalog.service";
 
 
 
@@ -20,6 +22,9 @@ export default function ExhibitionPage() {
   const [showtimes, setShowtimes] = useState([]);
   const [search, setSearch] = useState("");
   const [rooms, setRooms] = useState([]);
+  const [cinemaId, setCinemaId] = useState(1);
+  const [lifecycleStates, setLifecycleStates] = useState([]);
+  const [genres, setGenres] = useState([]);
   const { showLoader, hideLoader } = useLoading();
   const [activeTab, setActiveTab] = useState("movies");
 
@@ -31,11 +36,12 @@ export default function ExhibitionPage() {
   const fetchAllData = useCallback(async () => {
     showLoader();
     try {
-      const [moviesRes] = await Promise.all([
+      const [moviesRes, showtimesRes] = await Promise.all([
         moviesService.getAll(),
-      
+        showtimesService.getAll(),
       ]);
       setMovies(moviesRes.data || []);
+      setShowtimes(showtimesRes.data || []);
     } catch (error) {
       console.error("Error al sincronizar:", error);
     } finally {
@@ -43,24 +49,37 @@ export default function ExhibitionPage() {
     }
   }, [showLoader, hideLoader]);
 
-  const fetchRooms = useCallback(async () => {
-    showLoader();
+  const fetchRooms = useCallback(async (cid) => {
     try {
-      const roomsRes = await showtimesService.getRooms();
-      setRooms(roomsRes);
+      const roomsRes = await getRoomsByCinema(cid);
+      setRooms(Array.isArray(roomsRes) ? roomsRes : []);
     } catch (error) {
       console.error("Error fetching rooms:", error);
-    } finally {
-      hideLoader();
+      setRooms([]);
     }
-  }, [showLoader, hideLoader]);
+  }, []);
+
+  const fetchCatalogs = useCallback(async () => {
+    try {
+      const [lifecycleRes, genresRes] = await Promise.all([
+        getCatalogRecords('movie-lifecycle_states'),
+        getCatalogRecords('genres'),
+      ]);
+      setLifecycleStates(lifecycleRes?.data || []);
+      setGenres(genresRes?.data || []);
+    } catch (error) {
+      console.error("Error fetching catalogs:", error);
+    }
+  }, []);
 
   useEffect(() => {
-  // Disparar la carga inicial automáticamente
-  fetchAllData(); 
-  //etchRooms();
-}, [/*, fetchRooms]*/]); 
+    fetchAllData();
+    fetchCatalogs();
+  }, [fetchAllData, fetchCatalogs]);
 
+  useEffect(() => {
+    if (activeTab === "showtimes") fetchRooms(cinemaId);
+  }, [activeTab, cinemaId, fetchRooms]);
 
   // Función para Crear o Editar (POST/PUT)
   const handleSave = async (payload) => {
@@ -77,9 +96,8 @@ export default function ExhibitionPage() {
       }
       
       closeModal();
-      await fetchAllData(); // Recarga la lista automáticamente
+      await fetchAllData();
       
-      // Abrimos modal de éxito
       openModal("success", { 
         title: "¡Operación Exitosa!", 
         message: "La cartelera ha sido actualizada correctamente." 
@@ -87,22 +105,6 @@ export default function ExhibitionPage() {
     } catch (error) {
       console.error("Error al guardar:", error);
       alert(error.response?.data?.message || "Error al conectar con el servidor");
-    } finally {
-      hideLoader();
-    }
-  };
-
-  // Función para Eliminar (DELETE)
-  const handleDelete = async () => {
-    showLoader();
-    try {
-      if (activeTab === "movies") {
-        await moviesService.delete(modal.data.id);
-      } else {
-        await showtimesService.delete(modal.data.id);
-      }
-      closeModal();
-      await fetchAllData();
     } finally {
       hideLoader();
     }
@@ -138,7 +140,6 @@ export default function ExhibitionPage() {
     
       <div className="max-w-7xl mx-auto font-montserrat space-y-6">
         
-        {/* HEADER DINÁMICO */}
         <header className="flex justify-between items-center bg-white p-6 rounded-cineflix border border-gray-100 shadow-sm">
           <div>
             
@@ -161,6 +162,17 @@ export default function ExhibitionPage() {
               onChange={(e) => setSearch(e.target.value)}
               className="w-64 px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-brand-primary/20 outline-none transition-all"
             />
+            {activeTab === "showtimes" && (
+              <select
+                value={cinemaId}
+                onChange={(e) => setCinemaId(Number(e.target.value))}
+                className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm"
+              >
+                <option value={1}>Cine Central</option>
+                <option value={2}>Cine Plaza</option>
+                <option value={3}>Cine Premium</option>
+              </select>
+            )}
             <button 
               onClick={() => openModal(activeTab === "movies" ? "movieForm" : "showtimeForm")}
               className="bg-brand-primary text-white px-6 py-2.5 rounded-xl flex items-center gap-2 text-[11px] font-black uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-md"
@@ -171,10 +183,8 @@ export default function ExhibitionPage() {
           </div>
         </header>
 
-       {/* COMPONENTE DE TABS GENÉRICO */}
         <TabsCustom tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
 
-        {/* TAB DE PELÍCULAS */}
         {activeTab === "movies" && (
           <MoviesTab 
             data={movies} 
@@ -183,7 +193,6 @@ export default function ExhibitionPage() {
           />
         )}
 
-        {/* TAB DE SHOWTIMES */}
         {activeTab === "showtimes" && (
           <ShowtimesTab 
             data={showtimes} 
@@ -192,20 +201,16 @@ export default function ExhibitionPage() {
           />
         )}
 
-        {/* --- MODALES CENTRALIZADOS --- */}
-       {/* Formulario de Películas */}
        {modal.isOpen && modal.type === "movieForm"&& (
         <MovieForm
           open={true}
           initialData={modal.data}
           onClose={closeModal}
           onSuccess={handleSave} 
-          lifecycleStatesList={MOCK_LIFECYCLE}
-          genresList={MOCK_GENRES}
+          lifecycleStatesList={lifecycleStates}
+          genresList={genres}
         />)}
 
-
-        {/* Formulario de Funciones */}
         <ShowtimeForm
           open={modal.isOpen && modal.type === "showtimeForm"}
           initialData={modal.data}
@@ -231,33 +236,3 @@ export default function ExhibitionPage() {
       </div>
   );
 }
-
-const MOCK_ROOMS = [
-  { id: 1, descripton: "Sala 1" },
-  { id: 2, descripton: "Sala 2" }
-];
-
-const MOCK_CLASSIFICATIONS = [
-  { id: 1, description: "A (Todo Público)" },
-  { id: 2, description: "B (+12)" },
-  { id: 3, description: "C (+15)" },
-  { id: 4, description: "D (+18)"  }
-];
-
-const MOCK_LIFECYCLE = [
-  { id: 1, description: 'Próximamente' },
-  { id: 2, description: 'En Cartelera (Estreno)'},
-  { id: 3, description: 'En Cartelera (Regular)'},
-  { id: 4, description: 'Últimos Días'},
-  { id: 5, description: 'Fuera de Cartelera'},
-           
-]
-
-const MOCK_GENRES =[
-{ id: 1, description: 'Acción'},
-{ id: 2, description: 'Comedia' },
-{ id: 3, description: 'Drama' },
-{ id: 4, description: 'Ciencia Ficción'},
-{ id: 5, description: 'Terror / Suspenso'},
-{ id: 6, description: 'Animación / Infantil'}
-];

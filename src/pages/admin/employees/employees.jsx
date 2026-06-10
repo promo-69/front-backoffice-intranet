@@ -58,7 +58,7 @@ export default function Employees({ search }) {
   // ⭐ FILTRADO (usando backend real)
   const filteredEmployees = employees.filter((e) => {
     const fullName =
-      `${e.person?.first_name || ""} ${e.person?.last_name || ""}`.toLowerCase();
+      `${e.people?.first_name || ""} ${e.people?.last_name || ""}`.toLowerCase();
     return fullName.includes(search.toLowerCase());
   });
 
@@ -152,7 +152,7 @@ export default function Employees({ search }) {
         isOpen={isDeleteOpen}
         onClose={() => setIsDeleteOpen(false)}
         onConfirm={handleConfirmDelete}
-        itemName={`${itemToDelete?.person?.first_name} ${itemToDelete?.person?.last_name}`}
+        itemName={`${itemToDelete?.people?.first_name} ${itemToDelete?.people?.last_name}`}
       />
 
       <SuccessModal

@@ -1,4 +1,4 @@
-import { SidebarTrigger } from "@/components/ui/sidebar"
+import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
 import { 
   Breadcrumb, 
@@ -23,6 +23,7 @@ import { useAuth } from "@/context/AuthContext";
 export function Navbar({ sectionTitle }) {
 
   const { user, logout } = useAuth();
+  const { open } = useSidebar();
 
   const fullName = `${user?.firstName || ""} ${user?.lastName || ""}`.trim();
   const email = user?.email || "";

@@ -7,7 +7,7 @@ import ComboImg from "../../assets/images/candy/combo.png";
 
 const CATEGORIES = ["Todos", "Popcorn", "Drinks", "Combos", "Candies"];
 
-export default function Step3Confectionery({ products, combos, onNext, onBack }) {
+export default function Step3Confectionery({ products, combos, loading, onNext, onBack }) {
   const [selectedCategory, setSelectedCategory] = useState("Todos");
   const [cart, setCart] = useState([]);
 
@@ -35,6 +35,14 @@ export default function Step3Confectionery({ products, combos, onNext, onBack })
       originalItem: c
     }))
   ];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <p className="text-gray-400 text-lg">Cargando productos...</p>
+      </div>
+    );
+  }
 
   const filteredProducts = selectedCategory === "Todos"
     ? allProducts
@@ -123,7 +131,9 @@ export default function Step3Confectionery({ products, combos, onNext, onBack })
               <div className="p-4 flex flex-col flex-1 space-y-3">
                 <div className="flex justify-between items-start">
                   <h3 className="font-bold text-slate-700 leading-tight">{product.name}</h3>
-                  <span className="text-brand-gold font-bold">${product.price.toFixed(2)}</span>
+                  <span className="text-brand-gold font-bold">
+                    {product.price > 0 ? `$${product.price.toFixed(2)}` : "—"}
+                  </span>
                 </div>
 
                 <button
@@ -164,7 +174,9 @@ export default function Step3Confectionery({ products, combos, onNext, onBack })
                   <img src={item.image} className="w-12 h-12 rounded-lg object-cover bg-white" alt="" />
                   <div className="flex-1 min-w-0">
                     <h4 className="font-bold text-xs text-slate-700 truncate">{item.name}</h4>
-                    <p className="text-brand-gold font-bold text-xs">${(item.price * item.qty).toFixed(2)}</p>
+                    <p className="text-brand-gold font-bold text-xs">
+                      {item.price > 0 ? `$${(item.price * item.qty).toFixed(2)}` : "—"}
+                    </p>
 
                     <div className="flex items-center gap-2 mt-2">
                       <button

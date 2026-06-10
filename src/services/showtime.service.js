@@ -1,8 +1,20 @@
 import api from '../api/axios.js';
 
+function extractRows(resp) {
+  const raw = resp?.data ?? resp;
+  if (Array.isArray(raw)) return raw;
+  if (raw?.rows) return raw.rows;
+  return [];
+}
+
 export const showtimesService = {
   getAll: async () => {
     const response = await api.get('/showtimes');
+    return extractRows(response.data);
+  },
+
+  getById: async (id) => {
+    const response = await api.get(`/showtimes/${id}`);
     return response.data;
   },
 

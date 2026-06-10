@@ -52,7 +52,7 @@ export function MoviesTab({ data, onEdit, onDelete }) {
                 
                 <td className="py-4 px-4 text-center">
                   <span className="px-2 py-1 rounded bg-brand-primary/5 text-brand-primary font-black text-[10px] border border-brand-primary/10">
-                    {movie._AgeClassification?.description || "N/A"}
+                    {movie._AgeClassifications?.description || movie.rating || "N/A"}
                   </span>
                 </td>
 
