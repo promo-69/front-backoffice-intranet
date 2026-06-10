@@ -13,6 +13,7 @@ export function MoviesTab({ data, onEdit, onDelete, isLoading = false }) {
     return `${days[d.getUTCDay()]}, ${d.getUTCDate()} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
   };
 
+  
   return (
     <div className="overflow-x-auto bg-surface-container rounded-cineflix border border-border shadow-sm">
       <table className="w-full text-left text-xs">

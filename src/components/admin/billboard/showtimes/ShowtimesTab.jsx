@@ -17,17 +17,17 @@ export function ShowtimesTab({ data, onEdit, onDelete, isLoading = false }) {
   const skeletonRows = Array(5).fill(0);
 
   return (
-    <div className="mt-4 overflow-hidden bg-surface-container rounded-cineflix border border-border shadow-sm">
-      <table className="w-full text-left text-xs font-montserrat">
-        <thead className="bg-gray-50 text-gray-600 uppercase tracking-wider border-b">
-          <tr>
-            <th className="py-4 px-4">Película / Evento</th>
-            <th className="py-4 px-4">Sala</th>
-            <th className="py-4 px-4">Fecha</th>
-            <th className="py-4 px-4">Horario</th>
-            <th className="py-4 px-4">Precio</th>
-            <th className="py-4 px-4 text-center">Puntos</th>
-            <th className="py-4 px-6 text-center">Acciones</th>
+    <div className="overflow-x-auto bg-surface-container rounded-cineflix border border-border shadow-sm">
+      <table className="w-full text-left text-xs">
+        <thead>
+          <tr className="text-gray-600 uppercase tracking-wider border-b border-border font-montserrat">
+            <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600">Película / Evento</th>
+            <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600">Sala</th>
+            <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600">Fecha</th>
+            <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600">Horario</th>
+            <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600">Precio</th>
+            <th className="px-4 py-3 text-center text-[11px] font-black uppercase tracking-widest text-gray-600">Puntos</th>
+            <th className="px-4 py-3 text-center text-[11px] font-black uppercase tracking-widest text-gray-600">Acciones</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
