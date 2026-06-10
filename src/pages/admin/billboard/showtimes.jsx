@@ -95,11 +95,21 @@ export default function Showtimes({ catalogs, cinemaId, search, modal, openModal
     setCurrentPage(1);
   }, [cinemaId, search, filterType]);
 
-  const filteredShowtimes = Array.isArray(showtimes)
-    ? showtimes.filter((s) =>
-        s.movie?.title?.toLowerCase().includes(search.toLowerCase()) ||
-        s.room?.name?.toLowerCase().includes(search.toLowerCase())
-      )
+const filteredShowtimes = Array.isArray(showtimes)
+    ? showtimes.filter((s) => {
+        const searchLower = search.toLowerCase();
+        
+        // Extraer títulos previniendo valores nulos
+        const movieTitle = s.movie?.title?.toLowerCase() || "";
+        const eventTitle = s.special_event?.title?.toLowerCase() || s.specialEvent?.title?.toLowerCase() || "";
+        const roomName = s.room?.name?.toLowerCase() || "";
+
+        return (
+          movieTitle.includes(searchLower) ||
+          eventTitle.includes(searchLower) ||
+          roomName.includes(searchLower)
+        );
+      })
     : [];
 
   const handlePageChange = (newPage) => {
@@ -272,10 +282,16 @@ export default function Showtimes({ catalogs, cinemaId, search, modal, openModal
       />
 
       <DeleteConfirmModal 
-      isOpen={isDeleteOpen} 
-      onClose={closeModal} 
-      onConfirm={handleConfirmDelete} 
-      itemName={` la función de ${modal.data?.movie.title} con fecha de {}`} />
+        isOpen={isDeleteOpen} 
+        onClose={closeModal} 
+        onConfirm={handleConfirmDelete} 
+        itemName={`la función de "${
+          modal.data?.movie?.title || 
+          modal.data?.special_event?.title || 
+          modal.data?.specialEvent?.title || 
+          "Evento Especial"
+        }"`} 
+      />
       
       <SuccessModal 
       isOpen={isSuccessOpen} 

@@ -25,3 +25,4 @@ export const deleteEvent = async (id) => {
   const response = await api.delete(`/special-events/${id}`);
   return response.data;
 };
+
