@@ -3,7 +3,7 @@ import api from "../api/axios.js";
 // Obtener todos los roles
 export async function getRoles() {
   const { data } = await api.get("/roles");
-  return data.data.rows; 
+  return data.data; 
 }
 
 // Obtener un rol por ID
