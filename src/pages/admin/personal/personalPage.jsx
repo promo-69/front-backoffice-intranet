@@ -4,7 +4,6 @@ import { useModal } from "@/hooks/useModal";
 import { useNavigate } from "react-router-dom";
 import Employees from "../employees/employees";
 import Users from "../users/users";
-import Clients from "./clients";
 import Roles from "./rolesPage";
 import RegisterEmployeeModal from "@/components/admin/employees/RegisterEmployeeModal";
 //import RegisterUserModal from "@/components/admin/users/RegisterUserModal";
@@ -19,28 +18,24 @@ export default function PersonalPage() {
   const tabs = [
     { id: "employees", label: "Empleados" },
     { id: "users", label: "Usuarios" },
-    { id: "clients", label: "Clientes" },
     { id: "roles", label: "Roles" },
   ];
 
   const titles = {
     employees: "Gestión de Empleados",
     users: "Gestión de Usuarios",
-    clients: "Gestión de Clientes",
     roles: "Gestión de Roles",
   };
 
   const descriptions = {
     employees: "Administra la información laboral del personal",
     users: "Administra los usuarios del sistema",
-    clients: "Administra los clientes registrados",
     roles: "Administra los roles del sistema",
   };
 
   const placeholders = {
     employees: "Buscar empleado...",
     users: "Buscar usuario...",
-    clients: "Buscar cliente...",
     roles: "Buscar rol...",
   };
 
@@ -118,7 +113,6 @@ export default function PersonalPage() {
       {/* CONTENIDO DINÁMICO */}
       {activeTab === "employees" && <Employees search={search} />}
       {activeTab === "users" && <Users search={search} />}
-      {activeTab === "clients" && <Clients search={search} />}
       {activeTab === "roles" && <Roles search={search} />}
 
       {/* MODALES */}

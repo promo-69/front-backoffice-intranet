@@ -31,6 +31,7 @@ export default function Employees({ search }) {
       setLoading(true); // Activamos carga local
       const employeesRaw = await getEmployees();
       setEmployees(employeesRaw);
+
     } catch (error) {
       console.error("Error cargando empleados:", error);
       setEmployees([]);

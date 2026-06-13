@@ -13,7 +13,6 @@ export default function EmployeeTable({ employees, onEdit, onDelete, isLoading =
             <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600">Documento</th>
             <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600">Cargo</th>
             <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600">Sucursal</th>
-            <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-600">Estado</th>
             <th className="px-4 py-3 text-center text-[11px] font-black uppercase tracking-widest text-gray-600">Acciones</th>
           </tr>
         </thead>
@@ -29,7 +28,6 @@ export default function EmployeeTable({ employees, onEdit, onDelete, isLoading =
                 <td className="py-4 px-4"><div className="h-4 bg-gray-200 rounded w-24 mx-auto"></div></td>
                 <td className="py-4 px-4"><div className="h-4 bg-gray-200 rounded w-20 mx-auto"></div></td>
                 <td className="py-4 px-4"><div className="h-4 bg-gray-200 rounded w-20 mx-auto"></div></td>
-                <td className="py-4 px-4"><div className="h-6 bg-gray-200 rounded-full w-16 mx-auto"></div></td>
                 <td className="py-4 px-4"><div className="h-5 bg-gray-200 rounded w-16 mx-auto"></div></td>
               </tr>
             ))}
@@ -58,15 +56,6 @@ export default function EmployeeTable({ employees, onEdit, onDelete, isLoading =
                 </td>
                 <td className="py-4 px-4 text-left font-bold text-slate-700 text-xs">
                   {emp.cinemaName || "—"}
-                </td>
-                <td className="px-1 py-4 text-left whitespace-nowrap">
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-bold inline-block ${
-                      emp.status === 1 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                    }`}
-                  >
-                    {emp.status === 1 ? "Activo" : "Inactivo"}
-                  </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium flex justify-center gap-3">
                   <button 
