@@ -17,4 +17,14 @@ export const concessionsService = {
     const response = await api.get('/concessions/combos');
     return extractRows(response.data);
   },
+
+  getAvailableProducts: async (cinemaId) => {
+    const response = await api.get('/concessions/products/available', { params: { cinemaId } });
+    return extractRows(response.data);
+  },
+
+  getAvailableCombos: async (cinemaId) => {
+    const response = await api.get('/concessions/combos/available', { params: { cinemaId } });
+    return extractRows(response.data);
+  },
 };

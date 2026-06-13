@@ -2,9 +2,9 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import StepIndicator from "../../components/ticketOffice/StepIndicator";
 import Step1Showtime from "../../components/ticketOffice/Step1Showtime";
 import Step2Seats from "../../components/ticketOffice/Step2Seats";
+import { cinemasService } from "../../services/cinemas.service";
 import Step3Confectionery from "../../components/ticketOffice/Step3Confectionery";
 import Step4Payment from "../../components/ticketOffice/Step4Payment";
-import { moviesService } from "../../services/movie.service";
 import { showtimesService } from "../../services/showtime.service";
 import { getSeatsByRoom } from "../../services/room.service";
 import { concessionsService } from "../../services/concessions.service";
@@ -42,27 +42,28 @@ function saveOrder(order) {
 }
 
 function mapMovie(m) {
+  const genreList = m.genres?.map((g) => g.description).join(", ") || "—";
+  const rating = m.age_classification?.description || "";
   return {
     id: m.id,
     title: m.title,
-    genre: m.genre || "—",
+    genre: genreList,
     duration: m.duration_minutes,
-    rating: m.rating || "",
+    rating,
     poster: m.poster_url,
-    synopsis: m.synopsis,
   };
 }
 
-function mapShowtime(s) {
-  const dt = new Date(s.start_time);
-  const roomLabel = s.room?.name ?? s._Rooms?.name ?? s._rooms?.name ?? `Sala #${s.room?.id ?? s.room}`;
+function mapShowtime(s, movieId) {
+  const dt = new Date(s.booking.start_time);
+  const roomLabel = s.booking.room?.name ?? `Sala #${s.booking.room?.id}`;
   const totalGrid = 144;
   const soldCount = getSoldSeats(s.id).length;
   return {
     id: s.id,
-    room_booking_id: s.room_booking_id,
-    roomId: s.room?.id ?? s.room,
-    movie_id: s.movie?.id ?? s.movie,
+    room_booking_id: s.booking.id,
+    roomId: s.booking.room?.id,
+    movie_id: movieId,
     room: roomLabel,
     date: dt.toISOString().split("T")[0],
     time: dt.toLocaleTimeString("es-VE", { hour: "2-digit", minute: "2-digit", hour12: false }),
@@ -85,11 +86,12 @@ function mapSeat(seat) {
 }
 
 function mapProduct(p) {
+  const catDesc = p._ProductCategories?.description || "";
   return {
     id: p.id,
     name: p.name,
-    price: Number(p.price) || 0,
-    category: p.category || "Snack",
+    price: Number(p.pricing?.final_price ?? p.price) || 0,
+    category: catDesc.includes("Bebida") ? "Drinks" : catDesc.includes("Chocolate") || catDesc.includes("Dulce") ? "Candies" : "Popcorn",
     emoji: "🍿",
   };
 }
@@ -98,7 +100,7 @@ function mapCombo(c) {
   return {
     id: c.id,
     name: c.name,
-    price: Number(c.price) || 0,
+    price: Number(c.pricing?.final_price ?? c.price) || 0,
     description: c.description || "",
     emoji: "🎉",
     items: [],
@@ -108,6 +110,8 @@ function mapCombo(c) {
 export default function SellTickets() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [cinemas, setCinemas] = useState([]);
+  const [selectedCinema, setSelectedCinema] = useState(null);
   const [movies, setMovies] = useState([]);
   const [allShowtimes, setAllShowtimes] = useState([]);
   const [products, setProducts] = useState([]);
@@ -116,12 +120,18 @@ export default function SellTickets() {
   const showtimeIdRef = useRef(null);
   const concessionLoadedRef = useRef(false);
 
-  const loadConcessionData = useCallback(async () => {
+  const loadConcessionData = useCallback(async (cinemaId) => {
     if (concessionLoadedRef.current) return;
     setProductsLoading(true);
     try {
-      const allProducts = await concessionsService.getProducts();
-      const allCombos = await concessionsService.getCombos();
+      const [allProducts, allCombos] = await Promise.all([
+        cinemaId
+          ? concessionsService.getAvailableProducts(cinemaId)
+          : concessionsService.getProducts(),
+        cinemaId
+          ? concessionsService.getAvailableCombos(cinemaId)
+          : concessionsService.getCombos(),
+      ]);
       setProducts((allProducts || []).map(mapProduct));
       setCombos((allCombos || []).map(mapCombo));
       concessionLoadedRef.current = true;
@@ -133,6 +143,7 @@ export default function SellTickets() {
   }, []);
 
   const [saleData, setSaleData] = useState({
+    cinema: null,
     movie: null,
     showtime: null,
     seatMap: [],
@@ -146,17 +157,30 @@ export default function SellTickets() {
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      console.log("Loading ticket office data...");
+      console.log("Loading cinemas...");
       try {
-        const [allMovies, allSt] = await Promise.all([
-          moviesService.getAll(),
-          showtimesService.getAll(),
-        ]);
-        if (cancelled) return;
-        setMovies((allMovies || []).map(mapMovie));
-        setAllShowtimes((allSt || []).map(mapShowtime));
+        const allCinemas = await cinemasService.getAll();
+        if (cancelled || !allCinemas?.length) {
+          if (!cancelled) setCinemas(allCinemas || []);
+          return;
+        }
+        const availability = await Promise.all(
+          allCinemas.map(async (c) => {
+            try {
+              const billboard = await showtimesService.getBillboard(c.id);
+              const rows = billboard?.rows || billboard?.data?.rows || [];
+              return { id: c.id, available: rows.length > 0 };
+            } catch {
+              return { id: c.id, available: false };
+            }
+          })
+        );
+        const availMap = Object.fromEntries(availability.map((a) => [a.id, a.available]));
+        if (!cancelled) {
+          setCinemas(allCinemas.map((c) => ({ ...c, available: availMap[c.id] ?? false })));
+        }
       } catch (err) {
-        console.error("Error loading ticket office data:", err);
+        console.error("Error loading cinemas:", err);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -174,17 +198,34 @@ export default function SellTickets() {
     };
   }, []);
 
-  // Load concession data when entering step 3 (by then a quote/active session exists)
+  // Load concession data when entering step 4 (by then a quote/active session exists)
   useEffect(() => {
-    if (step === 3) {
-      loadConcessionData();
+    if (step === 4) {
+      loadConcessionData(selectedCinema?.id);
     }
-  }, [step, loadConcessionData]);
+  }, [step, loadConcessionData, selectedCinema]);
 
   const getShowtimesForMovie = (movieId) =>
     allShowtimes.filter((s) => Number(s.movie_id) === Number(movieId));
 
-  const handleStep1Next = async ({ movie, showtime }) => {
+  const handleCinemaSelect = async (cinema) => {
+    setSelectedCinema(cinema);
+    setSaleData((prev) => ({ ...prev, cinema }));
+    setLoading(true);
+    try {
+      const billboard = await showtimesService.getBillboard(cinema.id);
+      const rows = billboard?.rows || billboard?.data?.rows || [];
+      setMovies(rows.map((r) => mapMovie(r.movie)));
+      setAllShowtimes(rows.flatMap((r) => (r.showtimes || []).map((st) => mapShowtime(st, r.movie.id))));
+      setStep(2);
+    } catch (err) {
+      console.error("Error loading billboard:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMovieNext = async ({ movie, showtime }) => {
     try {
       const seatMapRes = await getSeatsByRoom(showtime.roomId);
       const apiSeats = seatMapRes?.data?.rows || [];
@@ -204,21 +245,21 @@ export default function SellTickets() {
       }));
 
       showtimeIdRef.current = showtime.id;
-      setStep(2);
+      setStep(3);
     } catch (err) {
       console.error("Error loading seat map:", err);
     }
   };
 
-  const handleStep2Back = () => {
+  const handleSeatsBack = () => {
     if (showtimeIdRef.current) {
       socketService.leaveShowtime(showtimeIdRef.current);
       showtimeIdRef.current = null;
     }
-    setStep(1);
+    setStep(2);
   };
 
-  const handleStep2Next = async ({ selectedSeats, ticketsNeeded, totalPrice }) => {
+  const handleSeatsNext = async ({ selectedSeats, ticketsNeeded, totalPrice }) => {
     setSaleData((prev) => ({
       ...prev,
       selectedSeats,
@@ -228,6 +269,7 @@ export default function SellTickets() {
     try {
       const userData = JSON.parse(localStorage.getItem("user") || "{}");
       const cinemaId = userData.cinemaId || 1;
+      await ordersService.cancelSession().catch(() => {});
       await ordersService.createQuote(cinemaId, 1);
 
       const stId = showtimeIdRef.current;
@@ -240,7 +282,7 @@ export default function SellTickets() {
     } catch (err) {
       console.warn("Quote/session setup failed, continuing with localStorage fallback:", err);
     }
-    setStep(3);
+    setStep(4);
   };
 
   const mapPaymentMethod = (method) => {
@@ -273,7 +315,7 @@ export default function SellTickets() {
       concessionItems,
       concessionTotal,
     }));
-    setStep(4);
+    setStep(5);
   };
 
   const handleConfirm = async ({ paymentMethod, paymentFields, grandTotal }) => {
@@ -334,10 +376,12 @@ export default function SellTickets() {
       showtimeIdRef.current = null;
     }
     ordersService.cancelSession().catch(() => {});
+    setSelectedCinema(null);
     concessionLoadedRef.current = false;
     setProducts([]);
     setCombos([]);
     setSaleData({
+      cinema: null,
       movie: null,
       showtime: null,
       seatMap: [],
@@ -365,34 +409,62 @@ export default function SellTickets() {
 
         <div className="bg-white rounded-3xl border border-gray-200 shadow-2xl p-6 md:p-8">
           {step === 1 && (
+            <div className="p-4">
+              <h2 className="text-xl font-bold text-slate-800 mb-6">Seleccionar Sucursal</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {cinemas.map((c) => (
+                  <button
+                    key={c.id}
+                    onClick={() => c.available && handleCinemaSelect(c)}
+                    disabled={!c.available}
+                    className={`bg-white border-2 rounded-2xl p-6 text-left transition-all ${
+                      c.available
+                        ? "border-gray-200 hover:border-[#F6AD38] hover:shadow-lg cursor-pointer"
+                        : "border-gray-100 opacity-50 cursor-not-allowed"
+                    }`}
+                  >
+                    <h3 className="font-bold text-slate-800 text-lg">{c.name}</h3>
+                    <p className="text-gray-500 text-sm mt-1">{c.address}</p>
+                    {!c.available && (
+                      <span className="inline-block mt-2 text-xs bg-gray-100 text-gray-400 px-2 py-1 rounded">
+                        Sin funciones disponibles
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {step === 2 && (
             <Step1Showtime
               movies={movies}
               getShowtimes={getShowtimesForMovie}
-              onNext={handleStep1Next}
+              onNext={handleMovieNext}
             />
           )}
 
-          {step === 2 && saleData.showtime && (
+          {step === 3 && saleData.showtime && (
             <Step2Seats
               movie={saleData.movie}
               showtime={saleData.showtime}
               seatMap={saleData.seatMap}
-              onNext={handleStep2Next}
-              onBack={handleStep2Back}
+              onNext={handleSeatsNext}
+              onBack={handleSeatsBack}
             />
           )}
 
-          {step === 3 && (
+          {step === 4 && (
             <Step3Confectionery
               products={products}
               combos={combos}
               loading={productsLoading}
               onNext={handleStep3Next}
-              onBack={() => setStep(2)}
+              onBack={() => setStep(3)}
             />
           )}
 
-          {step === 4 && (
+          {step === 5 && (
             <Step4Payment
               movie={saleData.movie}
               showtime={saleData.showtime}
@@ -402,12 +474,12 @@ export default function SellTickets() {
               concessionItems={saleData.concessionItems}
               concessionTotal={saleData.concessionTotal}
               onConfirm={handleConfirm}
-              onBack={() => setStep(3)}
+              onBack={() => setStep(4)}
             />
           )}
         </div>
 
-        {step === 4 && (
+        {step === 5 && (
           <div className="flex justify-center mt-6">
             <button
               onClick={handleNewSale}

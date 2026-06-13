@@ -31,5 +31,10 @@ export const showtimesService = {
   delete: async (id) => {
     const response = await api.delete(`/showtimes/${id}`);
     return response.data;
-  }
+  },
+
+  getBillboard: async (cinemaId) => {
+    const response = await api.get('/showtimes/billboard', { params: { cinemaId } });
+    return response.data;
+  },
 };

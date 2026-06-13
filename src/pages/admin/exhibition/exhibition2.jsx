@@ -40,8 +40,8 @@ export default function ExhibitionPage() {
         moviesService.getAll(),
         showtimesService.getAll(),
       ]);
-      setMovies(moviesRes.data || []);
-      setShowtimes(showtimesRes.data || []);
+      setMovies(Array.isArray(moviesRes) ? moviesRes : moviesRes?.data || []);
+      setShowtimes(Array.isArray(showtimesRes) ? showtimesRes : showtimesRes?.data || []);
     } catch (error) {
       console.error("Error al sincronizar:", error);
     } finally {

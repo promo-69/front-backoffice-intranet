@@ -146,7 +146,7 @@ export default function Step4Payment({ movie, showtime, selectedSeats, ticketsNe
                     type="text"
                     placeholder={field}
                     onChange={(e) => setPaymentFields((p) => ({ ...p, [field]: e.target.value }))}
-                    className="w-full bg-white/5 border border-white/20 rounded-xl px-3 pt-6 pb-2 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#F6AD38]/60 transition-colors"
+                    className="w-full bg-white/5 border border-white/20 rounded-xl px-3 pt-6 pb-2 text-sm text-black placeholder:text-gray-600 focus:outline-none focus:border-[#F6AD38]/60 transition-colors"
                   />
                 </div>
               ))}

@@ -1,18 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AiOutlinePlus, AiOutlineMinus, AiOutlineDelete, AiOutlineShopping } from "react-icons/ai";
 import { ArrowLeft, CheckCircle, Smartphone, CreditCard, Banknote, ShoppingBag } from "lucide-react";
 import PopcornImg from "../../assets/images/candy/popcorn.png";
 import SodaImg from "../../assets/images/candy/soda.png";
 import ComboImg from "../../assets/images/candy/combo.png";
-
-const PRODUCTS = [
-  { id: 1, name: "Cotufa Grande", price: 5.5, category: "Popcorn", image: PopcornImg },
-  { id: 2, name: "Cotufa Mediana", price: 4.0, category: "Popcorn", image: PopcornImg },
-  { id: 3, name: "Pepsi Grande", price: 3.5, category: "Drinks", image: SodaImg },
-  { id: 4, name: "Pepsi Mediana", price: 2.5, category: "Drinks", image: SodaImg },
-  { id: 5, name: "Combo Duo Cineflix", price: 12.0, category: "Combos", image: ComboImg },
-  { id: 6, name: "Combo Familiar", price: 18.5, category: "Combos", image: ComboImg },
-];
+import { concessionsService } from "../../services/concessions.service";
+import { ordersService } from "../../services/orders.service";
 
 const CATEGORIES = ["Todos", "Popcorn", "Drinks", "Combos", "Candies"];
 
@@ -26,15 +19,56 @@ export default function CandyBar() {
   const [step, setStep] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState("Todos");
   const [cart, setCart] = useState([]);
+  const [apiProducts, setApiProducts] = useState([]);
+  const [apiCombos, setApiCombos] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   // Payment states
   const [paymentMethod, setPaymentMethod] = useState("pago_movil");
   const [paymentFields, setPaymentFields] = useState({});
   const [confirmed, setConfirmed] = useState(false);
 
+  useEffect(() => {
+    let cancelled = false;
+    async function loadData() {
+      try {
+        const [products, combos] = await Promise.all([
+          concessionsService.getProducts(),
+          concessionsService.getCombos(),
+        ]);
+        if (cancelled) return;
+        setApiProducts(products || []);
+        setApiCombos(combos || []);
+      } catch (err) {
+        console.error("Error loading concession data:", err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    loadData();
+    return () => { cancelled = true; };
+  }, []);
+
+  const allItems = [
+    ...apiProducts.map(p => ({
+      id: `prod_${p.id}`,
+      name: p.name,
+      price: Number(p.pricing?.final_price ?? p.price) || 0,
+      category: p._ProductCategories?.description?.includes("Bebida") || p._ProductCategories?.description?.includes("Drink") ? "Drinks" : "Popcorn",
+      image: p._ProductCategories?.description?.includes("Bebida") || p._ProductCategories?.description?.includes("Drink") ? SodaImg : PopcornImg,
+    })),
+    ...apiCombos.map(c => ({
+      id: `combo_${c.id}`,
+      name: c.name,
+      price: Number(c.pricing?.final_price ?? c.price) || 0,
+      category: "Combos",
+      image: ComboImg,
+    })),
+  ];
+
   const filteredProducts = selectedCategory === "Todos" 
-    ? PRODUCTS 
-    : PRODUCTS.filter(p => p.category === selectedCategory);
+    ? allItems 
+    : allItems.filter(p => p.category === selectedCategory);
 
   const addToCart = (product) => {
     setCart(prev => {
@@ -65,7 +99,36 @@ export default function CandyBar() {
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const grandTotal = total * 1.03;
 
-  const handleConfirm = () => {
+  const mapPaymentMethod = (method) => {
+    const map = { pago_movil: "mobile_payment", efectivo: "cash", tarjeta: "transfer" };
+    return map[method] || method;
+  };
+
+  const handleConfirm = async () => {
+    const userData = JSON.parse(localStorage.getItem("user") || "{}");
+    const cinemaId = userData.cinemaId || 1;
+
+    const concessions = cart.map((item) => {
+      const isCombo = item.category === "Combos";
+      const rawId = Number(item.id.replace(/^(prod|combo)_/, ""));
+      return {
+        line_type: isCombo ? 2 : 1,
+        product: isCombo ? undefined : rawId,
+        combo: isCombo ? rawId : undefined,
+        quantity: item.quantity,
+      };
+    });
+
+    try {
+      await ordersService.cancelSession().catch(() => {});
+      await ordersService.createQuote(cinemaId, 1);
+      const { data } = await ordersService.checkout([], concessions);
+      const backendPaymentMethod = mapPaymentMethod(paymentMethod);
+      const reference = paymentFields?.Referencia || paymentFields?.reference || null;
+      await ordersService.registerPayment(backendPaymentMethod, grandTotal, reference);
+    } catch (err) {
+      console.warn("Backend order failed, saving locally:", err);
+    }
     setConfirmed(true);
   };
 
@@ -243,6 +306,14 @@ export default function CandyBar() {
   // ----------------------------------------------------
   // STEP 1: PRODUCTS SCREEN
   // ----------------------------------------------------
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20 font-montserrat">
+        <p className="text-gray-400 text-lg">Cargando productos...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col lg:flex-row gap-8 font-montserrat text-slate-800 animate-in fade-in">
       

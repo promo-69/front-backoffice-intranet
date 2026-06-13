@@ -226,7 +226,7 @@ export default function Step3Confectionery({ products, combos, loading, onNext, 
               </button>
               <button
                 onClick={() => handleNext(true)}
-                className="flex items-center justify-center gap-2 py-3.5 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 transition-all text-sm font-semibold"
+                className="flex items-center justify-center gap-2 py-3.5 rounded-xl border bg-brand-gold text-white text-sm font-semibold"
               >
                 <SkipForward className="w-4 h-4" /> Omitir
               </button>
