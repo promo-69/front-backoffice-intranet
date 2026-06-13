@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { getCinemas } from "@/services/cinema.service"
-import { moviesService } from "@/services/movie.service"
-import { showtimesService } from "@/services/showtime.service"
+import { getMovies } from "@/services/movie.service"
+import { getShowtimes } from "@/services/showtime.service"
 import { getEmployees } from "@/services/employees.service"
 import { getUsers } from "@/services/users.service"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -25,8 +25,8 @@ export default function Dashboard() {
       try {
         const [cinemas, movies, showtimes, employees, users] = await Promise.all([
           getCinemas().then(r => Array.isArray(r.data) ? r.data.length : 0).catch(() => 0),
-          moviesService.getAll().then(r => r.data?.length || 0).catch(() => 0),
-          showtimesService.getAll().then(r => r.data?.length || 0).catch(() => 0),
+          getMovies().then(r => r.data?.length || 0).catch(() => 0),
+          getShowtimes().then(r => r.data?.length || 0).catch(() => 0),
           getEmployees().then(r => r?.length || 0).catch(() => 0),
           getUsers().then(r => r?.length || 0).catch(() => 0),
         ])

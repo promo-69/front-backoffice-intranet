@@ -1,9 +1,10 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import Login from "../pages/auth/login";
 import Dashboard from "../pages/admin/dashboard";
 import DashboardCashier from "../pages/ticketOffice/dashboardCashier";
-import Exhibition from "@/pages/admin/exhibition/exhibition2";
+import Billboard from "../pages/admin/billboard/billboard"
+//import Exhibition from "@/pages/admin/exhibition/bilboardPage";
 import SellTickets from "../pages/ticketOffice/sellTickets";
 import CandyBar from "../pages/ticketOffice/candyBar";
 
@@ -25,6 +26,8 @@ import NoAccess from "@/pages/noAccess";
 
 import { ROUTE_PERMISSIONS } from "@/lib/route-permissions";
 
+import PublicRoute from "./PublicRoute";
+
 function AppRoute() {
   const { loading } = useLoading();
 
@@ -35,18 +38,22 @@ function AppRoute() {
         <Route
           path="/"
           element={
-            <AuthLayout>
-              <Login />
-            </AuthLayout>
+            <PublicRoute>
+              <AuthLayout>
+                <Login />
+              </AuthLayout>
+            </PublicRoute>
           }
         />
 
         <Route
           path="/login"
           element={
-            <AuthLayout>
-              <Login />
-            </AuthLayout>
+            <PublicRoute>
+              <AuthLayout>
+                <Login />
+              </AuthLayout>
+            </PublicRoute>
           }
         />
 
@@ -68,11 +75,11 @@ function AppRoute() {
         />
 
         <Route
-          path="/admin/exhibition"
+          path="/admin/billboard"
           element={
             <ProtectedRoute permission={ROUTE_PERMISSIONS.EXHIBITION_READ}>
               <AdminLayout>
-                <Exhibition />
+                <Billboard />
               </AdminLayout>
             </ProtectedRoute>
           }
@@ -171,6 +178,11 @@ function AppRoute() {
             </ProtectedRoute>
           }
         />
+
+        {/* ============================
+            CATCH-ALL (RUTA NO ENCONTRADA)
+        ============================ */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
 
       {loading && <GlobalLoader />}

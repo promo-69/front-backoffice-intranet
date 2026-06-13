@@ -8,7 +8,7 @@ export async function getAllPermissions() {
       limit: 100,
     },
   });
-  return data.data.rows;
+  return data.data;
 }
 
 

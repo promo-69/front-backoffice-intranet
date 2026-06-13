@@ -2,10 +2,10 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import StepIndicator from "../../components/ticketOffice/StepIndicator";
 import Step1Showtime from "../../components/ticketOffice/Step1Showtime";
 import Step2Seats from "../../components/ticketOffice/Step2Seats";
-import { cinemasService } from "../../services/cinemas.service";
+import { getCinemas } from "../../services/cinema.service";
 import Step3Confectionery from "../../components/ticketOffice/Step3Confectionery";
 import Step4Payment from "../../components/ticketOffice/Step4Payment";
-import { showtimesService } from "../../services/showtime.service";
+import { getBillboard } from "../../services/showtime.service";
 import { getSeatsByRoom } from "../../services/room.service";
 import { concessionsService } from "../../services/concessions.service";
 import { ordersService } from "../../services/orders.service";
@@ -159,25 +159,28 @@ export default function SellTickets() {
     async function load() {
       console.log("Loading cinemas...");
       try {
-        const allCinemas = await cinemasService.getAll();
-        if (cancelled || !allCinemas?.length) {
-          if (!cancelled) setCinemas(allCinemas || []);
+        const allCinemas = await getCinemas();
+        const cinemaList = allCinemas?.data || allCinemas?.rows || [];
+        if (!Array.isArray(cinemaList) || !cinemaList.length) {
+          if (!cancelled) setCinemas(Array.isArray(cinemaList) ? cinemaList : []);
           return;
         }
         const availability = await Promise.all(
-          allCinemas.map(async (c) => {
+          cinemaList.map(async (c) => {
             try {
-              const billboard = await showtimesService.getBillboard(c.id);
-              const rows = billboard?.rows || billboard?.data?.rows || [];
+              const billboard = await getBillboard(c.id);
+              const rows = billboard?.rows || [];
+              console.log(`[${c.name}] billboard rows:`, rows.length, billboard);
               return { id: c.id, available: rows.length > 0 };
-            } catch {
+            } catch (err) {
+              console.warn(`[${c.name}] billboard error:`, err);
               return { id: c.id, available: false };
             }
           })
         );
         const availMap = Object.fromEntries(availability.map((a) => [a.id, a.available]));
         if (!cancelled) {
-          setCinemas(allCinemas.map((c) => ({ ...c, available: availMap[c.id] ?? false })));
+          setCinemas(cinemaList.map((c) => ({ ...c, available: availMap[c.id] ?? false })));
         }
       } catch (err) {
         console.error("Error loading cinemas:", err);
@@ -213,8 +216,8 @@ export default function SellTickets() {
     setSaleData((prev) => ({ ...prev, cinema }));
     setLoading(true);
     try {
-      const billboard = await showtimesService.getBillboard(cinema.id);
-      const rows = billboard?.rows || billboard?.data?.rows || [];
+      const billboard = await getBillboard(cinema.id);
+      const rows = billboard?.rows || [];
       setMovies(rows.map((r) => mapMovie(r.movie)));
       setAllShowtimes(rows.flatMap((r) => (r.showtimes || []).map((st) => mapShowtime(st, r.movie.id))));
       setStep(2);

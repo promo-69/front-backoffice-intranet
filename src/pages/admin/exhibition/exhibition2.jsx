@@ -9,8 +9,8 @@ import MovieForm from "@/components/admin/exhibition/movies/MovieForm"
 import { TabsCustom } from "@/components/ui/TabsCustom";
 import { Plus } from "lucide-react";
 import { useLoading } from "@/context/LoadingContext";
-import { moviesService } from "@/services/movie.service";
-import { showtimesService } from "@/services/showtime.service";
+import { getMovies, createMovie, updateMovie, deleteMovie } from "@/services/movie.service";
+import { getShowtimes, createShowtime, updateShowtime, deleteShowtime } from "@/services/showtime.service";
 import { getRoomsByCinema } from "@/services/room.service";
 import { getCatalogRecords } from "@/services/catalog.service";
 
@@ -37,8 +37,8 @@ export default function ExhibitionPage() {
     showLoader();
     try {
       const [moviesRes, showtimesRes] = await Promise.all([
-        moviesService.getAll(),
-        showtimesService.getAll(),
+        getMovies(),
+        getShowtimes(),
       ]);
       setMovies(Array.isArray(moviesRes) ? moviesRes : moviesRes?.data || []);
       setShowtimes(Array.isArray(showtimesRes) ? showtimesRes : showtimesRes?.data || []);
@@ -87,12 +87,12 @@ export default function ExhibitionPage() {
     try {
       if (activeTab === "movies") {
         modal.data?.id 
-          ? await moviesService.update(modal.data.id, payload)
-          : await moviesService.create(payload);
+          ? await updateMovie(modal.data.id, payload)
+          : await createMovie(payload);
       } else {
         modal.data?.id
-          ? await showtimesService.update(modal.data.id, payload)
-          : await showtimesService.create(payload);
+          ? await updateShowtime(modal.data.id, payload)
+          : await createShowtime(payload);
       }
       
       closeModal();
@@ -116,9 +116,9 @@ export default function ExhibitionPage() {
   showLoader();
   try {
     if (activeTab === "movies") {
-      await moviesService.delete(modal.data.id);
+      await deleteMovie(modal.data.id);
     } else {
-      await showtimesService.delete(modal.data.id);
+      await deleteShowtime(modal.data.id);
     }
     
     closeModal();

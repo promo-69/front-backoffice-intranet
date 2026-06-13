@@ -1,6 +1,6 @@
 import api from "@/api/axios";
 
-// Obtener todas las sucursales
+// Obtener todas las sucursales - Mary
 export const getCinemas = async (params = { page: 1 }) => {
   const response = await api.get('/cinemas', {
     params: params 
@@ -8,21 +8,26 @@ export const getCinemas = async (params = { page: 1 }) => {
   return response.data;
 };
 
-// Crear una sucursal
+// Crear una sucursal - Mary
 export const createCinema = async (payload) => {
-  // El backend suele esperar snake_case (opening_time)
   const response = await api.post("/cinemas", payload);
   return response.data;
 };
 
-// Actualizar una sucursal
+// Actualizar una sucursal - Mary
 export const updateCinema = async (id, payload) => {
   const response = await api.patch(`/cinemas/${id}`, payload);
   return response.data;
 };
 
-// Eliminar una sucursal
+// Eliminar una sucursal - Mary
 export const deleteCinema = async (id) => {
   const response = await api.delete(`/cinemas/${id}`);
   return response.data;
 };
+
+// Obtener sucursales con salas existentes - Mary
+export const getCinemasWithRooms = async () => {
+  const response = await api.get('/cinemas/rooms-available');
+  return response.data;
+}

@@ -6,7 +6,7 @@ export default function SeatGridDesigner({
   initialLayout, 
   externalFormData, 
   setExternalFormData,
-  isEdit = false // Sincronizado como isEdit
+  isEdit = false
 }) {
   if (!externalFormData) return null;
 
@@ -65,26 +65,26 @@ export default function SeatGridDesigner({
       rIdx === rowIndex ? row.map((seat, cIdx) => {
         if (cIdx !== colIndex) return seat;
         
-        // MODO ESTRUCTURA (Disponible -> Mantenimiento (si es edición) -> Pasillo)
+        // MODO ESTRUCTURA Disponible -> Mantenimiento (si es edición) -> Pasillo
         if (editMode) {
           let nextCond;
           if (isEdit) {
             // Ciclo Completo en Edición: 1 (Disponible) -> 2 (Mantenimiento) -> 3 (Vacío) -> 1
             nextCond = seat.condition === 1 ? 2 : seat.condition === 2 ? 3 : 1;
           } else {
-            // Ciclo en Creación Estricta: 1 (Disponible) -> 3 (Vacío) -> 1 (Mantenimiento oculto)
+            // Ciclo en Creación Estricta: 1 Disponible -> 3 (Vacío) -> 1
             nextCond = seat.condition === 1 ? 3 : 1;
           }
           
           return { 
             ...seat, 
             condition: nextCond, 
-            // Si es 3 es pasillo (empty), si es 1 o 2 es una entidad física de asiento (active)
+            // Si es 3 es pasillo (empty), si es 1 o 2 es una entidad física de asiento
             type: nextCond === 3 ? 'empty' : 'active' 
           };
         }
         
-        // MODO CATEGORÍA (General / Discapacidad)
+        // MODO CATEGORÍA General / Discapacidad
         if (seat.condition === 3) return seat; // No se puede categorizar un pasillo vacío
         return { ...seat, category: seat.category === 1 ? 2 : 1 };
       }) : row

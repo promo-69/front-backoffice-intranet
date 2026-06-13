@@ -97,7 +97,6 @@ export default function CandyBar() {
   };
 
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const grandTotal = total * 1.03;
 
   const mapPaymentMethod = (method) => {
     const map = { pago_movil: "mobile_payment", efectivo: "cash", tarjeta: "transfer" };
@@ -125,7 +124,7 @@ export default function CandyBar() {
       const { data } = await ordersService.checkout([], concessions);
       const backendPaymentMethod = mapPaymentMethod(paymentMethod);
       const reference = paymentFields?.Referencia || paymentFields?.reference || null;
-      await ordersService.registerPayment(backendPaymentMethod, grandTotal, reference);
+      await ordersService.registerPayment(backendPaymentMethod, total, reference);
     } catch (err) {
       console.warn("Backend order failed, saving locally:", err);
     }
@@ -167,7 +166,7 @@ export default function CandyBar() {
               </div>
             ))}
             <div className="mt-4 pt-4 border-t border-gray-200">
-              <p className="text-3xl font-black text-brand-gold">${grandTotal.toFixed(2)}</p>
+              <p className="text-3xl font-black text-brand-gold">${total.toFixed(2)}</p>
               <p className="text-xs text-gray-400 mt-1 uppercase font-semibold">Método: {selectedMethod?.label}</p>
             </div>
           </div>
@@ -215,22 +214,11 @@ export default function CandyBar() {
               ))}
             </div>
 
-            <div className="space-y-2 pt-4 border-t border-gray-200 text-sm">
-              <div className="flex justify-between text-gray-500">
-                <span>Subtotal</span>
-                <span className="font-medium text-slate-700">${total.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-gray-500">
-                <span>Impuestos (IGTF 3%)</span>
-                <span className="font-medium text-slate-700">${(total * 0.03).toFixed(2)}</span>
-              </div>
-            </div>
-
             <div className="flex justify-between items-center text-xl font-black pt-4 border-t-2 border-gray-200">
               <span className="text-slate-800 flex items-center gap-2">
                 Total a Pagar
               </span>
-              <span className="text-brand-gold text-2xl">${grandTotal.toFixed(2)}</span>
+              <span className="text-brand-gold text-2xl">${total.toFixed(2)}</span>
             </div>
           </div>
 
@@ -296,7 +284,7 @@ export default function CandyBar() {
             onClick={handleConfirm}
             className="w-full sm:w-auto flex items-center justify-center gap-2 px-10 py-4 bg-brand-gold text-white font-black rounded-xl text-sm uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-brand-gold/30"
           >
-            Confirmar Pago · ${grandTotal.toFixed(2)}
+            Confirmar Pago · ${total.toFixed(2)}
           </button>
         </div>
       </div>
@@ -433,17 +421,9 @@ export default function CandyBar() {
 
           {/* Footer / Total */}
           <div className="mt-5 pt-5 border-t border-gray-100 space-y-3">
-            <div className="flex justify-between items-center text-xs text-gray-500">
-              <span>Subtotal</span>
-              <span className="font-medium text-slate-700">${total.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between items-center text-xs text-gray-500">
-              <span>Impuestos (IGTF 3%)</span>
-              <span className="font-medium text-slate-700">${(total * 0.03).toFixed(2)}</span>
-            </div>
             <div className="flex justify-between items-center text-xl font-bold text-slate-800 pt-2">
               <span>Total</span>
-              <span className="text-brand-gold">${grandTotal.toFixed(2)}</span>
+              <span className="text-brand-gold">${total.toFixed(2)}</span>
             </div>
             
             <button 

@@ -10,9 +10,10 @@ import {
   deleteRoom, 
   saveRoom, 
   updateRoom,
-  createRoomSeats, 
+  createRoomSeats,
   getSeatsByRoom,
-  updateSeatIndividual
+  updateSeatsBatch, 
+  deleteSeatIndividual 
 } from "../../../services/room.service";
 
 export default function RoomManager({ branch, externalIsAdding, setExternalIsAdding }) {
@@ -26,13 +27,12 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
 
   const [isLayoutValid, setIsLayoutValid] = useState(false);
   const [roomLayout, setRoomLayout] = useState([]);
-  // Guardamos el estado inicial exacto de los asientos al entrar a editar
   const [originalSeatsSnapshot, setOriginalSeatsSnapshot] = useState([]);
   
   const [formData, setFormData] = useState({
     name: "",
-    rows: "8",
-    cols: "12",
+    rows: "10",
+    cols: "8",
     projectionType: "1",
   });
 
@@ -97,9 +97,7 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
       });
       
       setRoomLayout(newLayout);
-      // Guardamos una copia profunda limpia para comparar modificaciones después
       setOriginalSeatsSnapshot(JSON.parse(JSON.stringify(newLayout)));
-      
       setEditingRoomId(room.id);
       setExternalIsAdding(true);
     } catch (error) {
@@ -122,64 +120,83 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
     try {
       showLoader();
 
+      const getSeatData = (seat, rowIndex, colIndex) => {
+        let category = Number(seat.category) || 1;
+        let condition = Number(seat.condition) || 1;
+
+        if (seat.type === 'empty' || seat.condition === 3) {
+          condition = 3;
+        } else if (seat.type === 'disability' || seat.category === 2) {
+          category = 2; 
+          condition = 1;
+        }
+
+        const rowLetter = String.fromCharCode(65 + rowIndex);
+        const colNum = colIndex + 1;
+
+        return {
+          row: rowLetter,
+          column: colNum,
+          
+          rowIdentifier: rowLetter,
+          columnNumber: colNum,
+          row_identifier: rowLetter,
+          column_number: colNum,
+          
+          seat_category: category,
+          seat_condition: condition,
+          seatCategory: category,
+          seatCondition: condition
+        };
+      };
+
       if (editingRoomId) {
-        // ==========================================
-        // FLUJO DE EDICIÓN (PATCH ANIDADO OPTIMIZADO)
-        // ==========================================
-        
+
         const updatePayload = {
           name: formData.name,
           projectionTypes: [parseInt(formData.projectionType)],
           totalCapacity: theoreticalCapacity
         };
 
-        // 1. Actualizar metadatos de la sala
         await updateRoom(editingRoomId, updatePayload);
 
-        // 2. Filtrar y enviar ÚNICAMENTE los asientos que cambiaron de estado o categoría
-        const seatUpdates = [];
+        // --- INICIO DE LA MODIFICACIÓN ---
+        const seatsToBatchUpdate = []; // Construimos el array para el Batch
 
         roomLayout.forEach((row, rowIndex) => {
           row.forEach((seat, colIndex) => {
             const originalSeat = originalSeatsSnapshot[rowIndex]?.[colIndex];
 
             if (originalSeat && seat.id) {
-              const currentCondition = seat.type === 'empty' ? 3 : Number(seat.condition);
-              const originalCondition = originalSeat.type === 'empty' ? 3 : Number(originalSeat.condition);
-              const currentCategory = Number(seat.category);
-              const originalCategory = Number(originalSeat.category);
+              const current = getSeatData(seat, rowIndex, colIndex);
+              
+              const origCategory = originalSeat.type === 'empty' ? 1 : Number(originalSeat.category);
+              const origCondition = originalSeat.type === 'empty' ? 3 : Number(originalSeat.condition);
 
-              // Dirty checking: ¿Hubo algún cambio real en este asiento específico?
-              if (currentCondition !== originalCondition || currentCategory !== originalCategory) {
-                const updateSeatPayload = {
-                  seatCategory: currentCategory,
-                  seatCondition: currentCondition
-                };
-                // Encolamos la promesa de actualización
-                seatUpdates.push(updateSeatIndividual(seat.id, updateSeatPayload));
+              if (current.seat_condition !== origCondition || current.seat_category !== origCategory) {
+                // Formateamos exactamente como espera el backend: { seatId, seatCategoryId, seatConditionId }
+                seatsToBatchUpdate.push({
+                  seatId: seat.id,
+                  seatCategoryId: current.seat_category,
+                  seatConditionId: current.seat_condition
+                });
               }
             }
           });
         });
 
-        // Solo disparamos llamadas a la API si hay cambios reales en el diseño
-        if (seatUpdates.length > 0) {
-          await Promise.all(seatUpdates);
+        if (seatsToBatchUpdate.length > 0) {
+          // Llamamos al endpoint pasándole el array completo
+          await updateSeatsBatch(editingRoomId, seatsToBatchUpdate);
         }
+        // --- FIN DE LA MODIFICACIÓN ---
 
       } else {
-        // ==========================================
-        // FLUJO DE CREACIÓN
-        // ==========================================
+
         const seatsArray = [];
         roomLayout.forEach((row, rowIndex) => {
           row.forEach((seat, colIndex) => {
-            seatsArray.push({
-              rowIdentifier: String.fromCharCode(65 + rowIndex),
-              columnNumber: colIndex + 1,
-              seatCategory: Number(seat.category),
-              seatCondition: seat.type === 'empty' ? 3 : Number(seat.condition),
-            });
+            seatsArray.push(getSeatData(seat, rowIndex, colIndex));
           });
         });
 
@@ -191,11 +208,16 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
           totalCapacity: theoreticalCapacity,
         };
 
-        const response = await saveRoom(branch.id, { ...roomPayload, seats: seatsArray });
+        const response = await saveRoom(branch.id, roomPayload);
         const newRoomId = response?.data?.id || response?.id || response?.data?.room_id || response?.room?.id;
         
         if (newRoomId) {
+          await deleteSeatIndividual(newRoomId);
+          
+          console.log(`Insertando ${seatsArray.length} asientos personalizados en la sala ${newRoomId}...`);
           await createRoomSeats(newRoomId, seatsArray);
+        } else {
+          throw new Error("No se pudo obtener el ID de la sala creada para registrar los asientos.");
         }
       }
 
@@ -204,13 +226,14 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
         title: "¡Guardado!",
         message: editingRoomId 
           ? "La sala y los asientos modificados se actualizaron correctamente." 
-          : "La sala y sus asientos se registraron exitosamente."
+          : "La sala y sus asientos se registraron exitosamente con los estados correctos."
       });
       
       resetForm();
       fetchRooms();
     } catch (error) {
       console.error("Error en la transacción de guardado:", error);
+      alert("Hubo un error al procesar la solicitud. Revisa la consola.");
     } finally {
       hideLoader();
     }
@@ -220,16 +243,21 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
     if (!roomToDelete) return;
     try {
       showLoader();
+      
+      await deleteSeatIndividual(roomToDelete.id);
+
       await deleteRoom(roomToDelete.id);
+      
       setIsDeleteModalOpen(false);
       setSuccessConfig({
         open: true,
-        title: "Eliminado",
-        message: `La sala "${roomToDelete.name}" ha sido eliminada.`
+        title: "Eliminado con éxito",
+        message: `La sala "${roomToDelete.name}" y sus asientos asociados se eliminaron correctamente.`
       });
       fetchRooms();
     } catch (error) { 
-      console.error(error); 
+      console.error("Error crítico durante la eliminación por lote en cascada:", error); 
+      alert("No se pudo completar la eliminación automática. Verifica la consola.");
     } finally { 
       hideLoader(); 
       setRoomToDelete(null); 
@@ -270,7 +298,7 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
                       onClick={() => handleEditClick(room)} 
                       className="h-8 w-8 text-brand-primary bg-slate-50 hover:bg-brand-primary hover:text-white rounded-lg transition-all"
                     >
-                      <Pencil className="h-4 h-4" />
+                      <Pencil className="h-4 w-4" />
                     </Button>
 
                     <Button 

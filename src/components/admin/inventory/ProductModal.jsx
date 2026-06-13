@@ -40,8 +40,8 @@ export default function ProductModal({ open, onClose, initialData, categories = 
           name: initialData.name || "",
           code: initialData.code || initialData.sku || "",
           product_category: initialData.product_category?.toString() || "",
-          currency: initialData.currency?.toString() || "",
-          price: initialData.price?.toString() || "",
+          currency: (initialData.pricing?.currency ?? initialData.currency)?.toString() || "",
+          price: (initialData.pricing?.final_price ?? initialData.pricing?.base_price ?? initialData.price)?.toString() || "",
           earned_loyalty_points: initialData.earned_loyalty_points?.toString() || "0",
         });
       } else {
@@ -112,13 +112,12 @@ export default function ProductModal({ open, onClose, initialData, categories = 
       const payload = {
         name: formData.name.trim(),
         sku: formData.code.trim(),
-        product_category: isNaN(formData.product_category) ? formData.product_category : Number(formData.product_category),
-        currency: isNaN(formData.currency) ? formData.currency : Number(formData.currency),
+        productCategory: Number(formData.product_category),
+        currencyId: Number(formData.currency),
         price: parseFloat(formData.price),
-        earned_loyalty_points: formData.earned_loyalty_points
+        earnedLoyaltyPoints: formData.earned_loyalty_points
           ? parseInt(formData.earned_loyalty_points, 10)
-          : 0,
-        status: 1,
+          : null,
       };
 
       if (isEdit) {
@@ -128,9 +127,10 @@ export default function ProductModal({ open, onClose, initialData, categories = 
       onClose(true);
     } catch (error) {
       console.error("Error al guardar producto:", error);
+      const serverMessage = error.response?.data?.message || error.response?.data?.error || error.message;
       setErrors((prev) => ({
         ...prev,
-        name: "Ocurrió un error inesperado al guardar el producto.",
+        general: serverMessage || "Ocurrió un error inesperado al guardar el producto.",
       }));
     } finally {
       setIsSubmitting(false);

@@ -10,13 +10,13 @@ const ProductTable = ({ data, onEdit, onDelete, categories = [], currencies = []
   };
 
   const getCategoryLabel = (categoryId) => {
-    const cat = categories.find((c) => c.id === categoryId);
+    const cat = categories.find((c) => c.id == categoryId);
     return cat?.name || cat?.description || "—";
   };
 
   // Helper para obtener símbolo de moneda desde el FK
   const getCurrencySymbol = (currencyId) => {
-    const curr = currencies.find((c) => c.id === currencyId);
+    const curr = currencies.find((c) => c.id == currencyId);
     return curr?.symbol || "$";
   };
 
@@ -64,8 +64,10 @@ const ProductTable = ({ data, onEdit, onDelete, categories = [], currencies = []
 
                 <td className="py-4 px-4 text-center">
                   <div className="flex items-center justify-center gap-1 text-gray-600 font-semibold">
-                    <DollarSign className="w-3 h-3 text-brand-gold" />
-                    <span>{getCurrencySymbol(item.currency)}{formatPrice(item.price)}</span>
+                    <span>
+                      {getCurrencySymbol(item.pricing?.currency ?? item.currency)}{" "}
+                      {formatPrice(item.pricing?.final_price ?? item.pricing?.base_price ?? item.price)}
+                    </span>
                   </div>
                 </td>
 

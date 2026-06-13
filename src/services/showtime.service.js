@@ -1,40 +1,76 @@
-import api from '../api/axios.js';
+import api from "../api/axios";
 
-function extractRows(resp) {
-  const raw = resp?.data ?? resp;
-  if (Array.isArray(raw)) return raw;
-  if (raw?.rows) return raw.rows;
-  return [];
-}
+export const getShowtimes = async (page = 1, limit = 10) => {
+  const res = await api.get(`/showtimes?page=${page}&limit=${limit}`);
+  return res.data;
+};
 
-export const showtimesService = {
-  getAll: async () => {
-    const response = await api.get('/showtimes');
-    return extractRows(response.data);
-  },
+export const getShowtimesByCinema = async ({ cinemaId, page = 1, limit = 10, startDate, endDate, onlyFuture = true }) => {
+  try {
+    // Construimos los query params dinámicamente
+    const params = {
+      page,
+      limit,
+      onlyFuture
+    };
+    
+    if (startDate) params.startDate = startDate;
+    if (endDate) params.endDate = endDate;
 
-  getById: async (id) => {
-    const response = await api.get(`/showtimes/${id}`);
-    return response.data;
-  },
+    // Realiza la petición inyectando el id en la ruta de forma segura
+    const res = await api.get(`/showtimes/admin/cinemas/${cinemaId}/showtimes`, { params });
+     return {
+      showtimes: res.data?.data?.rows || [],
+      total: res.data?.data?.count || 0
+    }; 
+  } catch (error) {
+    console.error("Error en getShowtimes service:", error);
+    return { showtimes: [], total: 0 };
+  }
+};
 
-  create: async (showtimeData) => {
-    const response = await api.post('/showtimes', showtimeData);
-    return response.data;
-  },
 
-  update: async (id, showtimeData) => {
-    const response = await api.put(`/showtimes/${id}`, showtimeData);
-    return response.data;
-  },
+export const getShowtimeById = async (id) => {
+  const res = await api.get(`/showtimes/${id}`);
+  return res.data.data;
+};
 
-  delete: async (id) => {
-    const response = await api.delete(`/showtimes/${id}`);
-    return response.data;
-  },
+export const createShowtime = async (payload) => {
+  const res = await api.post("/showtimes", payload);
+  return res.data;
+};
 
-  getBillboard: async (cinemaId) => {
-    const response = await api.get('/showtimes/billboard', { params: { cinemaId } });
-    return response.data;
-  },
+export const createByCinema = async (cinemaId, payload) => {
+  const res = await api.post(`/cinemas/${cinemaId}/showtimes`, payload);
+  return res.data;
+};
+
+export const updateShowtime = async (id, payload) => {
+  const res = await api.patch(`/showtimes/${id}`, payload);
+  return res.data;
+};
+
+export const deleteShowtime = async (id) => {
+  const res = await api.delete(`/showtimes/${id}`);
+  return res.data;
+};
+
+// Creacion de una funcion de Evento - Mary
+export const createShowtimesByEvent = async (cinemaId, payload) => {
+    const res = await api.post(`/cinemas/${cinemaId}/showtimes`, payload);
+    return res.data;
+};
+
+// Obtener Eventos completos - Mary
+export const getEvents = async () => {
+  const response = await api.get('/special-events/admin?limit=-1');
+  return response.data;
+};
+
+// Obtener cartelera por sucursal
+export const getBillboard = async (cinemaId) => {
+  const response = await api.get('/showtimes/billboard', { params: { cinemaId } });
+  const body = response.data?.data ?? response.data;
+  const rows = Array.isArray(body) ? body : (body?.rows ?? []);
+  return { rows };
 };

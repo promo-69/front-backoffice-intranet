@@ -1,6 +1,8 @@
 import { io } from "socket.io-client";
 
-const WS_URL = "http://127.0.0.1:4000";
+const WS_HOST = import.meta.env.VITE_WS_HOST || "127.0.0.1";
+const WS_PORT = import.meta.env.VITE_WS_PORT || "4000";
+const WS_URL = "http://".concat(WS_HOST, ":").concat(WS_PORT);
 
 class SocketService {
   constructor() {

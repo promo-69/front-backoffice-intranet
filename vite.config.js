@@ -14,14 +14,7 @@ export default defineConfig({
   server: {
     https: false,
     host: false,
-    port: 5174,
-    strictPort: true,
-    proxy: {
-      '/socket.io': {
-        target: 'http://127.0.0.1:4000',
-        ws: true,
-      },
-    },
+    port: 5174, 
   },
 
   resolve: {

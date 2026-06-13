@@ -1,4 +1,4 @@
-import { createContext, useState, useContext, useEffect } from "react";
+import { createContext, useState, useContext, useEffect, useRef } from "react";
 import {
   loginRequest,
   refreshSession,
@@ -15,11 +15,15 @@ export function AuthProvider({ children }) {
   });
 
   const { showLoader, hideLoader } = useLoading();
+  const initialized = useRef(false);
 
   // ============================
   //   REFRESH DE SESIÓN
   // ============================
   useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
+
     async function initSession() {
       const saved = localStorage.getItem("user");
       if (!saved) return;
@@ -27,7 +31,6 @@ export function AuthProvider({ children }) {
       showLoader();
       try {
         const refreshed = await refreshSession();
-
         if (refreshed) {
           // El backend debe devolver nuevamente roleCode y permissions
           const updatedUser = {
@@ -42,7 +45,8 @@ export function AuthProvider({ children }) {
           localStorage.removeItem("user");
           setUser(null);
         }
-      } catch {
+      } catch (error) {
+        console.log("Excepción en initSession:", error);
         setUser(null);
       } finally {
         hideLoader();
@@ -91,9 +95,13 @@ export function AuthProvider({ children }) {
     showLoader();
     try {
       await logoutRequest();
-      localStorage.removeItem("user");
-      setUser(null);
+    }
+    catch (error) {
+      console.error("Error al revocar token en servidor, limpiando local de igual forma", error);
+     
     } finally {
+       localStorage.removeItem("user");
+      setUser(null);
       hideLoader();
     }
   };

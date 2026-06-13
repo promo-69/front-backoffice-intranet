@@ -2,12 +2,9 @@ import { useState } from "react";
 import { Plus } from "lucide-react";
 import { useModal } from "@/hooks/useModal";
 import { useNavigate } from "react-router-dom";
-
-import Employees from "@/pages/admin/employees/employees";
-import Users from "@/pages/admin/users/users";
-import Clients from "@/pages/admin/personal/clients";
-import Roles from "@/pages/admin/personal/rolesPage";
-
+import Employees from "../employees/employees";
+import Users from "../users/users";
+import Roles from "./rolesPage";
 import RegisterEmployeeModal from "@/components/admin/employees/RegisterEmployeeModal";
 import RegisterUserModal from "@/components/admin/users/RegisterUserModal";
 
@@ -21,28 +18,24 @@ export default function PersonalPage() {
   const tabs = [
     { id: "employees", label: "Empleados" },
     { id: "users", label: "Usuarios" },
-    { id: "clients", label: "Clientes" },
     { id: "roles", label: "Roles" },
   ];
 
   const titles = {
     employees: "Gestión de Empleados",
     users: "Gestión de Usuarios",
-    clients: "Gestión de Clientes",
     roles: "Gestión de Roles",
   };
 
   const descriptions = {
     employees: "Administra la información laboral del personal",
     users: "Administra los usuarios del sistema",
-    clients: "Administra los clientes registrados",
     roles: "Administra los roles del sistema",
   };
 
   const placeholders = {
     employees: "Buscar empleado...",
     users: "Buscar usuario...",
-    clients: "Buscar cliente...",
     roles: "Buscar rol...",
   };
 
@@ -55,8 +48,8 @@ export default function PersonalPage() {
 
   return (
     <div className="max-w-7xl mx-auto font-montserrat space-y-6">
-      {/* ⭐ HEADER DINÁMICO */}
-      <header className="flex justify-between items-center bg-white p-6 rounded-cineflix border border-gray-100 shadow-sm">
+      {/* HEADER DINÁMICO */}
+      <div className="flex justify-between items-center bg-white p-6 rounded-cineflix border border-gray-100 shadow-sm">
         <div>
           <h3 className="text-lg font-bold text-brand-primary leading-tight">
             {titles[activeTab]}
@@ -66,7 +59,7 @@ export default function PersonalPage() {
           </p>
         </div>
 
-        {/* ⭐ BUSCADOR + BOTÓN */}
+        {/* BUSCADOR + BOTÓN */}
         <div className="flex items-center gap-4">
           <input
             type="text"
@@ -76,7 +69,7 @@ export default function PersonalPage() {
             className="w-64 px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-brand-primary/20 outline-none transition-all"
           />
 
-          {/* ⭐ BOTÓN DINÁMICO */}
+          {/* BOTÓN DINÁMICO */}
           {activeTab !== "clients" && activeTab !== "users" && (
             <button
               onClick={() => {
@@ -98,9 +91,9 @@ export default function PersonalPage() {
             </button>
           )}
         </div>
-      </header>
+      </div>
 
-      {/* ⭐ TABS */}
+      {/* NAVEGACION POR PESTAÑAS (TABS) */}
       <div className="flex gap-4 border-b pb-2">
         {tabs.map((tab) => (
           <button
@@ -117,13 +110,12 @@ export default function PersonalPage() {
         ))}
       </div>
 
-      {/* ⭐ CONTENIDO DINÁMICO */}
+      {/* CONTENIDO DINÁMICO */}
       {activeTab === "employees" && <Employees search={search} />}
       {activeTab === "users" && <Users search={search} />}
-      {activeTab === "clients" && <Clients search={search} />}
       {activeTab === "roles" && <Roles search={search} />}
 
-      {/* ⭐ MODALES */}
+      {/* MODALES */}
       {modal.isOpen && modal.type === "employeeForm" && (
         <RegisterEmployeeModal open={true} onClose={closeModal} />
       )}

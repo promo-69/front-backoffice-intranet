@@ -7,40 +7,36 @@ import EditEmployeeModal from "@/components/admin/employees/EditEmployeeModal";
 import DeleteConfirmModal from "@/components/ui/DialogConfirmModal";
 import SuccessModal from "@/components/ui/SuccessModal";
 
-import { useLoading } from "@/context/LoadingContext";
 import { getEmployees, deleteEmployee } from "@/services/employees.service";
 
 export default function Employees({ search }) {
-  const { showLoader, hideLoader } = useLoading();
-
+  // ESTADO LOCAL DE CARGA
+  const [loading, setLoading] = useState(true);
   const [employees, setEmployees] = useState([]);
 
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
-
   const [employeeToEdit, setEmployeeToEdit] = useState(null);
-
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
-
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
   const [successTitle, setSuccessTitle] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
-  // ⭐ PAGINACIÓN
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
 
   const fetchEmployees = async () => {
     try {
-      showLoader();
+      setLoading(true); // Activamos carga local
       const employeesRaw = await getEmployees();
       setEmployees(employeesRaw);
+
     } catch (error) {
       console.error("Error cargando empleados:", error);
       setEmployees([]);
     } finally {
-      hideLoader();
+      setLoading(false); // Desactivamos carga local
     }
   };
 
@@ -55,14 +51,12 @@ export default function Employees({ search }) {
     setIsSuccessOpen(true);
   };
 
-  // ⭐ FILTRADO (usando backend real)
   const filteredEmployees = employees.filter((e) => {
     const fullName =
       `${e.people?.first_name || ""} ${e.people?.last_name || ""}`.toLowerCase();
     return fullName.includes(search.toLowerCase());
   });
 
-  // ⭐ PAGINACIÓN
   const totalPages = Math.ceil(filteredEmployees.length / itemsPerPage);
   const paginatedEmployees = filteredEmployees.slice(
     (currentPage - 1) * itemsPerPage,
@@ -81,7 +75,7 @@ export default function Employees({ search }) {
 
   const handleConfirmDelete = async () => {
     try {
-      showLoader();
+      setLoading(true); // Mostramos el esqueleto mientras eliminamos
       await deleteEmployee(itemToDelete.id);
 
       setSuccessTitle("Empleado Eliminado");
@@ -91,63 +85,40 @@ export default function Employees({ search }) {
       fetchEmployees();
     } catch (error) {
       console.error("Error eliminando empleado:", error);
+      setLoading(false);
     } finally {
       setIsDeleteOpen(false);
       setItemToDelete(null);
-      hideLoader();
     }
   };
 
   return (
     <div className="space-y-6">
-      {/* ⭐ TABLA */}
+      {/* TABLA CON PROPIEDAD LOADING */}
       <EmployeeTable
         employees={paginatedEmployees}
         onEdit={handleEditClick}
         onDelete={handleDeleteClick}
+        isLoading={loading} 
       />
 
-      {/* ⭐ PAGINACIÓN */}
-      <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6 rounded-b-xl shadow-sm">
-        <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-          <p className="text-sm text-gray-700">
-            Mostrando{" "}
-            <span className="font-medium">
-              {(currentPage - 1) * itemsPerPage + 1}
-            </span>{" "}
-            a{" "}
-            <span className="font-medium">
-              {Math.min(currentPage * itemsPerPage, filteredEmployees.length)}
-            </span>{" "}
-            de <span className="font-medium">{filteredEmployees.length}</span>{" "}
-            resultados
-          </p>
-
-          <nav className="inline-flex -space-x-px rounded-md shadow-sm">
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-2 border border-gray-300 bg-white text-gray-500 rounded-l-md disabled:opacity-50"
-            >
-              ◀
-            </button>
-
-            <div className="px-4 py-2 text-sm font-semibold text-brand-primary border border-gray-300 bg-white">
-              Página {currentPage} de {totalPages}
-            </div>
-
-            <button
-              onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className="px-3 py-2 border border-gray-300 bg-white text-gray-500 rounded-r-md disabled:opacity-50"
-            >
-              ▶
-            </button>
-          </nav>
+      {/* PAGINACIÓN (solo si no estamos cargando) */}
+      {!loading && (
+        <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6 rounded-b-xl shadow-sm">
+           <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+             <p className="text-sm text-gray-700">
+               Mostrando {(currentPage - 1) * itemsPerPage + 1} a {Math.min(currentPage * itemsPerPage, filteredEmployees.length)} de {filteredEmployees.length} resultados
+             </p>
+             <nav className="inline-flex -space-x-px rounded-md shadow-sm">
+               <button onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))} disabled={currentPage === 1} className="px-3 py-2 border border-gray-300 bg-white text-gray-500 rounded-l-md disabled:opacity-50">◀</button>
+               <div className="px-4 py-2 text-sm font-semibold text-brand-primary border border-gray-300 bg-white">Página {currentPage} de {totalPages || 1}</div>
+               <button onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages || totalPages === 0} className="px-3 py-2 border border-gray-300 bg-white text-gray-500 rounded-r-md disabled:opacity-50">▶</button>
+             </nav>
+           </div>
         </div>
-      </div>
+      )}
 
-      {/* ⭐ MODALES */}
+      {/* MODALES */}
       <DeleteConfirmModal
         isOpen={isDeleteOpen}
         onClose={() => setIsDeleteOpen(false)}

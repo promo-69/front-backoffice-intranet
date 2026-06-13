@@ -13,6 +13,7 @@ export default function Clients({ search }) {
       setClients(data);
     } catch (error) {
       console.error("Error cargando clientes:", error);
+      setClients([]);
     } finally {
       setLoading(false);
     }
@@ -22,18 +23,17 @@ export default function Clients({ search }) {
     loadClients();
   }, []);
 
-  // ⭐ FILTRO POR NOMBRE O DOCUMENTO
   const filtered = clients.filter((c) => {
     const fullName =
       `${c.person.first_name} ${c.person.last_name}`.toLowerCase();
+    const doc = c.person.document_number.toString().toLowerCase();
+    const searchLower = search.toLowerCase();
+
     return (
-      fullName.includes(search.toLowerCase()) ||
-      c.person.document_number.toLowerCase().includes(search.toLowerCase())
+      fullName.includes(searchLower) ||
+      doc.includes(searchLower)
     );
   });
 
-  if (loading)
-    return <p className="text-sm text-gray-500">Cargando clientes...</p>;
-
-  return <ClientsTable clients={filtered} />;
+  return <ClientsTable clients={filtered} isLoading={loading} />;
 }

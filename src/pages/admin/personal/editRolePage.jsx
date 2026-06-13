@@ -7,15 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 
 import { getAllPermissions } from "@/services/permissions.service";
-import {
-  getRoleById,
-  updateRolePermissions, // Asegúrate de que apunte al POST {{baseUrl}}/roles/:id/permissions
-} from "@/services/roles.service";
+import { getRoleById, updateRolePermissions } from "@/services/roles.service";
 
 export default function EditRolePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-
   const roleId = searchParams.get("roleId");
 
   const [roleName, setRoleName] = useState("");
@@ -25,6 +21,38 @@ export default function EditRolePage() {
   const [selectedPermissions, setSelectedPermissions] = useState(new Set());
 
   // ============================
+  // MAPAS DE TRADUCCIÓN
+  // ============================
+  const ACTION_LABELS = {
+    READ: "Ver",
+    CREATE: "Crear",
+    UPDATE: "Editar",
+    DELETE: "Eliminar",
+  };
+
+  const RESOURCE_LABELS = {
+    REPORTS_EXPORT: "Reportes de Exportación",
+    REPORTS_ALL: "Todos los Reportes",
+    REPORTS_MOVIES: "Reportes de Películas",
+    REPORTS_SALES: "Reportes de Ventas",
+    REPORTS_INVENTORY: "Reportes de Inventario",
+    REPORTS_SHOWTIMES: "Reportes de Funciones",
+    REPORTS_RENTALS: "Reportes de Alquileres",
+    REPORTS_CASHIER: "Reporte de Caja",
+    SPECIAL_EVENTS: "Eventos Especiales",
+    MOVIES: "Películas",
+    SHOWTIMES: "Funciones",
+    PRODUCTS: "Productos",
+    COMBOS: "Combos",
+    CINEMAS: "Cines",
+    CINEMAS_ROOMS: "Salas de Cine",
+    CINEMAS_ROOM_EVENTS: "Funciones de Cartelera",
+    USERS: "Usuarios",
+    EMPLOYEES: "Empleados",
+    CUSTOMERS: "Clientes",
+  };
+
+  // ============================
   // 1. Cargar datos del rol + permisos globales
   // ============================
   useEffect(() => {
@@ -32,32 +60,35 @@ export default function EditRolePage() {
       if (!roleId) return;
 
       try {
-        // 1. Obtener datos del rol 
+        // 1. Obtener datos del rol
         const roleData = await getRoleById(roleId);
         setRoleName(roleData.code);
 
-        // 2. Obtener todos los permisos globales 
-        const allPermissions = await getAllPermissions();
+        // 2. Obtener todos los permisos globales
+        const allPermissions = await getAllPermissions(); // YA ES UN ARRAY
 
-        // ⭐ 3. Extraer los permisos que ya tiene el rol asignados.
-        const rolePermissions =
-          roleData.permissions || roleData._Permissions || [];
-
-        // Creamos el Set con los IDs de los permisos activos de este rol
-        const assignedIds = new Set(rolePermissions.map((p) => p.id));
+        // 3. Permisos asignados al rol
+        const rolePermissions = roleData._RolePermissions || [];
+        const assignedIds = new Set(rolePermissions.map((rp) => rp.permission));
         setSelectedPermissions(assignedIds);
 
-        // 4. Agrupar la parrilla completa de permisos por recurso para la interfaz
+        // 4. Agrupar permisos por recurso traducido
         const grouped = {};
+
         allPermissions.forEach((perm) => {
-          const resource = perm._Resources.code;
-          const action = perm._Actions.code;
+          const resourceCode = perm._Resources.code;
+          const actionCode = perm._Actions.code;
 
-          if (!grouped[resource]) grouped[resource] = [];
+          const readableResource =
+            RESOURCE_LABELS[resourceCode] || resourceCode;
 
-          grouped[resource].push({
+          const readableAction = ACTION_LABELS[actionCode] || actionCode;
+
+          if (!grouped[readableResource]) grouped[readableResource] = [];
+
+          grouped[readableResource].push({
             id: perm.id,
-            action,
+            action: readableAction,
           });
         });
 
@@ -71,7 +102,7 @@ export default function EditRolePage() {
   }, [roleId]);
 
   // ============================
-  // 2. Toggle de checkboxes / switches
+  // 2. Toggle de permisos
   // ============================
   const togglePermission = (permId) => {
     setSelectedPermissions((prev) => {
@@ -82,44 +113,18 @@ export default function EditRolePage() {
   };
 
   // ============================
-  // 3. Guardar cambios (Ejecuta el POST )
+  // 3. Guardar cambios
   // ============================
   const handleSave = async () => {
-    // 🔍 LOG 1: Verificar si la función se ejecuta al dar clic
-    console.log("¡Botón Guardar presionado!");
-    console.log("ID del Rol actual (roleId):", roleId);
-
     const permissionsArray = Array.from(selectedPermissions);
-    console.log("IDs de permisos capturados para enviar:", permissionsArray);
-
-    if (!roleId) {
-      console.error(
-        "Fallo antes de enviar: No se encontró el 'roleId' en la URL.",
-      );
-      alert("Error: Falta el ID del rol.");
-      return;
-    }
 
     try {
-      console.log("Enviando petición al backend...");
-
-      // Aquí hacemos la llamada
-      const response = await updateRolePermissions(roleId, permissionsArray);
-
-      // 🔍 LOG 2: Si el backend responde con éxito
-      console.log("Respuesta exitosa del backend:", response);
-
+      await updateRolePermissions(roleId, permissionsArray);
       alert("¡Permisos guardados correctamente!");
       navigate("/admin/personal");
     } catch (error) {
-      // 🔍 LOG 3: Si la petición falla (Ej: Error 400, 404, 500)
-      console.error("Error capturado en handleSave al ejecutar el servicio:");
-      if (error.response) {
-        console.error("Datos del error de respuesta:", error.response.data);
-        console.error("Estado HTTP del error:", error.response.status);
-      } else {
-        console.error("Mensaje de error general:", error.message);
-      }
+      console.error("Error guardando permisos:", error);
+      alert("Hubo un error guardando los permisos.");
     }
   };
 
@@ -163,7 +168,7 @@ export default function EditRolePage() {
           </TabsList>
         </div>
 
-        {/* VISUALIZACIÓN */}
+        {/* VISUAL */}
         <TabsContent value="visual" className="space-y-2 mt-0">
           <label className="text-sm font-semibold block text-brand-primary">
             Nombre del Rol
