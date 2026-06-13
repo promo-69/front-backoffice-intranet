@@ -6,27 +6,21 @@ export const getShowtimes = async (page = 1, limit = 10) => {
 };
 
 export const getShowtimesByCinema = async ({ cinemaId, page = 1, limit = 10, startDate, endDate, onlyFuture = true }) => {
-  try {
-    // Construimos los query params dinámicamente
-    const params = {
-      page,
-      limit,
-      onlyFuture
-    };
-    
-    if (startDate) params.startDate = startDate;
-    if (endDate) params.endDate = endDate;
+  // Construimos los query params dinámicamente
+  const params = {
+    page,
+    limit,
+    onlyFuture
+  };
+  
+  if (startDate) params.startDate = startDate;
+  if (endDate) params.endDate = endDate;
 
-    // Realiza la petición inyectando el id en la ruta de forma segura
-    const res = await api.get(`/showtimes/admin/cinemas/${cinemaId}/showtimes`, { params });
-     return {
-      showtimes: res.data?.data?.rows || [],
-      total: res.data?.data?.count || 0
-    }; 
-  } catch (error) {
-    console.error("Error en getShowtimes service:", error);
-    return { showtimes: [], total: 0 };
-  }
+  // Realiza la petición inyectando el id en la ruta de forma segura
+  const res = await api.get(`/showtimes/admin/cinemas/${cinemaId}/showtimes`, { params });
+  
+  // Retornamos el objeto JSON tal cual lo manda el servidor (contiene success, data y metadata)
+  return res.data; 
 };
 
 

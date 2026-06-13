@@ -36,7 +36,7 @@ export default function Showtimes({ catalogs, cinemaId, search, modal, openModal
     if (!cinemaId) return; 
     setIsLoading(true);
 
-    try {
+try {
       let onlyFutureParam = undefined;
       if (filterType === "future") onlyFutureParam = true;
       if (filterType === "all") onlyFutureParam = false;
@@ -50,34 +50,54 @@ export default function Showtimes({ catalogs, cinemaId, search, modal, openModal
         endDate: filterType === "all" && endDate ? endDate : undefined
       });
 
-      const rows = responseData?.showtimes || [];
+      let rows = [];
+      let backendMeta = null;
+
+      if (responseData?.data && Array.isArray(responseData.data.data)) {
+        rows = responseData.data.data;
+        backendMeta = responseData.data.metadata;
+      } 
+      else if (responseData && Array.isArray(responseData.data)) {
+        rows = responseData.data;
+        backendMeta = responseData.metadata;
+      }
+      else if (Array.isArray(responseData)) {
+        rows = responseData;
+      }
+
       setShowtimes(rows);
       
-      const total = responseData?.count ?? responseData?.total ?? responseData?.metadata?.total ?? 0;
-      const per_page = metadata.per_page;
-      const current_page = currentPage;
-      const total_pages = Math.max(1, Math.ceil(total / per_page));
+      if (backendMeta) {
+        setMetadata({
+          total: backendMeta.total,
+          per_page: backendMeta.per_page,
+          current_page: backendMeta.current_page,
+          total_pages: backendMeta.total_pages,
+          next_page: backendMeta.next_page,
+          prev_page: backendMeta.prev_page
+        });
+      } else {
+        // Fallback de cálculo manual si no viene metadata del backend
+        const total = rows.length;
+        const per_page = metadata.per_page;
+        const total_pages = Math.max(1, Math.ceil(total / per_page));
+        setMetadata({
+          total,
+          per_page,
+          current_page: currentPage,
+          total_pages,
+          next_page: currentPage < total_pages ? currentPage + 1 : null,
+          prev_page: currentPage > 1 ? currentPage - 1 : null
+        });
+      }
 
-      setMetadata({
-        total,
-        per_page,
-        current_page,
-        total_pages,
-        next_page: current_page < total_pages ? current_page + 1 : null,
-        prev_page: current_page > 1 ? current_page - 1 : null
-      });
     } catch (error) {
       console.error("Error en fetchShowtimes:", error);
       
-      // ==========================================
-      // CONTROL INTELIGENTE DEL 404 (SUCURSAL NUEVA)
-      // ==========================================
       if (error.response && error.response.status === 404) {
         // Si es 404, asumimos que simplemente no hay funciones aún. 
-        // No mandamos toast.error para no asustar al usuario.
         setShowtimes([]); 
       } else {
-        // Si es un error 500 o de red real, ahí sí avisamos
         toast.error("Error al sincronizar el cuadrante de funciones");
         setShowtimes([]);
       }
@@ -133,10 +153,7 @@ const filteredShowtimes = Array.isArray(showtimes)
   const handleEditClick = (showtime) => openModal("form", showtime, "showtime");
   const handleDeleteClick = (showtime) => openModal("delete", showtime, "showtime");
 
-  /**
-   * Callback de cierre para el formulario de mutación (Creación/Edición).
-   * Si requiere recarga, destruye el índice actual y sincroniza con el servidor.
-   */
+
   const handleFormClose = (shouldRefresh, customMessage) => {
     closeModal();
     if (shouldRefresh === true) {
@@ -150,9 +167,7 @@ const filteredShowtimes = Array.isArray(showtimes)
     }
   };
 
-  /**
-   * Ejecuta la persistencia de datos (Crear o Actualizar) invocada desde el Modal.
-   */
+
   const handleSave = async (responseData) => {
     showLoader();
     try {
@@ -172,10 +187,7 @@ const filteredShowtimes = Array.isArray(showtimes)
     }
   };
 
-  /**
-   * Procesa la baja lógica o física del registro a través del API Service.
-   * Implementa bloqueo global de UI mediante LoadingContext para prevenir concurrencia destructiva.
-   */
+
   const handleConfirmDelete = async () => {
     if (!modal.data?.id) return;
     showLoader();
