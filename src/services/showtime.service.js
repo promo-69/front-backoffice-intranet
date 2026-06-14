@@ -66,3 +66,19 @@ export const getEvents = async () => {
   const response = await api.get('/special-events/admin?limit=-1');
   return response.data;
 };
+
+// Obtener cartelera por sucursal
+export const getBillboard = async (cinemaId) => {
+  const response = await api.get('/showtimes/billboard', { params: { cinemaId } });
+  const body = response.data?.data ?? response.data;
+  const rows = Array.isArray(body) ? body : (body?.rows ?? []);
+  return { rows };
+};
+
+// Estado de asientos (vendidos + bloqueados) de una función
+export const getSeatsStatus = async (showtimeId) => {
+  const response = await api.get(`/showtimes/${showtimeId}/seats-status`);
+  const data = response.data?.data || response.data;
+  console.log(`[seats-status ${showtimeId}]`, data);
+  return data;
+};

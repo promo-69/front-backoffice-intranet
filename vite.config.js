@@ -2,7 +2,6 @@ import path from "path";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { fileURLToPath } from "url";
-import basicSsl from '@vitejs/plugin-basic-ssl';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -10,11 +9,10 @@ const __dirname = path.dirname(__filename);
 export default defineConfig({
   plugins: [
     react(),
-    basicSsl()
   ],
   
   server: {
-    https: true,
+    https: false,
     host: false,
     port: 5174, 
   },

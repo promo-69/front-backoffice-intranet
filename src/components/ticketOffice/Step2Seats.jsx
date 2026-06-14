@@ -1,7 +1,21 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft, Info } from "lucide-react";
+import socketService from "../../services/socket.service";
 
+const SOLD_SEATS_KEY = "cx_sold_seats";
 const ROW_LABELS = ["A", "B", "C", "D", "E", "F", "G", "H", "I"];
+
+function saveSoldSeats(showtimeId, seatIds) {
+  try {
+    const raw = localStorage.getItem(SOLD_SEATS_KEY) || "{}";
+    const map = JSON.parse(raw);
+    const existing = map[showtimeId] || [];
+    map[showtimeId] = [...new Set([...existing, ...seatIds])];
+    localStorage.setItem(SOLD_SEATS_KEY, JSON.stringify(map));
+  } catch {
+    /* ignore */
+  }
+}
 
 export default function Step2Seats({ showtime, movie, seatMap, onNext, onBack }) {
   const [seats, setSeats] = useState(seatMap);
@@ -10,19 +24,67 @@ export default function Step2Seats({ showtime, movie, seatMap, onNext, onBack })
   const selectedSeats = seats.filter((s) => s.status === "selected");
   const canContinue = selectedSeats.length === ticketsNeeded;
 
+  useEffect(() => {
+    const onSeatLockedOther = ({ seatId }) => {
+      setSeats((prev) =>
+        prev.map((s) => (s.dbId === seatId && s.status !== "sold" ? { ...s, status: "sold" } : s))
+      );
+    };
+
+    const onSeatUnlocked = ({ seatId }) => {
+      setSeats((prev) =>
+        prev.map((s) => (s.dbId === seatId && s.status === "sold" ? { ...s, status: "available" } : s))
+      );
+    };
+
+    const onSeatsUnlocked = ({ seatIds }) => {
+      const idSet = new Set(seatIds);
+      setSeats((prev) =>
+        prev.map((s) => (idSet.has(s.dbId) && s.status === "sold" ? { ...s, status: "available" } : s))
+      );
+    };
+
+    const onSeatsSoldFinal = ({ seats: seatIds }) => {
+      saveSoldSeats(showtime.id, seatIds);
+      const idSet = new Set(seatIds);
+      setSeats((prev) =>
+        prev.map((s) => (idSet.has(s.dbId) ? { ...s, status: "sold" } : s))
+      );
+    };
+
+    socketService.on("seat_locked_by_other", onSeatLockedOther);
+    socketService.on("seat_unlocked", onSeatUnlocked);
+    socketService.on("seats_unlocked", onSeatsUnlocked);
+    socketService.on("seats_sold_final", onSeatsSoldFinal);
+
+    return () => {
+      socketService.off("seat_locked_by_other", onSeatLockedOther);
+      socketService.off("seat_unlocked", onSeatUnlocked);
+      socketService.off("seats_unlocked", onSeatsUnlocked);
+      socketService.off("seats_sold_final", onSeatsSoldFinal);
+    };
+  }, [showtime.id]);
+
   const toggleSeat = (seatId) => {
     const seat = seats.find((s) => s.id === seatId);
     if (!seat || seat.status === "sold") return;
 
     if (seat.status === "selected") {
+      socketService.unlockSeat(seat.dbId);
       setSeats((prev) =>
         prev.map((s) => (s.id === seatId ? { ...s, status: "available" } : s))
       );
     } else {
-      if (selectedSeats.length >= ticketsNeeded) return; // límite alcanzado
-      setSeats((prev) =>
-        prev.map((s) => (s.id === seatId ? { ...s, status: "selected" } : s))
-      );
+      if (selectedSeats.length >= ticketsNeeded) return;
+      socketService.lockSeatWithAck(seat.dbId).then(() => {
+        setSeats((prev) =>
+          prev.map((s) => (s.id === seatId ? { ...s, status: "selected" } : s))
+        );
+      }).catch(() => {
+        setSeats((prev) =>
+          prev.map((s) => (s.id === seatId ? { ...s, status: "sold" } : s))
+        );
+      });
     }
   };
 
