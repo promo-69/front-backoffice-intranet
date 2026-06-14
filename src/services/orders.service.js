@@ -24,9 +24,9 @@ export const ordersService = {
     return response.data;
   },
 
-  registerPayment: async (paymentMethod, amount, referenceNumber) => {
-    const payload = { payment_method: paymentMethod, amount };
-    if (referenceNumber) payload.reference_number = referenceNumber;
+  registerPayment: async (paymentMethod, amount, currency = 1, reference = null) => {
+    const payload = { payment_method: paymentMethod, amount, currency };
+    if (reference) payload.reference_number = reference;
     const response = await api.post('/orders/payments', payload);
     return response.data;
   },

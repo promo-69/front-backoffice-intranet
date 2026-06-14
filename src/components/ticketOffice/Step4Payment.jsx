@@ -1,27 +1,33 @@
-import { useState } from "react";
-import { ArrowLeft, CheckCircle, Ticket, ShoppingBag, DollarSign, Smartphone, CreditCard, Banknote } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowLeft, CheckCircle, Ticket, ShoppingBag, DollarSign } from "lucide-react";
+import { AiOutlinePlus, AiOutlineDelete } from "react-icons/ai";
+import { paymentsService } from "../../services/payments.service";
 
-const PAYMENT_METHODS = [
-  { id: "pago_movil", label: "Pago Móvil", icon: Smartphone, fields: ["Banco", "Teléfono", "Referencia"] },
-  { id: "efectivo", label: "Efectivo", icon: Banknote, fields: [] },
-  { id: "tarjeta", label: "Tarjeta", icon: CreditCard, fields: ["Últimos 4 dígitos", "Referencia"] },
-];
-
-export default function Step4Payment({ movie, showtime, selectedSeats, ticketsNeeded, totalTickets, concessionItems, concessionTotal, onConfirm, onBack }) {
-  const [paymentMethod, setPaymentMethod] = useState("pago_movil");
-  const [paymentFields, setPaymentFields] = useState({});
+export default function Step4Payment({ movie, showtime, selectedSeats, ticketsNeeded, totalTickets, concessionItems, concessionTotal, onConfirm, onBack, paymentMethods = [], vesCurrencyId = 2, loyaltyInfo = null }) {
+  const [payments, setPayments] = useState([{ method: paymentMethods[0]?.id || 1, amount: totalTickets + concessionTotal, fields: {} }]);
   const [confirmed, setConfirmed] = useState(false);
 
   const grandTotal = totalTickets + concessionTotal;
-  const selectedMethod = PAYMENT_METHODS.find((m) => m.id === paymentMethod);
+  const paidByUser = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+  const isBalanced = Math.abs(paidByUser - grandTotal) < 0.01;
 
   const handleConfirm = () => {
     setConfirmed(true);
-    onConfirm({
-      paymentMethod,
-      paymentFields,
-      grandTotal,
-    });
+    onConfirm({ payments });
+  };
+
+  const addPayment = () => {
+    const usedMethods = payments.map((p) => p.method);
+    const nextMethod = paymentMethods.find((m) => !usedMethods.includes(m.id)) || paymentMethods[0];
+    setPayments([...payments, { method: nextMethod?.id || 1, amount: 0, fields: {} }]);
+  };
+
+  const updatePayment = (index, patch) => {
+    setPayments((prev) => prev.map((p, i) => (i === index ? { ...p, ...patch } : p)));
+  };
+
+  const removePayment = (index) => {
+    setPayments((prev) => prev.filter((_, i) => i !== index));
   };
 
   if (confirmed) {
@@ -46,7 +52,12 @@ export default function Step4Payment({ movie, showtime, selectedSeats, ticketsNe
             ))}
           </div>
           <p className="text-2xl font-bold text-[#F6AD38] mt-4">${grandTotal.toFixed(2)}</p>
-          <p className="text-xs text-gray-500 mt-1">Pago: {selectedMethod?.label}</p>
+          <div className="mt-2 space-y-1">
+            {payments.map((p, i) => {
+              const m = paymentMethods.find((pm) => pm.id === p.method);
+              return <p key={i} className="text-xs text-gray-500">{m?.description}: ${(Number(p.amount) || 0).toFixed(2)}</p>;
+            })}
+          </div>
         </div>
       </div>
     );
@@ -56,7 +67,7 @@ export default function Step4Payment({ movie, showtime, selectedSeats, ticketsNe
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
       <div>
         <h2 className="text-2xl font-bold text-[#F6AD38]">Resumen y Pago</h2>
-        <p className="text-gray-400 text-sm mt-1">Confirma los detalles y selecciona el método de pago</p>
+        <p className="text-gray-400 text-sm mt-1">Confirma los detalles y selecciona los métodos de pago</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -112,45 +123,95 @@ export default function Step4Payment({ movie, showtime, selectedSeats, ticketsNe
           </div>
         </div>
 
-        {/* ── Método de pago ── */}
+        {/* ── Métodos de pago ── */}
         <div className="space-y-4">
-          <h3 className="font-bold text-[#F6AD38] text-sm uppercase tracking-wider">Método de Pago</h3>
-          <div className="space-y-2">
-            {PAYMENT_METHODS.map((method) => {
-              const Icon = method.icon;
-              const isSelected = paymentMethod === method.id;
-              return (
-                <button
-                  key={method.id}
-                  onClick={() => setPaymentMethod(method.id)}
-                  className={`
-                    w-full flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-left
-                    ${isSelected ? "border-[#F6AD38] bg-[#F6AD38]/10" : "border-white/10 hover:border-white/30 bg-white/5"}
-                  `}
-                >
-                  <Icon className={`w-5 h-5 ${isSelected ? "text-[#F6AD38]" : "text-gray-400"}`} />
-                  <span className={`font-bold text-sm ${isSelected ? "text-[#F6AD38]" : "text-gray-300"}`}>{method.label}</span>
-                  {isSelected && <div className="ml-auto w-2.5 h-2.5 rounded-full bg-[#F6AD38]" />}
-                </button>
-              );
-            })}
-          </div>
+          <h3 className="font-bold text-[#F6AD38] text-sm uppercase tracking-wider">Métodos de Pago</h3>
 
-          {/* Campos del método seleccionado */}
-          {selectedMethod?.fields?.length > 0 && (
-            <div className="space-y-2 pt-2">
-              {selectedMethod.fields.map((field) => (
-                <div key={field} className="relative">
-                  <label className="absolute top-1 left-3 text-[10px] font-bold text-[#F6AD38] uppercase tracking-wider">{field}</label>
-                  <input
-                    type="text"
-                    placeholder={field}
-                    onChange={(e) => setPaymentFields((p) => ({ ...p, [field]: e.target.value }))}
-                    className="w-full bg-white/5 border border-white/20 rounded-xl px-3 pt-6 pb-2 text-sm text-black placeholder:text-gray-600 focus:outline-none focus:border-[#F6AD38]/60 transition-colors"
-                  />
-                </div>
-              ))}
+          {paymentMethods.length === 0 ? (
+            <p className="text-gray-400 text-sm text-center py-8">Cargando métodos de pago...</p>
+          ) : (
+            <div className="space-y-3">
+              {payments.map((p, index) => {
+                const methodDef = paymentMethods.find((m) => m.id === p.method);
+                const isLoyalty = p.method === 6;
+                const isUsdMethod = [1, 5].includes(p.method);
+                const hasReference = [4, 5, 7].includes(p.method);
+                const amountLabel = isLoyalty
+                  ? "Puntos a usar"
+                  : isUsdMethod
+                    ? "Monto ($)"
+                    : "Monto (Bs.)";
+                return (
+                  <div key={index} className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <select
+                        value={p.method}
+                        onChange={(e) => updatePayment(index, { method: Number(e.target.value), fields: {} })}
+                        className="flex-1 bg-[#1d1430] border border-white/20 rounded-xl px-3 py-2 text-sm font-bold text-[#F6AD38] focus:outline-none focus:border-[#F6AD38]"
+                      >
+                        {paymentMethods.map((m) => (
+                          <option key={m.id} value={m.id} disabled={m.id !== p.method && payments.some((pp) => pp.method === m.id)}>
+                            {m.description}
+                          </option>
+                        ))}
+                      </select>
+                      {payments.length > 1 && (
+                        <button onClick={() => removePayment(index)} className="text-red-400 hover:text-red-500 p-1">
+                          <AiOutlineDelete size={18} />
+                        </button>
+                      )}
+                    </div>
+
+                    {isLoyalty && loyaltyInfo && (
+                      <p className="text-xs text-[#F6AD38] font-semibold">
+                        Saldo disponible: {loyaltyInfo.points_balance} puntos
+                      </p>
+                    )}
+
+                    <div className="relative">
+                      <label className="absolute top-1 left-3 text-[10px] font-bold text-[#F6AD38] uppercase tracking-wider">{amountLabel}</label>
+                      <input
+                        type="number"
+                        step={isLoyalty ? "1" : "0.01"}
+                        min="0"
+                        max={isLoyalty ? (loyaltyInfo?.points_balance || Infinity) : undefined}
+                        value={p.amount}
+                        onChange={(e) => updatePayment(index, { amount: parseFloat(e.target.value) || 0 })}
+                        className="w-full bg-white/5 border border-white/20 rounded-xl px-3 pt-6 pb-2 text-sm text-black placeholder:text-gray-600 focus:outline-none focus:border-[#F6AD38]/60 transition-colors"
+                      />
+                    </div>
+
+                    {hasReference && (
+                      <div className="relative">
+                        <label className="absolute top-1 left-3 text-[10px] font-bold text-[#F6AD38] uppercase tracking-wider">Referencia</label>
+                        <input
+                          type="text"
+                          placeholder="Ingresar referencia"
+                          value={p.fields?.Referencia || ""}
+                          onChange={(e) => updatePayment(index, { fields: { ...p.fields, Referencia: e.target.value } })}
+                          className="w-full bg-white/5 border border-white/20 rounded-xl px-3 pt-6 pb-2 text-sm text-black placeholder:text-gray-600 focus:outline-none focus:border-[#F6AD38]/60 transition-colors"
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
+          )}
+
+          {paymentMethods.length > 0 && payments.length < paymentMethods.length && (
+            <button
+              onClick={addPayment}
+              className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-white/20 rounded-xl text-gray-400 hover:border-[#F6AD38]/50 hover:text-[#F6AD38] transition-all font-bold text-sm"
+            >
+              <AiOutlinePlus /> Agregar otro método de pago
+            </button>
+          )}
+
+          {!isBalanced && (
+            <p className="text-sm text-red-400 font-medium text-center">
+              Los montos no cubren el total. Restan ${(grandTotal - paidByUser).toFixed(2)}
+            </p>
           )}
         </div>
       </div>
@@ -166,10 +227,12 @@ export default function Step4Payment({ movie, showtime, selectedSeats, ticketsNe
 
         <button
           onClick={handleConfirm}
+          disabled={!isBalanced || payments.some((p) => !p.amount || p.amount <= 0)}
           className="
             px-10 py-4 bg-[#F6AD38] text-[#1d1430] font-black rounded-xl text-base uppercase tracking-widest
             hover:brightness-110 active:scale-95 transition-all
             shadow-xl shadow-[#F6AD38]/40
+            disabled:opacity-30 disabled:cursor-not-allowed
           "
         >
           Confirmar Venta · ${grandTotal.toFixed(2)}

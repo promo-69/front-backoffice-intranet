@@ -70,14 +70,21 @@ export default function Step2Seats({ showtime, movie, seatMap, onNext, onBack })
     if (!seat || seat.status === "sold") return;
 
     if (seat.status === "selected") {
+      socketService.unlockSeat(seat.dbId);
       setSeats((prev) =>
         prev.map((s) => (s.id === seatId ? { ...s, status: "available" } : s))
       );
     } else {
       if (selectedSeats.length >= ticketsNeeded) return;
-      setSeats((prev) =>
-        prev.map((s) => (s.id === seatId ? { ...s, status: "selected" } : s))
-      );
+      socketService.lockSeatWithAck(seat.dbId).then(() => {
+        setSeats((prev) =>
+          prev.map((s) => (s.id === seatId ? { ...s, status: "selected" } : s))
+        );
+      }).catch(() => {
+        setSeats((prev) =>
+          prev.map((s) => (s.id === seatId ? { ...s, status: "sold" } : s))
+        );
+      });
     }
   };
 

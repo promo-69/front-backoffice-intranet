@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { AiOutlinePlus, AiOutlineMinus, AiOutlineDelete, AiOutlineShopping } from "react-icons/ai";
 import { ArrowLeft, CheckCircle, Smartphone, CreditCard, Banknote, ShoppingBag } from "lucide-react";
 import PopcornImg from "../../assets/images/candy/popcorn.png";
@@ -6,14 +6,9 @@ import SodaImg from "../../assets/images/candy/soda.png";
 import ComboImg from "../../assets/images/candy/combo.png";
 import { concessionsService } from "../../services/concessions.service";
 import { ordersService } from "../../services/orders.service";
+import { paymentsService } from "../../services/payments.service";
 
 const CATEGORIES = ["Todos", "Popcorn", "Drinks", "Combos", "Candies"];
-
-const PAYMENT_METHODS = [
-  { id: "pago_movil", label: "Pago Móvil", icon: Smartphone, fields: ["Banco", "Teléfono", "Referencia"] },
-  { id: "efectivo", label: "Efectivo", icon: Banknote, fields: [] },
-  { id: "tarjeta", label: "Tarjeta", icon: CreditCard, fields: ["Últimos 4 dígitos", "Referencia"] },
-];
 
 export default function CandyBar() {
   const [step, setStep] = useState(1);
@@ -24,9 +19,17 @@ export default function CandyBar() {
   const [loading, setLoading] = useState(true);
 
   // Payment states
-  const [paymentMethod, setPaymentMethod] = useState("pago_movil");
-  const [paymentFields, setPaymentFields] = useState({});
+  const [payments, setPayments] = useState([]);
   const [confirmed, setConfirmed] = useState(false);
+  const [paymentMethods, setPaymentMethods] = useState([]);
+  const [currencies, setCurrencies] = useState([]);
+  const [loyaltyInfo, setLoyaltyInfo] = useState(null);
+  const [vesCurrencyId, setVesCurrencyId] = useState(2);
+
+  const handleGoToPayment = () => {
+    setPayments([{ method: paymentMethods[0]?.id || 1, amount: total, fields: {} }]);
+    setStep(2);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -47,6 +50,26 @@ export default function CandyBar() {
     }
     loadData();
     return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    async function loadPaymentData() {
+      try {
+        const [methods, currencyList, loyalty] = await Promise.all([
+          paymentsService.getMethods(),
+          paymentsService.getCurrencies(),
+          paymentsService.getLoyaltyInfo().catch(() => null),
+        ]);
+        setPaymentMethods(methods);
+        setCurrencies(currencyList);
+        setLoyaltyInfo(loyalty);
+        const ves = currencyList.find(c => c.code === "VES");
+        if (ves) setVesCurrencyId(ves.id);
+      } catch (err) {
+        console.error("Error loading payment data:", err);
+      }
+    }
+    loadPaymentData();
   }, []);
 
   const allItems = [
@@ -98,11 +121,6 @@ export default function CandyBar() {
 
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-  const mapPaymentMethod = (method) => {
-    const map = { pago_movil: "mobile_payment", efectivo: "cash", tarjeta: "transfer" };
-    return map[method] || method;
-  };
-
   const handleConfirm = async () => {
     const userData = JSON.parse(localStorage.getItem("user") || "{}");
     const cinemaId = userData.cinemaId || 1;
@@ -121,10 +139,17 @@ export default function CandyBar() {
     try {
       await ordersService.cancelSession().catch(() => {});
       await ordersService.createQuote(cinemaId, 1);
-      const { data } = await ordersService.checkout([], concessions);
-      const backendPaymentMethod = mapPaymentMethod(paymentMethod);
-      const reference = paymentFields?.Referencia || paymentFields?.reference || null;
-      await ordersService.registerPayment(backendPaymentMethod, total, reference);
+      await ordersService.checkout([], concessions);
+      const ptsPayment = payments.find(p => p.method === 6);
+      if (ptsPayment && ptsPayment.amount > 0) {
+        await ordersService.registerPayment(6, ptsPayment.amount, 1);
+      }
+      for (const p of payments) {
+        if (p.method === 6) continue;
+        const ref = p.fields?.Referencia || null;
+        const currency = [2, 3, 4, 7].includes(p.method) ? vesCurrencyId : 1;
+        await ordersService.registerPayment(p.method, p.amount, currency, ref);
+      }
     } catch (err) {
       console.warn("Backend order failed, saving locally:", err);
     }
@@ -135,14 +160,15 @@ export default function CandyBar() {
     setCart([]);
     setStep(1);
     setConfirmed(false);
-    setPaymentFields({});
+    setPayments([]);
   };
 
   // ----------------------------------------------------
   // STEP 2: PAYMENT SCREEN & SUCCESS
   // ----------------------------------------------------
   if (step === 2) {
-    const selectedMethod = PAYMENT_METHODS.find((m) => m.id === paymentMethod);
+    const paidByUser = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+    const isBalanced = Math.abs(paidByUser - total) < 0.01;
 
     if (confirmed) {
       return (
@@ -167,7 +193,16 @@ export default function CandyBar() {
             ))}
             <div className="mt-4 pt-4 border-t border-gray-200">
               <p className="text-3xl font-black text-brand-gold">${total.toFixed(2)}</p>
-              <p className="text-xs text-gray-400 mt-1 uppercase font-semibold">Método: {selectedMethod?.label}</p>
+              <div className="mt-2 space-y-1">
+                {payments.map((p, i) => {
+                  const m = paymentMethods.find((pm) => pm.id === p.method);
+                  return (
+                    <p key={i} className="text-xs text-gray-400">
+                      {m?.description}: ${(Number(p.amount) || 0).toFixed(2)}
+                    </p>
+                  );
+                })}
+              </div>
             </div>
           </div>
           
@@ -181,12 +216,29 @@ export default function CandyBar() {
       );
     }
 
+    const addPayment = () => {
+      const usedMethods = payments.map((p) => p.method);
+      const nextMethod = paymentMethods.find((m) => !usedMethods.includes(m.id)) || paymentMethods[0];
+      setPayments([...payments, { method: nextMethod.id, amount: 0, fields: {} }]);
+    };
+
+    const updatePayment = (index, patch) => {
+      setPayments((prev) => prev.map((p, i) => (i === index ? { ...p, ...patch } : p)));
+    };
+
+    const removePayment = (index) => {
+      setPayments((prev) => prev.filter((_, i) => i !== index));
+    };
+
+    const isUsdMethod = (methodId) => [1, 5].includes(methodId);
+    const isVesMethod = (methodId) => [2, 3, 4, 7].includes(methodId);
+
     return (
       <div className="font-montserrat text-slate-800 bg-white rounded-3xl p-6 lg:p-10 shadow-sm border border-gray-100 min-h-[calc(100vh-100px)] animate-in fade-in slide-in-from-bottom-4">
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-black text-slate-800">Procesar Pago</h2>
-            <p className="text-gray-500 text-sm mt-1">Confirma los productos de confitería y el método de pago</p>
+            <p className="text-gray-500 text-sm mt-1">Confirma los productos de confitería y los métodos de pago</p>
           </div>
           <div className="hidden sm:flex bg-gray-100 px-4 py-2 rounded-lg font-bold text-gray-500 gap-2 items-center">
             <span className="w-6 h-6 rounded-full bg-brand-gold text-white flex items-center justify-center text-xs">2</span>
@@ -215,58 +267,96 @@ export default function CandyBar() {
             </div>
 
             <div className="flex justify-between items-center text-xl font-black pt-4 border-t-2 border-gray-200">
-              <span className="text-slate-800 flex items-center gap-2">
-                Total a Pagar
-              </span>
+              <span className="text-slate-800 flex items-center gap-2">Total a Pagar</span>
               <span className="text-brand-gold text-2xl">${total.toFixed(2)}</span>
             </div>
           </div>
 
-          {/* Método de pago */}
+          {/* Métodos de pago */}
           <div className="space-y-6">
-            <h3 className="font-bold text-slate-700 uppercase tracking-wider">Seleccionar Método de Pago</h3>
-            <div className="space-y-3">
-              {PAYMENT_METHODS.map((method) => {
-                const Icon = method.icon;
-                const isSelected = paymentMethod === method.id;
+            <h3 className="font-bold text-slate-700 uppercase tracking-wider">Métodos de Pago</h3>
+            
+            <div className="space-y-4">
+              {payments.map((p, index) => {
+                const methodDef = paymentMethods.find((m) => m.id === p.method);
+                const isLoyalty = p.method === 6;
+                const hasReference = [4, 5, 7].includes(p.method);
+                const showOnlyAmount = [1, 2, 3].includes(p.method);
+                const amountLabel = isLoyalty
+                  ? "Puntos a usar"
+                  : isUsdMethod(p.method)
+                    ? "Monto ($)"
+                    : "Monto (Bs.)";
                 return (
-                  <button
-                    key={method.id}
-                    onClick={() => setPaymentMethod(method.id)}
-                    className={`
-                      w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left
-                      ${isSelected ? "border-brand-gold bg-brand-gold/5" : "border-gray-200 hover:border-gray-300 bg-white"}
-                    `}
-                  >
-                    <div className={`p-2 rounded-xl ${isSelected ? "bg-brand-gold text-white" : "bg-gray-100 text-gray-500"}`}>
-                      <Icon className="w-5 h-5" />
+                  <div key={index} className="bg-gray-50 border border-gray-200 rounded-2xl p-4 space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <select
+                        value={p.method}
+                        onChange={(e) => updatePayment(index, { method: Number(e.target.value), fields: {} })}
+                        className="flex-1 bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 focus:outline-none focus:border-brand-gold"
+                      >
+                        {paymentMethods.map((m) => (
+                          <option key={m.id} value={m.id} disabled={m.id !== p.method && payments.some((pp) => pp.method === m.id)}>
+                            {m.description}
+                          </option>
+                        ))}
+                      </select>
+                      {payments.length > 1 && (
+                        <button onClick={() => removePayment(index)} className="text-red-400 hover:text-red-500 p-1">
+                          <AiOutlineDelete size={18} />
+                        </button>
+                      )}
                     </div>
-                    <span className={`font-bold ${isSelected ? "text-slate-800" : "text-gray-600"}`}>{method.label}</span>
-                    {isSelected && (
-                      <div className="ml-auto w-6 h-6 rounded-full bg-brand-gold text-white flex items-center justify-center">
-                        <CheckCircle className="w-4 h-4" />
+
+                    {isLoyalty && loyaltyInfo && (
+                      <p className="text-xs text-brand-gold font-semibold">
+                        Saldo disponible: {loyaltyInfo.points_balance} puntos
+                      </p>
+                    )}
+
+                    <div className="relative">
+                      <label className="absolute top-2 left-4 text-[10px] font-bold text-brand-gold uppercase tracking-wider bg-gray-50 px-1">{amountLabel}</label>
+                      <input
+                        type="number"
+                        step={isLoyalty ? "1" : "0.01"}
+                        min="0"
+                        max={isLoyalty ? (loyaltyInfo?.points_balance || Infinity) : undefined}
+                        value={p.amount}
+                        onChange={(e) => updatePayment(index, { amount: parseFloat(e.target.value) || 0 })}
+                        className="w-full bg-white border border-gray-200 rounded-xl px-4 pt-6 pb-3 text-sm text-slate-800 focus:outline-none focus:border-brand-gold"
+                      />
+                    </div>
+
+                    {hasReference && (
+                      <div className="relative">
+                        <label className="absolute top-2 left-4 text-[10px] font-bold text-brand-gold uppercase tracking-wider bg-gray-50 px-1">Referencia</label>
+                        <input
+                          type="text"
+                          placeholder="Ingresar referencia"
+                          value={p.fields?.Referencia || ""}
+                          onChange={(e) => updatePayment(index, { fields: { ...p.fields, Referencia: e.target.value } })}
+                          className="w-full bg-white border border-gray-200 rounded-xl px-4 pt-6 pb-3 text-sm text-slate-800 placeholder:text-gray-300 focus:outline-none focus:border-brand-gold"
+                        />
                       </div>
                     )}
-                  </button>
+                  </div>
                 );
               })}
             </div>
 
-            {/* Campos dinámicos */}
-            {selectedMethod?.fields?.length > 0 && (
-              <div className="space-y-4 pt-4">
-                {selectedMethod.fields.map((field) => (
-                  <div key={field} className="relative">
-                    <label className="absolute top-2 left-4 text-[10px] font-bold text-brand-gold uppercase tracking-wider bg-white px-1">{field}</label>
-                    <input
-                      type="text"
-                      placeholder={`Ingresar ${field.toLowerCase()}`}
-                      onChange={(e) => setPaymentFields((p) => ({ ...p, [field]: e.target.value }))}
-                      className="w-full bg-white border-2 border-gray-200 rounded-xl px-4 pt-6 pb-3 text-sm text-slate-800 placeholder:text-gray-300 focus:outline-none focus:border-brand-gold transition-colors"
-                    />
-                  </div>
-                ))}
-              </div>
+            {payments.length < paymentMethods.length && (
+              <button
+                onClick={addPayment}
+                className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-2xl text-gray-500 hover:border-brand-gold hover:text-brand-gold transition-all font-bold text-sm"
+              >
+                <AiOutlinePlus /> Agregar otro método de pago
+              </button>
+            )}
+
+            {!isBalanced && (
+              <p className="text-sm text-red-500 font-medium text-center">
+                Los montos no cubren el total. Restan ${(total - paidByUser).toFixed(2)}
+              </p>
             )}
           </div>
         </div>
@@ -282,9 +372,10 @@ export default function CandyBar() {
 
           <button
             onClick={handleConfirm}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-10 py-4 bg-brand-gold text-white font-black rounded-xl text-sm uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-brand-gold/30"
+            disabled={!isBalanced || payments.some((p) => !p.amount || p.amount <= 0)}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-10 py-4 bg-brand-gold text-white font-black rounded-xl text-sm uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-brand-gold/30 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Confirmar Pago · ${total.toFixed(2)}
+            Confirmar Pagos · ${total.toFixed(2)}
           </button>
         </div>
       </div>
@@ -427,7 +518,7 @@ export default function CandyBar() {
             </div>
             
             <button 
-              onClick={() => setStep(2)}
+              onClick={handleGoToPayment}
               disabled={cart.length === 0}
               className="w-full bg-brand-gold disabled:bg-gray-200 disabled:text-gray-400 text-white font-bold py-3.5 rounded-xl text-sm shadow-md hover:shadow-lg transition-all mt-2 active:scale-95"
             >
