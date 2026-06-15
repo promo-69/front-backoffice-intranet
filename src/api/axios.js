@@ -49,11 +49,13 @@ export default api;
 */
 import axios from "axios";
 
+const baseURL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:4000/api/v1";
+
 const api = axios.create({
-  baseURL: "http://127.0.0.1:4000/api/v1",
-  withCredentials: true,     
+  baseURL,
+  withCredentials: true,
   headers: {
-    "x-client-channel": "web", 
+    "x-client-channel": "web",
   },
 });
 

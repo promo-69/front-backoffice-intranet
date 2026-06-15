@@ -8,6 +8,10 @@ import { SelectForm } from "@/components/ui/SelectForm";
 import { getMovies } from "@/services/movie.service";
 import { getRoomsByCinema } from "@/services/room.service";
 import { getEvents } from "@/services/events.service"; 
+import { Switch } from "@/components/ui/switch";
+import { useLoading } from "@/context/LoadingContext";
+import { createShowtimesBulk } from "@/services/showtime.service";
+import { toast } from "sonner";
 
 export function ShowtimeModal({ 
   open, 
@@ -42,6 +46,11 @@ export function ShowtimeModal({
   });
 
   const { errors, isDirty } = formState;
+
+  // Bulk creation state
+  const [isBulk, setIsBulk] = useState(false);
+  const [slots, setSlots] = useState([{ start_time: '', end_time: '' }]);
+  const [daysSelected, setDaysSelected] = useState([]); // 0..6
 
   const watchContentType = useWatch({ control, name: "content_type", defaultValue: "movie" });
   const watchContentId = useWatch({ control, name: "content_id" });
@@ -184,8 +193,44 @@ export function ShowtimeModal({
   }, [initialData, open, reset]);
 
   // Submit
-  const handleFormSubmit = (data) => {
+  const { showLoader, hideLoader } = useLoading();
+
+  const handleFormSubmit = async (data) => {
     let cleanPrice = typeof data.price === "string" ? data.price.replace(",", ".") : data.price;
+    // If bulk mode, build bulk payload and call bulk service
+    if (isBulk) {
+      showLoader();
+      try {
+        const payload = {
+          showtime_type: data.content_type,
+          room: Number(data.room),
+          projection_type: Number(data.projection_type),
+          language: Number(data.language),
+          currency: Number(data.currency),
+          price: parseFloat(cleanPrice),
+          earned_loyalty_points: Number(data.earned_loyalty_points || 0),
+          period_start: data.period_start,
+          period_end: data.period_end,
+          days_of_week: daysSelected,
+          daily_slots: slots.filter(s => s.start_time && s.end_time).map(s => ({ start_time: s.start_time, end_time: s.end_time }))
+        };
+
+        if (data.content_type === "movie") payload.movie = Number(data.content_id);
+        if (data.content_type === "event") payload.special_event_id = Number(data.content_id);
+
+        await createShowtimesBulk(payload);
+        toast.success("Creación en lote completada");
+        onClose(true, "Se crearon las funciones en lote correctamente.");
+      } catch (error) {
+        console.error("Error al crear funciones en lote:", error);
+        toast.error(error?.response?.data?.message || "Error al crear funciones en lote");
+      } finally {
+        hideLoader();
+      }
+      return;
+    }
+
+    // Single creation flow (existing behavior)
     const startTimeISO = new Date(`${data.date}T${data.start_time_raw}:00`).toISOString();
     const endTimeISO = new Date(`${data.date}T${data.end_time_raw}:00`).toISOString();
 
@@ -233,6 +278,11 @@ export function ShowtimeModal({
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="radio" value="event" {...register("content_type")} /> Evento
             </label>
+            
+            <div className="ml-4 flex items-center gap-3">
+              <Switch checked={isBulk} onCheckedChange={(val) => setIsBulk(Boolean(val))} />
+              <span className="text-sm font-medium text-slate-600">Crear en lote</span>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -261,15 +311,58 @@ export function ShowtimeModal({
             </SelectForm>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <InputForm label="Fecha de la Función" type="date" error={errors.date?.message} {...register("date", { required: "Este campo es obligatorio" })} />
-            <InputForm label="Puntos de Lealtad" type="number" placeholder="0" error={errors.earned_loyalty_points?.message} {...register("earned_loyalty_points")} />
-          </div>
+          {/* Fecha simple o periodo bulk */}
+          {!isBulk && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <InputForm label="Fecha de la Función" type="date" error={errors.date?.message} {...register("date", { required: "Este campo es obligatorio" })} />
+              <InputForm label="Puntos de Lealtad" type="number" placeholder="0" error={errors.earned_loyalty_points?.message} {...register("earned_loyalty_points")} />
+            </div>
+          )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <InputForm label="Hora Inicio" type="time" error={errors.start_time_raw?.message} {...register("start_time_raw",{ required: "Este campo es obligatorio" })} />
-            <InputForm label="Hora Fin (Estimada)" type="time" error={errors.end_time_raw?.message} {...register("end_time_raw",{ required: "Este campo es obligatorio" })} />
-          </div>
+          {isBulk && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <InputForm label="Periodo Desde" type="date" error={errors.period_start?.message} {...register("period_start", { required: "Este campo es obligatorio" })} />
+              <InputForm label="Periodo Hasta" type="date" error={errors.period_end?.message} {...register("period_end", { required: "Este campo es obligatorio" })} />
+            </div>
+          )}
+
+          {!isBulk && (
+            <div className="grid grid-cols-2 gap-4">
+              <InputForm label="Hora Inicio" type="time" error={errors.start_time_raw?.message} {...register("start_time_raw",{ required: "Este campo es obligatorio" })} />
+              <InputForm label="Hora Fin (Estimada)" type="time" error={errors.end_time_raw?.message} {...register("end_time_raw",{ required: "Este campo es obligatorio" })} />
+            </div>
+          )}
+
+          {isBulk && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 flex-wrap">
+                {['Dom','Lun','Mar','Mie','Jue','Vie','Sab'].map((label, idx) => (
+                  <label key={idx} className={`inline-flex items-center gap-2 p-2 rounded ${daysSelected.includes(idx) ? 'bg-slate-100' : ''}`}>
+                    <input type="checkbox" checked={daysSelected.includes(idx)} onChange={(e) => {
+                      if (e.target.checked) setDaysSelected(prev => Array.from(new Set([...prev, idx])));
+                      else setDaysSelected(prev => prev.filter(d => d !== idx));
+                    }} />
+                    <span className="text-xs">{label}</span>
+                  </label>
+                ))}
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-brand-primary uppercase">Slots diarios</label>
+                <div className="space-y-2 mt-2">
+                  {slots.map((s, i) => (
+                    <div key={i} className="flex gap-2 items-center">
+                      <input type="time" value={s.start_time} onChange={(e) => setSlots(prev => prev.map((it, idx) => idx===i?{...it,start_time:e.target.value}:it))} className="p-2 border rounded w-36" />
+                      <span>-</span>
+                      <input type="time" value={s.end_time} onChange={(e) => setSlots(prev => prev.map((it, idx) => idx===i?{...it,end_time:e.target.value}:it))} className="p-2 border rounded w-36" />
+                      <button type="button" onClick={() => setSlots(prev => prev.filter((_,idx)=>idx!==i))} className="text-red-500">Eliminar</button>
+                    </div>
+                  ))}
+                  <button type="button" onClick={() => setSlots(prev => [...prev,{ start_time: '', end_time: '' }])} className="text-brand-primary text-sm">Añadir slot</button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <SelectForm label="Tipo Proyección" error={errors.projection_type?.message} {...register("projection_type",{ required: "Este campo es obligatorio" })}>

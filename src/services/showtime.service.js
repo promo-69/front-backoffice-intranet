@@ -6,27 +6,38 @@ export const getShowtimes = async (page = 1, limit = 10) => {
 };
 
 export const getShowtimesByCinema = async ({ cinemaId, page = 1, limit = 10, startDate, endDate, onlyFuture = true }) => {
-  try {
-    // Construimos los query params dinámicamente
-    const params = {
-      page,
-      limit,
-      onlyFuture
-    };
-    
-    if (startDate) params.startDate = startDate;
-    if (endDate) params.endDate = endDate;
+  // Construimos los query params dinámicamente
+  const params = { page, limit, onlyFuture };
+  if (startDate) params.startDate = startDate;
+  if (endDate) params.endDate = endDate;
 
-    // Realiza la petición inyectando el id en la ruta de forma segura
-    const res = await api.get(`/showtimes/admin/cinemas/${cinemaId}/showtimes`, { params });
-     return {
-      showtimes: res.data?.data?.rows || [],
-      total: res.data?.data?.count || 0
-    }; 
-  } catch (error) {
-    console.error("Error en getShowtimes service:", error);
-    return { showtimes: [], total: 0 };
+  // Petición al endpoint
+  const res = await api.get(`/showtimes/admin/cinemas/${cinemaId}/showtimes`, { params });
+
+  // El backend puede devolver varias formas:
+  // 1) { data: [ ... ], metadata: { total, ... } }
+  // 2) { data: { rows: [...], count: N } }
+  // 3) directamente { rows: [...], count: N }
+  const body = res.data?.data ?? res.data;
+
+  let rows = [];
+  let count = 0;
+  let metadata = res.data?.metadata ?? (body?.metadata ?? {});
+
+  if (Array.isArray(body)) {
+    rows = body;
+    count = metadata?.total ?? body.length;
+  } else {
+    rows = body?.rows ?? [];
+    count = body?.count ?? metadata?.total ?? 0;
+    metadata = body?.metadata ?? metadata;
   }
+
+  return {
+    showtimes: rows,
+    total: count,
+    metadata
+  };
 };
 
 
@@ -52,6 +63,12 @@ export const updateShowtime = async (id, payload) => {
 
 export const deleteShowtime = async (id) => {
   const res = await api.delete(`/showtimes/${id}`);
+  return res.data;
+};
+
+// Bulk creation endpoint
+export const createShowtimesBulk = async (payload) => {
+  const res = await api.post(`/showtimes/bulk`, payload);
   return res.data;
 };
 
