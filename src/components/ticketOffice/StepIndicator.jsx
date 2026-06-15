@@ -1,10 +1,11 @@
 import { CheckCircle } from "lucide-react";
 
 const steps = [
-  { id: 1, label: "Película" },
-  { id: 2, label: "Asientos" },
-  { id: 3, label: "Confitería" },
-  { id: 4, label: "Pago" },
+  { id: 1, label: "Sucursal" },
+  { id: 2, label: "Película" },
+  { id: 3, label: "Asientos" },
+  { id: 4, label: "Confitería" },
+  { id: 5, label: "Pago" },
 ];
 
 export default function StepIndicator({ currentStep }) {

@@ -6,7 +6,7 @@ import Employees from "../employees/employees";
 import Users from "../users/users";
 import Roles from "./rolesPage";
 import RegisterEmployeeModal from "@/components/admin/employees/RegisterEmployeeModal";
-//import RegisterUserModal from "@/components/admin/users/RegisterUserModal";
+import RegisterUserModal from "@/components/admin/users/RegisterUserModal";
 
 export default function PersonalPage() {
   const { modal, openModal, closeModal } = useModal();
@@ -41,7 +41,7 @@ export default function PersonalPage() {
 
   const modalTypes = {
     employees: "employeeForm",
-    users: null,
+    users: "userForm",
     clients: null,
     roles: null,
   };
@@ -120,9 +120,9 @@ export default function PersonalPage() {
         <RegisterEmployeeModal open={true} onClose={closeModal} />
       )}
 
-      {/*modal.isOpen && modal.type === "userForm" && (
+      {modal.isOpen && modal.type === "userForm" && (
         <RegisterUserModal open={true} onClose={closeModal} />
-      )*/}
+      )}
     </div>
   );
 }

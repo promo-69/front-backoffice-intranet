@@ -7,20 +7,37 @@ export const getShowtimes = async (page = 1, limit = 10) => {
 
 export const getShowtimesByCinema = async ({ cinemaId, page = 1, limit = 10, startDate, endDate, onlyFuture = true }) => {
   // Construimos los query params dinámicamente
-  const params = {
-    page,
-    limit,
-    onlyFuture
-  };
-  
+  const params = { page, limit, onlyFuture };
   if (startDate) params.startDate = startDate;
   if (endDate) params.endDate = endDate;
 
-  // Realiza la petición inyectando el id en la ruta de forma segura
+  // Petición al endpoint
   const res = await api.get(`/showtimes/admin/cinemas/${cinemaId}/showtimes`, { params });
-  
-  // Retornamos el objeto JSON tal cual lo manda el servidor (contiene success, data y metadata)
-  return res.data; 
+
+  // El backend puede devolver varias formas:
+  // 1) { data: [ ... ], metadata: { total, ... } }
+  // 2) { data: { rows: [...], count: N } }
+  // 3) directamente { rows: [...], count: N }
+  const body = res.data?.data ?? res.data;
+
+  let rows = [];
+  let count = 0;
+  let metadata = res.data?.metadata ?? (body?.metadata ?? {});
+
+  if (Array.isArray(body)) {
+    rows = body;
+    count = metadata?.total ?? body.length;
+  } else {
+    rows = body?.rows ?? [];
+    count = body?.count ?? metadata?.total ?? 0;
+    metadata = body?.metadata ?? metadata;
+  }
+
+  return {
+    showtimes: rows,
+    total: count,
+    metadata
+  };
 };
 
 
@@ -49,6 +66,12 @@ export const deleteShowtime = async (id) => {
   return res.data;
 };
 
+// Bulk creation endpoint
+export const createShowtimesBulk = async (payload) => {
+  const res = await api.post(`/showtimes/bulk`, payload);
+  return res.data;
+};
+
 // Creacion de una funcion de Evento - Mary
 export const createShowtimesByEvent = async (cinemaId, payload) => {
     const res = await api.post(`/cinemas/${cinemaId}/showtimes`, payload);
@@ -59,4 +82,20 @@ export const createShowtimesByEvent = async (cinemaId, payload) => {
 export const getEvents = async () => {
   const response = await api.get('/special-events/admin?limit=-1');
   return response.data;
+};
+
+// Obtener cartelera por sucursal
+export const getBillboard = async (cinemaId) => {
+  const response = await api.get('/showtimes/billboard', { params: { cinemaId } });
+  const body = response.data?.data ?? response.data;
+  const rows = Array.isArray(body) ? body : (body?.rows ?? []);
+  return { rows };
+};
+
+// Estado de asientos (vendidos + bloqueados) de una función
+export const getSeatsStatus = async (showtimeId) => {
+  const response = await api.get(`/showtimes/${showtimeId}/seats-status`);
+  const data = response.data?.data || response.data;
+  console.log(`[seats-status ${showtimeId}]`, data);
+  return data;
 };
