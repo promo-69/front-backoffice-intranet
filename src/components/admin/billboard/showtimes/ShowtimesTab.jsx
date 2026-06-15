@@ -12,6 +12,7 @@ export function ShowtimesTab({ data, onEdit, onDelete, isLoading = false }) {
     return new Date(isoStr).toLocaleDateString();
   };
   
+  
   const skeletonRows = Array(5).fill(0);
 
   return (
