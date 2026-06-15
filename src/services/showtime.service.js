@@ -55,6 +55,12 @@ export const deleteShowtime = async (id) => {
   return res.data;
 };
 
+// Bulk creation endpoint
+export const createShowtimesBulk = async (payload) => {
+  const res = await api.post(`/showtimes/bulk`, payload);
+  return res.data;
+};
+
 // Creacion de una funcion de Evento - Mary
 export const createShowtimesByEvent = async (cinemaId, payload) => {
     const res = await api.post(`/cinemas/${cinemaId}/showtimes`, payload);
