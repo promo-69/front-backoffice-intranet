@@ -54,22 +54,34 @@ const MOCK_ROOM_BOOKINGS = [
   { id: 5, room_id: 4, time_slot: "20:00 - 22:30", status: "confirmed" }
 ];
 // Listar todos los catálogos disponibles (manejando la paginación del backend)
-export const getAvailableCatalogs = async () => {
+export const getAvailableCatalogs = async (page = 1, perPage = 10) => {
   try {
-    let allCatalogs = [];
+    // Llamada paginada al endpoint de catálogos
+    const response = await api.get(`/catalogs?page=${page}&per-page=${perPage}`);
 
-    // Hacemos el primer llamado para saber cuántas páginas hay
-    const firstResponse = await api.get("/catalogs?limit=-1");
-    if (firstResponse.data && firstResponse.data.data) {
-      allCatalogs = [...firstResponse.data.data];
+    // Normalizar respuesta para que incluya { data, metadata }
+    if (response.data && (response.data.data || response.data.metadata)) {
+      return response.data;
     }
 
-    return { data: allCatalogs };
+    // Si la API devolvió directamente un array
+    return {
+      data: Array.isArray(response.data) ? response.data : (response.data || []),
+      metadata: {
+        total: Array.isArray(response.data) ? response.data.length : 0,
+        per_page: perPage,
+        current_page: page,
+        total_pages: 1,
+        next_page: null,
+        prev_page: null
+      }
+    };
   } catch (error) {
-    console.error("Error fetching all catalogs:", error);
-    // Fallback por si falla el bucle
-    const response = await api.get("/catalogs");
-    return response.data;
+    console.error("Error fetching available catalogs:", error);
+    // Fallback: intentar la ruta sin parámetros
+    const response = await api.get(`/catalogs`);
+    if (response.data && response.data.data) return response.data;
+    return { data: Array.isArray(response.data) ? response.data : (response.data || []) };
   }
 };
 
