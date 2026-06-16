@@ -15,6 +15,7 @@ import Personal from "../pages/admin/personal/personalPage";
 import CinemasPage from "../pages/admin/cinemas/cinemas";
 import CatalogsPage from "../pages/admin/catalogs/catalogs";
 import ProductsPage from "../pages/admin/inventory/products";
+import FinancesPage from "../pages/admin/finances/finances";
 
 import ProtectedRoute from "./ProtectedRoute";
 import GlobalLoader from "../components/ui/GlobalLoader";
@@ -126,6 +127,17 @@ function AppRoute() {
             <ProtectedRoute permission={ROUTE_PERMISSIONS.INVENTORY_READ}>
               <AdminLayout>
                 <ProductsPage />
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/finanzas"
+          element={
+            <ProtectedRoute permission={ROUTE_PERMISSIONS.FINANCES_READ}>
+              <AdminLayout>
+                <FinancesPage />
               </AdminLayout>
             </ProtectedRoute>
           }

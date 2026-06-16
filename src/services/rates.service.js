@@ -1,37 +1,37 @@
-import api from "../api/axios";
+import api from "@/api/axios";
 
-export const createCurrency = async (payload) => {
-  const res = await api.post("/rates/currencies", payload);
+// ==========================
+// CURRENCIES (Monedas)
+// ==========================
+export const getCurrencies = async (params = { page: 1 }) => {
+  const res = await api.get("/currencies", { params });
   return res.data;
 };
 
-export const getCurrencies = async () => {
-  const res = await api.get("/rates/currencies");
-  return res.data.data; 
-};
-
-
-export const getCurrencyById = async (id) => {
-  const res = await api.get(`/rates/currencies/${id}`);
-  return res.data.data;
+export const createCurrency = async (payload) => {
+  const res = await api.post("/currencies", payload);
+  return res.data;
 };
 
 export const updateCurrency = async (id, payload) => {
-  const res=api.put(`/rates/currencies/${id}`, payload);
+  const res = await api.patch(`/currencies/${id}`, payload);
   return res.data;
 };
 
 export const deleteCurrency = async (id) => {
-  const res = await api.delete(`/rates/currencies/${id}`);
+  const res = await api.delete(`/currencies/${id}`);
   return res.data;
 };
 
-//Create currency
+// ==========================
+// EXCHANGE RATES (Tasas de Cambio)
+// ==========================
+export const getExchangeRates = async (params = { page: 1 }) => {
+  const res = await api.get("/exchange-rates", { params });
+  return res.data;
+};
 
-//get all currencies
-
-//get currency by id
-
-//update currency
-
-//delete currency
+export const createExchangeRate = async (payload) => {
+  const res = await api.post("/exchange-rates", payload);
+  return res.data;
+};
