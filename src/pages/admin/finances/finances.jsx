@@ -283,7 +283,7 @@ function RatesTab() {
     try {
       showLoader();
       // Obtenemos monedas para el select del modal y para renderizar la tabla
-      const curRes = await getCurrencies({ page: 1, limit: 100 });
+      const curRes = await getCurrencies({ page: 1, limit: 10 });
       setCurrencies(curRes?.data ?? []);
 
       // Obtenemos tasas
