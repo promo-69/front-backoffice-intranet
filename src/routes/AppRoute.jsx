@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "../pages/auth/login";
 import Dashboard from "../pages/admin/dashboard";
 import DashboardCashier from "../pages/ticketOffice/dashboardCashier";
-import Billboard from "../pages/admin/billboard/billboard"
+import Billboard from "../pages/admin/billboard/billboard";
 //import Exhibition from "@/pages/admin/exhibition/bilboardPage";
 import SellTickets from "../pages/ticketOffice/sellTickets";
 import CandyBar from "../pages/ticketOffice/candyBar";
@@ -24,6 +24,8 @@ import { useLoading } from "../context/LoadingContext";
 import CreateRolePage from "@/pages/admin/personal/createRolePage";
 import EditRolePage from "@/pages/admin/personal/editRolePage";
 import NoAccess from "@/pages/noAccess";
+
+import ReportsDashboard from "@/pages/admin/reports/reportsDashboard";
 
 import { ROUTE_PERMISSIONS } from "@/lib/route-permissions";
 
@@ -148,7 +150,7 @@ function AppRoute() {
           element={
             <ProtectedRoute permission={ROUTE_PERMISSIONS.REPORTS_READ}>
               <AdminLayout>
-                <div className="p-4">Próximamente: Reportes</div>
+                <ReportsDashboard />
               </AdminLayout>
             </ProtectedRoute>
           }
