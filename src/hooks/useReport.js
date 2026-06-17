@@ -1,19 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
-import {
-  getDashboard,
-  getDashboardByCinema,
-  getChart,
-  getChartByCinema,
-} from "@/services/reports.service";
+import { useState, useEffect, useCallback } from 'react';
+import { getDashboard, getChart } from '@/services/reports.service';
 
-/**
- * Hook centralizado para el dashboard de reportes.
- * Maneja carga, error, filtros y refresco manual.
- */
 export function useDashboard({ cinemaId, from, to } = {}) {
-  const [data, setData] = useState(null);
+  const [data, setData]       = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError]     = useState(null);
 
   const fetch = useCallback(async () => {
     setLoading(true);
@@ -21,38 +12,25 @@ export function useDashboard({ cinemaId, from, to } = {}) {
     try {
       const params = {};
       if (from) params.from = from;
-      if (to) params.to = to;
-
-      const result = cinemaId
-        ? await getDashboardByCinema(cinemaId, params)
-        : await getDashboard(params);
-
-      setData(result);
+      if (to)   params.to   = to;
+      // cinemaId undefined → backend devuelve vista global o usa cinemaId del JWT
+      setData(await getDashboard(params, cinemaId));
     } catch (e) {
-      setError(e?.response?.data?.message || "Error al cargar el dashboard");
+      setError(e?.response?.data?.message || 'Error al cargar el dashboard');
     } finally {
       setLoading(false);
     }
   }, [cinemaId, from, to]);
 
-  useEffect(() => {
-    fetch();
-  }, [fetch]);
+  useEffect(() => { fetch(); }, [fetch]);
 
   return { data, loading, error, refetch: fetch };
 }
 
-export function useChartData({
-  cinemaId,
-  reportType,
-  from,
-  to,
-  groupBy,
-  channel,
-} = {}) {
-  const [data, setData] = useState(null);
+export function useChartData({ cinemaId, reportType, from, to, groupBy, channel } = {}) {
+  const [data, setData]       = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError]     = useState(null);
 
   const fetch = useCallback(async () => {
     if (!reportType) return;
@@ -60,26 +38,19 @@ export function useChartData({
     setError(null);
     try {
       const params = {};
-      if (from) params.from = from;
-      if (to) params.to = to;
+      if (from)    params.from    = from;
+      if (to)      params.to      = to;
       if (groupBy) params.groupBy = groupBy;
       if (channel) params.channel = channel;
-
-      const result = cinemaId
-        ? await getChartByCinema(cinemaId, reportType, params)
-        : await getChart(reportType, params);
-
-      setData(result);
+      setData(await getChart(reportType, params, cinemaId));
     } catch (e) {
-      setError(e?.response?.data?.message || "Error al cargar el gráfico");
+      setError(e?.response?.data?.message || 'Error al cargar el gráfico');
     } finally {
       setLoading(false);
     }
   }, [cinemaId, reportType, from, to, groupBy, channel]);
 
-  useEffect(() => {
-    fetch();
-  }, [fetch]);
+  useEffect(() => { fetch(); }, [fetch]);
 
   return { data, loading, error, refetch: fetch };
 }

@@ -1,189 +1,56 @@
-import api from "@/api/axios";
+import api from '@/api/axios';
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+const BASE = '/reports';
 
-const buildParams = (filters = {}) => {
-  const p = {};
-  if (filters.from) p.from = filters.from;
-  if (filters.to) p.to = filters.to;
-  if (filters.channel) p.channel = filters.channel;
-  if (filters.groupBy) p.groupBy = filters.groupBy;
-  return p;
+// ── Helper ────────────────────────────────────────────────────────────────────
+// cinemaId undefined = vista global (superadmin sin filtro) o empleado (sale del JWT)
+
+const p = (params = {}, cinemaId) => {
+  const out = { ...params };
+  if (cinemaId) out.cinemaId = cinemaId;
+  return out;
 };
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
-export const getDashboard = async (filters = {}) => {
-  const res = await api.get("/reports/dashboard", {
-    params: buildParams(filters),
-  });
-  return res.data;
-};
-
-export const getDashboardByCinema = async (cinemaId, filters = {}) => {
-  const res = await api.get(`/reports/cinemas/${cinemaId}/dashboard`, {
-    params: buildParams(filters),
-  });
-  return res.data;
-};
-
-// ── Reportes individuales (empleado — cinemaId del JWT) ───────────────────────
-
-export const getSalesReport = async (filters = {}) => {
-  const res = await api.get("/reports/sales", { params: buildParams(filters) });
-  return res.data;
-};
-
-export const getMoviesReport = async (filters = {}) => {
-  const res = await api.get("/reports/movies", {
-    params: buildParams(filters),
-  });
-  return res.data;
-};
-
-export const getEventsReport = async (filters = {}) => {
-  const res = await api.get("/reports/events", {
-    params: buildParams(filters),
-  });
-  return res.data;
-};
-
-export const getInventoryReport = async (filters = {}) => {
-  const res = await api.get("/reports/inventory", {
-    params: buildParams(filters),
-  });
-  return res.data;
-};
-
-export const getShowtimesReport = async (filters = {}) => {
-  const res = await api.get("/reports/showtimes", {
-    params: buildParams(filters),
-  });
-  return res.data;
-};
-
-export const getRentalsReport = async (filters = {}) => {
-  const res = await api.get("/reports/rentals", {
-    params: buildParams(filters),
-  });
-  return res.data;
-};
-
-export const getCashierReport = async (filters = {}) => {
-  const res = await api.get("/reports/cashier", {
-    params: buildParams(filters),
-  });
-  return res.data;
-};
-
-// ── Reportes individuales — superadmin (cinemaId en URL) ─────────────────────
-
-export const getSalesByCinema = async (cinemaId, filters = {}) => {
-  const res = await api.get(`/reports/cinemas/${cinemaId}/sales`, {
-    params: buildParams(filters),
-  });
-  return res.data;
-};
-
-export const getMoviesByCinema = async (cinemaId, filters = {}) => {
-  const res = await api.get(`/reports/cinemas/${cinemaId}/movies`, {
-    params: buildParams(filters),
-  });
-  return res.data;
-};
-
-export const getEventsByCinema = async (cinemaId, filters = {}) => {
-  const res = await api.get(`/reports/cinemas/${cinemaId}/events`, {
-    params: buildParams(filters),
-  });
-  return res.data;
-};
-
-export const getInventoryByCinema = async (cinemaId, filters = {}) => {
-  const res = await api.get(`/reports/cinemas/${cinemaId}/inventory`, {
-    params: buildParams(filters),
-  });
-  return res.data;
-};
-
-export const getShowtimesByCinema = async (cinemaId, filters = {}) => {
-  const res = await api.get(`/reports/cinemas/${cinemaId}/showtimes`, {
-    params: buildParams(filters),
-  });
-  return res.data;
-};
-
-export const getRentalsByCinema = async (cinemaId, filters = {}) => {
-  const res = await api.get(`/reports/cinemas/${cinemaId}/rentals`, {
-    params: buildParams(filters),
-  });
-  return res.data;
-};
-
-export const getCashierByCinema = async (
-  cinemaId,
-  employeeId,
-  filters = {},
-) => {
-  const res = await api.get(
-    `/reports/cinemas/${cinemaId}/cashier/${employeeId}`,
-    { params: buildParams(filters) },
-  );
-  return res.data;
-};
+export const getDashboard = (params = {}, cinemaId) =>
+  api.get(`${BASE}/dashboard`, { params: p(params, cinemaId) }).then((r) => r.data.data);
 
 // ── Charts ────────────────────────────────────────────────────────────────────
 
-export const getChart = async (reportType, filters = {}) => {
-  const res = await api.get(`/reports/${reportType}/chart`, {
-    params: buildParams(filters),
+export const getChart = (reportType, params = {}, cinemaId) =>
+  api.get(`${BASE}/${reportType}/chart`, { params: p(params, cinemaId) }).then((r) => r.data.data);
+
+// ── Reportes individuales ─────────────────────────────────────────────────────
+
+export const getSalesReport    = (params = {}, cinemaId) => api.get(`${BASE}/sales`,     { params: p(params, cinemaId) }).then((r) => r.data.data);
+export const getMoviesReport   = (params = {}, cinemaId) => api.get(`${BASE}/movies`,    { params: p(params, cinemaId) }).then((r) => r.data.data);
+export const getEventsReport   = (params = {}, cinemaId) => api.get(`${BASE}/events`,    { params: p(params, cinemaId) }).then((r) => r.data.data);
+export const getInventoryReport= (params = {}, cinemaId) => api.get(`${BASE}/inventory`, { params: p(params, cinemaId) }).then((r) => r.data.data);
+export const getCashierReport  = (params = {}, cinemaId) => api.get(`${BASE}/cashier`,   { params: p(params, cinemaId) }).then((r) => r.data.data);
+export const getShowtimesReport= (params = {}, cinemaId) => api.get(`${BASE}/showtimes`, { params: p(params, cinemaId) }).then((r) => r.data.data);
+export const getRentalsReport  = (params = {}, cinemaId) => api.get(`${BASE}/rentals`,   { params: p(params, cinemaId) }).then((r) => r.data.data);
+
+// ── Exportación ───────────────────────────────────────────────────────────────
+
+export const exportReport = async (reportType, format, params = {}, cinemaId) => {
+  const response = await api.get(`${BASE}/${reportType}/export`, {
+    params: p({ ...params, format }, cinemaId),
+    responseType: format === 'json' ? 'json' : 'blob',
   });
-  return res.data;
-};
 
-export const getChartByCinema = async (cinemaId, reportType, filters = {}) => {
-  const res = await api.get(
-    `/reports/cinemas/${cinemaId}/${reportType}/chart`,
-    { params: buildParams(filters) },
-  );
-  return res.data;
-};
+  if (format === 'json') return response.data;
 
-// ── Exports ───────────────────────────────────────────────────────────────────
+  const mimeTypes = {
+    csv:  'text/csv',
+    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    pdf:  'application/pdf',
+  };
 
-export const exportReport = async (reportType, format, filters = {}) => {
-  const res = await api.get(`/reports/${reportType}/export`, {
-    params: { ...buildParams(filters), format },
-    responseType: "blob",
-  });
-  return res;
-};
-
-export const exportReportByCinema = async (
-  cinemaId,
-  reportType,
-  format,
-  filters = {},
-) => {
-  const res = await api.get(
-    `/reports/cinemas/${cinemaId}/${reportType}/export`,
-    {
-      params: { ...buildParams(filters), format },
-      responseType: "blob",
-    },
-  );
-  return res;
-};
-
-// ── Utilidad: descargar blob ──────────────────────────────────────────────────
-
-export const downloadBlob = (response, filename) => {
-  const url = window.URL.createObjectURL(new Blob([response.data]));
-  const link = document.createElement("a");
-  link.href = url;
-  link.setAttribute("download", filename);
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  window.URL.revokeObjectURL(url);
+  const url = URL.createObjectURL(new Blob([response.data], { type: mimeTypes[format] }));
+  const a   = document.createElement('a');
+  a.href    = url;
+  a.download = `${reportType}-report.${format}`;
+  a.click();
+  URL.revokeObjectURL(url);
 };
