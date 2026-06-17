@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { ReportChart } from "@/components/admin/reports/reportChart";
+import { DataTableView } from "@/components/admin/reports/dataTableView";
 import { ExportButton } from "@/components/admin/reports/exportButton";
 import { ReportFilters } from "@/components/admin/reports/reportFilters";
 import { useChartData } from "@/hooks/useReport";
@@ -23,6 +24,7 @@ export function ReportSection({
   const [channel, setChannel] = useState("all");
   const [groupBy, setGroupBy] = useState("day");
   const [chartType, setChart] = useState(null);
+  const [viewMode, setViewMode] = useState("chart");
 
   const { data, loading, error, refetch } = useChartData({
     cinemaId,
@@ -62,11 +64,15 @@ export function ReportSection({
               channel={channel}
               groupBy={groupBy}
               chartType={chartType}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+              onCharTypeChange={setChart}
               onFromChange={setFrom}
               onToChange={setTo}
               onChannelChange={setChannel}
               onGroupByChange={setGroupBy}
               onChartTypeChange={setChart}
+              onViewModeChange={setViewMode} // ← NUEVO: manejar cambio de vista
               onRefresh={refetch}
               loading={loading}
               showChannel={showChannel}
@@ -82,11 +88,18 @@ export function ReportSection({
 
           {error ? (
             <p className="text-sm text-rose-500 py-4">{error}</p>
-          ) : (
+          ) : viewMode === "chart" ? (
             <ReportChart
               data={data}
               overrideType={chartType}
               loading={loading}
+            />
+          ) : (
+            <DataTableView
+              data={data}
+              reportType={reportType}
+              filters={{ from, to, channel }}
+              cinemaId={cinemaId}
             />
           )}
         </div>

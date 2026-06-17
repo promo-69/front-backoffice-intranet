@@ -1,4 +1,4 @@
-import { BarChart2, LineChart, PieChart, RefreshCw } from "lucide-react";
+import { BarChart2, LineChart, RefreshCw, Table } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const CHANNELS = [
@@ -17,7 +17,7 @@ const GROUP_BY = [
 const CHART_TYPES = [
   { value: "line", icon: LineChart, label: "Línea" },
   { value: "bar", icon: BarChart2, label: "Barras" },
-  { value: "pie", icon: PieChart, label: "Pastel" },
+  { value: "table", icon: Table, label: "Tabla" },
 ];
 
 export function ReportFilters({
@@ -26,17 +26,25 @@ export function ReportFilters({
   channel,
   groupBy,
   chartType,
+  viewMode,
   onFromChange,
   onToChange,
   onChannelChange,
   onGroupByChange,
   onChartTypeChange,
+  onViewModeChange,
   onRefresh,
   loading = false,
   showChannel = true,
   showGroupBy = true,
   showChartType = true,
 }) {
+  const handleTypeClick = (value) => {
+    onChartTypeChange(value);
+    const mode = value === "table" ? "table" : "chart";
+    onViewModeChange(mode);
+  };
+
   return (
     <div className="flex flex-wrap items-end gap-3">
       {/* Rango de fechas */}
@@ -114,7 +122,7 @@ export function ReportFilters({
               <button
                 key={value}
                 title={label}
-                onClick={() => onChartTypeChange(value)}
+                onClick={() => handleTypeClick(value)}
                 className={`h-9 w-9 flex items-center justify-center rounded-md border transition-colors ${
                   chartType === value
                     ? "bg-primary border-primary text-primary-foreground"
