@@ -38,7 +38,35 @@ const fmt = {
  */
 function SuperAdminView() {
   const [cinemas, setCinemas] = useState([]);
-  const [cinemaId, setCinemaId] = useState(null);
+  const [cinemaId, setCinemaId] = useState(); // undefined por defecto
+  const [cinemasLoading, setCinemasLoading] = useState(true);
+
+  useEffect(() => {
+    setCinemasLoading(true);
+    getCinemas()
+      .then((r) => {
+        const list = Array.isArray(r.data) ? r.data : [];
+        setCinemas(list);
+        if (list.length) setCinemaId(list[0].id); // seleccionar el primero por defecto
+      })
+      .catch(() => {})
+      .finally(() => setCinemasLoading(false));
+  }, []);
+
+  if (cinemasLoading) {
+    return <Skeleton className="w-full h-48" />;
+  }
+
+  return (
+    <SuperAdminContent
+      cinemas={cinemas}
+      cinemaId={cinemaId}
+      setCinemaId={setCinemaId}
+    />
+  );
+}
+
+function SuperAdminContent({ cinemas, cinemaId, setCinemaId }) {
   const [from, setFrom] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 30);
@@ -49,17 +77,6 @@ function SuperAdminView() {
   const [chartType, setChartType] = useState(null);
 
   const { data, loading, refetch } = useDashboard({ cinemaId, from, to });
-
-  useEffect(() => {
-    getCinemas()
-      .then((r) => {
-        const list = Array.isArray(r.data) ? r.data : [];
-        setCinemas(list);
-        if (list.length) setCinemaId(list[0].id);
-      })
-      .catch(() => {});
-  }, []);
-
   const kpis = data?.kpis;
 
   return (
