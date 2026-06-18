@@ -7,6 +7,7 @@ import {
   updateInventoryItem,
   deleteInventoryItem,
   getInventoryByCinema,
+  registerCinemaMovement,
 } from "../../../services/inventory.service";
 import { getCatalogRecords } from "../../../services/catalog.service";
 import { concessionsService } from "../../../services/concessions.service";
@@ -17,6 +18,7 @@ import BranchInventoryTable from "../../../components/admin/inventory/BranchInve
 import ComboTable from "../../../components/admin/inventory/ComboTable";
 import ComboModal from "../../../components/admin/inventory/ComboModal";
 import CinemaSelector from "../../../components/admin/inventory/CinemaSelector";
+import AdjustStockModal from "../../../components/admin/inventory/AdjustStockModal";
 import DeleteConfirmModal from "../../../components/ui/DialogConfirmModal";
 import SuccessModal from "../../../components/ui/SuccessModal";
 import { useLoading } from "../../../context/LoadingContext";
@@ -75,6 +77,10 @@ const ProductsPage = () => {
     title: "",
     message: "",
   });
+
+  // Ajuste de Stock
+  const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false);
+  const [itemToAdjust, setItemToAdjust] = useState(null);
 
   const fetchCatalogs = async () => {
     try {
@@ -317,8 +323,37 @@ const ProductsPage = () => {
   };
 
   const handleAdjustStock = (item) => {
-    const productName = item._Products?.name || item.product?.name || "Producto";
-    toast.info(`Ajuste de stock para "${productName}" (Simulación Visual)`);
+    setItemToAdjust(item);
+    setIsAdjustModalOpen(true);
+  };
+
+  const handleSaveAdjustStock = async (payload) => {
+    if (!selectedCinemaId || !itemToAdjust) return;
+    try {
+      showLoader();
+      // payload = { quantity, type, reason }
+      await registerCinemaMovement(selectedCinemaId, itemToAdjust.id, {
+        type: payload.type,
+        quantity: payload.quantity,
+        description: payload.reason,
+      });
+
+      // Refrescar inventario
+      await fetchCinemaInventory();
+
+      // Mostrar éxito
+      setSuccessConfig({
+        title: "¡Ajuste Guardado!",
+        message: "El movimiento de inventario ha sido registrado y el stock actualizado.",
+      });
+      setIsSuccessOpen(true);
+    } catch (error) {
+      console.error("Error al registrar movimiento:", error);
+      toast.error(error?.response?.data?.message || "No se pudo registrar el movimiento de stock.");
+      throw error;
+    } finally {
+      hideLoader();
+    }
   };
 
   const filteredProducts = products.filter((p) =>
@@ -572,6 +607,17 @@ const ProductsPage = () => {
         products={allProducts}
         currencies={currencies}
         onSave={handleSaveCombo}
+      />
+
+      {/* Modal Ajustar Stock */}
+      <AdjustStockModal
+        open={isAdjustModalOpen}
+        onClose={() => {
+          setIsAdjustModalOpen(false);
+          setItemToAdjust(null);
+        }}
+        item={itemToAdjust}
+        onSave={handleSaveAdjustStock}
       />
     </div>
   );
