@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight, Building2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { toast } from "sonner";
 import {
   getMyInventory,
@@ -9,10 +9,14 @@ import {
   getInventoryByCinema,
 } from "../../../services/inventory.service";
 import { getCatalogRecords } from "../../../services/catalog.service";
+import { concessionsService } from "../../../services/concessions.service";
 import ProductSearchBar from "../../../components/admin/inventory/ProductSearchBar";
 import ProductTable from "../../../components/admin/inventory/ProductTable";
 import ProductModal from "../../../components/admin/inventory/ProductModal";
 import BranchInventoryTable from "../../../components/admin/inventory/BranchInventoryTable";
+import ComboTable from "../../../components/admin/inventory/ComboTable";
+import ComboModal from "../../../components/admin/inventory/ComboModal";
+import CinemaSelector from "../../../components/admin/inventory/CinemaSelector";
 import DeleteConfirmModal from "../../../components/ui/DialogConfirmModal";
 import SuccessModal from "../../../components/ui/SuccessModal";
 import { useLoading } from "../../../context/LoadingContext";
@@ -21,18 +25,21 @@ const ProductsPage = () => {
   const { showLoader, hideLoader } = useLoading();
 
   // Gestión de Pestañas
-  const [activeTab, setActiveTab] = useState("products"); // "products" o "byBranch"
+  const [activeTab, setActiveTab] = useState("products"); // "products", "byBranch", o "combos"
   const tabs = [
     { id: "products", label: "Productos de Dulcería" },
     { id: "byBranch", label: "Producto por Sucursal" },
+    { id: "combos", label: "Combos por Sucursal" },
   ];
 
   // Catálogos
   const [categories, setCategories] = useState([]);
   const [currencies, setCurrencies] = useState([]);
   const [cinemas, setCinemas] = useState([]);
+  const [allProducts, setAllProducts] = useState([]);
+  const [cinemasLoading, setCinemasLoading] = useState(true);
 
-  // Estado Pestaña 1: Productos Generales
+  // Pestaña 1: Productos Generales
   const [products, setProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [metadata, setMetadata] = useState({
@@ -45,12 +52,20 @@ const ProductsPage = () => {
   });
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Estado Pestaña 2: Inventario por Sucursal
+  // Pestaña 2: Inventario por Sucursal
   const [selectedCinemaId, setSelectedCinemaId] = useState("");
   const [cinemaInventory, setCinemaInventory] = useState([]);
   const [inventorySearchTerm, setInventorySearchTerm] = useState("");
 
-  // Modales
+  // Pestaña 3: Combos por Sucursal
+  const [combos, setCombos] = useState([]);
+  const [comboSearchTerm, setComboSearchTerm] = useState("");
+  const [isComboModalOpen, setIsComboModalOpen] = useState(false);
+  const [comboToEdit, setComboToEdit] = useState(null);
+  const [isComboDeleteModalOpen, setIsComboDeleteModalOpen] = useState(false);
+  const [comboToDelete, setComboToDelete] = useState(null);
+
+  // Modales Compartidos
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [productToEdit, setProductToEdit] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -67,18 +82,31 @@ const ProductsPage = () => {
       if (catRes) {
         setCategories(catRes?.data ?? catRes ?? []);
       }
-      
+
       const curRes = await getCatalogRecords("currencies").catch(() => null);
       if (curRes) {
         setCurrencies(curRes?.data ?? curRes ?? []);
       }
 
+      setCinemasLoading(true);
       const cinemasRes = await getCatalogRecords("cinemas").catch(() => null);
       if (cinemasRes) {
-        setCinemas(cinemasRes?.data ?? cinemasRes ?? []);
+        const cinemasList = cinemasRes?.data ?? cinemasRes ?? [];
+        setCinemas(cinemasList);
+        // Auto-select the first cinema so inventory loads immediately
+        if (cinemasList.length > 0) {
+          setSelectedCinemaId((prev) => prev || String(cinemasList[0].id));
+        }
+      }
+
+      const prodRes = await concessionsService.getProducts().catch(() => null);
+      if (prodRes) {
+        setAllProducts(prodRes);
       }
     } catch (error) {
       console.error("Error al cargar catálogos:", error);
+    } finally {
+      setCinemasLoading(false);
     }
   };
 
@@ -107,11 +135,52 @@ const ProductsPage = () => {
     try {
       showLoader();
       const response = await getInventoryByCinema(selectedCinemaId);
-      const list = response?.data ?? response?.rows ?? response ?? [];
+      console.log("[Inventario] Raw response:", response);
+      // The backend returns: { count, rows } or wrapped in { data: { count, rows } }
+      // or { success, data: [...] } — handle all shapes
+      let list = [];
+      if (Array.isArray(response)) {
+        list = response;
+      } else if (Array.isArray(response?.rows)) {
+        list = response.rows;
+      } else if (Array.isArray(response?.data)) {
+        list = response.data;
+      } else if (Array.isArray(response?.data?.rows)) {
+        list = response.data.rows;
+      } else if (Array.isArray(response?.data?.data)) {
+        list = response.data.data;
+      } else if (Array.isArray(response?.data?.data?.rows)) {
+        list = response.data.data.rows;
+      }
+      console.log("[Inventario] Lista extraída:", list);
       setCinemaInventory(list);
     } catch (error) {
       console.error("Error al cargar inventario de sucursal:", error);
+      const status = error?.response?.status;
+      if (status === 403 || status === 401) {
+        toast.error("Sin permisos para ver el inventario de esta sucursal.");
+      } else if (status === 404) {
+        toast.error("Sucursal no encontrada.");
+      } else {
+        toast.error("Error al cargar el inventario. Revisa la consola para más detalles.");
+      }
       setCinemaInventory([]);
+    } finally {
+      hideLoader();
+    }
+  };
+
+  const fetchCombos = async () => {
+    try {
+      showLoader();
+      // Si hay una sucursal seleccionada, traer los disponibles de esa sucursal, sino traer todos
+      const list = selectedCinemaId
+        ? await concessionsService.getAvailableCombos(selectedCinemaId)
+        : await concessionsService.getCombos();
+      setCombos(list);
+    } catch (error) {
+      console.error("Error al cargar combos:", error);
+      setCombos([]);
     } finally {
       hideLoader();
     }
@@ -128,13 +197,18 @@ const ProductsPage = () => {
   }, [currentPage, activeTab]);
 
   useEffect(() => {
-    if (activeTab === "byBranch" && selectedCinemaId) {
+    if (activeTab === "byBranch") {
       fetchCinemaInventory();
-    } else if (!selectedCinemaId) {
-      setCinemaInventory([]);
     }
   }, [selectedCinemaId, activeTab]);
 
+  useEffect(() => {
+    if (activeTab === "combos") {
+      fetchCombos();
+    }
+  }, [selectedCinemaId, activeTab]);
+
+  // Manejo de Producto Modal
   const handleOpenEditModal = (product) => {
     setProductToEdit(product);
     setIsModalOpen(true);
@@ -184,6 +258,64 @@ const ProductsPage = () => {
     }
   };
 
+  // Manejo de Combos Modal
+  const handleOpenEditComboModal = async (combo) => {
+    try {
+      showLoader();
+      const fullCombo = await concessionsService.getComboById(combo.id);
+      setComboToEdit(fullCombo);
+      setIsComboModalOpen(true);
+    } catch (error) {
+      console.error("Error al cargar detalles del combo:", error);
+      toast.error("No se pudieron cargar los detalles del combo.");
+    } finally {
+      hideLoader();
+    }
+  };
+
+  const handleCloseComboModal = (shouldRefresh) => {
+    setIsComboModalOpen(false);
+    if (shouldRefresh) {
+      fetchCombos();
+      setSuccessConfig({
+        title: comboToEdit ? "¡Combo Guardado!" : "¡Registro Exitoso!",
+        message: comboToEdit
+          ? "El combo ha sido actualizado exitosamente."
+          : "El nuevo combo ha sido registrado en el sistema.",
+      });
+      setIsSuccessOpen(true);
+    }
+    setComboToEdit(null);
+  };
+
+  const handleConfirmDeleteCombo = async () => {
+    try {
+      showLoader();
+      await concessionsService.deleteCombo(comboToDelete.id);
+      setIsComboDeleteModalOpen(false);
+      setSuccessConfig({
+        title: "¡Combo Eliminado!",
+        message: `Se ha removido "${comboToDelete.name}" exitosamente.`,
+      });
+      setIsSuccessOpen(true);
+      fetchCombos();
+    } catch (error) {
+      console.error("Error al eliminar combo:", error);
+    } finally {
+      setComboToDelete(null);
+      hideLoader();
+    }
+  };
+
+  const handleSaveCombo = async (payload) => {
+    const id = payload.get("id");
+    if (id) {
+      await concessionsService.updateCombo(id, payload);
+    } else {
+      await concessionsService.createCombo(payload);
+    }
+  };
+
   const handleAdjustStock = (item) => {
     const productName = item._Products?.name || item.product?.name || "Producto";
     toast.info(`Ajuste de stock para "${productName}" (Simulación Visual)`);
@@ -198,6 +330,10 @@ const ProductsPage = () => {
     return productName.toLowerCase().includes(inventorySearchTerm.toLowerCase());
   });
 
+  const filteredCombos = combos.filter((c) =>
+    c.name?.toLowerCase().includes(comboSearchTerm.toLowerCase())
+  );
+
   return (
     <div className="space-y-6">
       {/* HEADER DINÁMICO */}
@@ -205,37 +341,35 @@ const ProductsPage = () => {
         <div>
           <div className="flex items-center gap-4">
             <h3 className="text-lg font-montserrat font-bold text-brand-primary">
-              {activeTab === "products" ? "Productos de Dulcería" : "Inventario por Sucursal"}
+              {activeTab === "products"
+                ? "Productos de Dulcería"
+                : activeTab === "byBranch"
+                  ? "Inventario por Sucursal"
+                  : "Combos Promocionales"}
             </h3>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
             {activeTab === "products"
               ? "Administra los productos globales de la dulcería. Puedes agregar, editar o eliminar productos."
-              : "Consulta y ajusta el stock disponible de productos de dulcería según la sucursal seleccionada."}
+              : activeTab === "byBranch"
+                ? "Consulta y ajusta el stock disponible de productos de dulcería según la sucursal seleccionada."
+                : "Administra los combos y promociones especiales configurados por sucursal."}
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Selector de Sucursal solo en pestaña de sucursal */}
-          {activeTab === "byBranch" && (
-            <div className="flex items-center gap-2 bg-slate-100/80 border p-2 px-3 rounded-xl shadow-sm">
-              <Building2 className="w-4 h-4 text-slate-500 shrink-0" />
-              <select
-                value={selectedCinemaId}
-                onChange={(e) => setSelectedCinemaId(e.target.value)}
-                className="bg-transparent border-none text-xs font-bold text-slate-700 focus:outline-none cursor-pointer"
-              >
-                <option value="">Seleccionar Sucursal</option>
-                {cinemas.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name || c.description}
-                  </option>
-                ))}
-              </select>
-            </div>
+          {/* Selector de Sucursal para Inventario y Combos */}
+          {activeTab !== "products" && (
+            <CinemaSelector
+              cinemas={cinemas}
+              value={selectedCinemaId}
+              onChange={setSelectedCinemaId}
+              showAll={activeTab === "combos"}
+              loading={cinemasLoading}
+            />
           )}
 
-          {/* Buscador y botón para Productos */}
+          {/* Botones de acción y barras de búsqueda dinámicas */}
           {activeTab === "products" ? (
             <ProductSearchBar
               searchTerm={searchTerm}
@@ -245,7 +379,7 @@ const ProductsPage = () => {
                 setIsModalOpen(true);
               }}
             />
-          ) : (
+          ) : activeTab === "byBranch" ? (
             <input
               type="text"
               placeholder="Buscar en inventario..."
@@ -253,6 +387,26 @@ const ProductsPage = () => {
               onChange={(e) => setInventorySearchTerm(e.target.value)}
               className="px-4 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-brand-primary/20 outline-none transition-all w-60"
             />
+          ) : (
+            <div className="flex items-center gap-3">
+              <input
+                type="text"
+                placeholder="Buscar combo..."
+                value={comboSearchTerm}
+                onChange={(e) => setComboSearchTerm(e.target.value)}
+                className="px-4 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-brand-primary/20 outline-none transition-all w-60"
+              />
+              <button
+                onClick={() => {
+                  setComboToEdit(null);
+                  setIsComboModalOpen(true);
+                }}
+                className="bg-brand-primary text-white px-6 py-2.5 rounded-xl flex items-center gap-2 text-[11px] font-black uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-md cursor-pointer whitespace-nowrap"
+              >
+                <Plus className="w-4 h-4 text-brand-gold" strokeWidth={3} />
+                Añadir Combo
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -262,11 +416,10 @@ const ProductsPage = () => {
         {tabs.map((tab) => (
           <button
             key={tab.id}
-            className={`text-xs font-montserrat uppercase tracking-wide pb-1 border-b-2 transition-colors cursor-pointer ${
-              activeTab === tab.id
+            className={`text-xs font-montserrat uppercase tracking-wide pb-1 border-b-2 transition-colors cursor-pointer ${activeTab === tab.id
                 ? "font-bold text-brand-gold border-brand-gold"
                 : "text-muted-foreground border-transparent hover:text-brand-primary"
-            }`}
+              }`}
             onClick={() => setActiveTab(tab.id)}
           >
             {tab.label}
@@ -274,7 +427,7 @@ const ProductsPage = () => {
         ))}
       </div>
 
-      {/* CONTENIDO DE PESTAÑAS */}
+      {/* CONTENIDO DINÁMICO DE PESTAÑAS */}
       <div className="transition-all duration-200">
         {activeTab === "products" ? (
           <>
@@ -354,17 +507,30 @@ const ProductsPage = () => {
               </div>
             </div>
           </>
-        ) : (
+        ) : activeTab === "byBranch" ? (
           <BranchInventoryTable
             data={filteredInventory}
             onAdjustStock={handleAdjustStock}
             categories={categories}
             currencies={currencies}
+            selectedCinemaId={selectedCinemaId}
+          />
+        ) : (
+          <ComboTable
+            data={filteredCombos}
+            onEdit={handleOpenEditComboModal}
+            onDelete={(id) => {
+              const combo = combos.find((c) => c.id === id);
+              setComboToDelete(combo);
+              setIsComboDeleteModalOpen(true);
+            }}
+            cinemas={cinemas}
+            currencies={currencies}
           />
         )}
       </div>
 
-      {/* Modales Compartidos */}
+      {/* Modal Eliminar Producto */}
       <DeleteConfirmModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
@@ -372,6 +538,15 @@ const ProductsPage = () => {
         itemName={itemToDelete?.name}
       />
 
+      {/* Modal Eliminar Combo */}
+      <DeleteConfirmModal
+        isOpen={isComboDeleteModalOpen}
+        onClose={() => setIsComboDeleteModalOpen(false)}
+        onConfirm={handleConfirmDeleteCombo}
+        itemName={comboToDelete?.name}
+      />
+
+      {/* Modal de Alertas/Exito */}
       <SuccessModal
         isOpen={isSuccessOpen}
         onClose={() => setIsSuccessOpen(false)}
@@ -379,6 +554,7 @@ const ProductsPage = () => {
         message={successConfig.message}
       />
 
+      {/* Modal Formulario de Producto */}
       <ProductModal
         open={isModalOpen}
         onClose={handleCloseModal}
@@ -386,6 +562,16 @@ const ProductsPage = () => {
         categories={categories}
         currencies={currencies}
         onSave={handleSaveProduct}
+      />
+
+      {/* Modal Formulario de Combo */}
+      <ComboModal
+        open={isComboModalOpen}
+        onClose={handleCloseComboModal}
+        initialData={comboToEdit}
+        products={allProducts}
+        currencies={currencies}
+        onSave={handleSaveCombo}
       />
     </div>
   );

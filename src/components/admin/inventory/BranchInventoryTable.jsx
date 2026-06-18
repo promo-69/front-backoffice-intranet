@@ -1,7 +1,7 @@
 import React from "react";
-import { Award, Package, ArrowUpRight, ArrowDownRight, Tag, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
+import { Package, ArrowUpRight, Tag, AlertTriangle, CheckCircle, XCircle, Building2, PackageSearch } from "lucide-react";
 
-const BranchInventoryTable = ({ data = [], onAdjustStock, categories = [], currencies = [] }) => {
+const BranchInventoryTable = ({ data = [], onAdjustStock, categories = [], currencies = [], selectedCinemaId }) => {
   const safeData = Array.isArray(data) ? data : [];
 
   const formatPrice = (value) => {
@@ -62,8 +62,30 @@ const BranchInventoryTable = ({ data = [], onAdjustStock, categories = [], curre
         <tbody className="divide-y divide-border">
           {safeData.length === 0 ? (
             <tr>
-              <td colSpan="9" className="text-center py-10 text-gray-400 font-montserrat">
-                No hay registros de inventario para esta sucursal
+              <td colSpan="9">
+                <div className="flex flex-col items-center justify-center py-16 px-8 gap-4">
+                  {!selectedCinemaId ? (
+                    <>
+                      <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center">
+                        <Building2 className="w-8 h-8 text-slate-300" />
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm font-bold text-slate-500 font-montserrat">Selecciona una Sucursal</p>
+                        <p className="text-xs text-slate-400 mt-1">Elige una sucursal en el selector de arriba para ver su inventario</p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-16 h-16 rounded-2xl bg-amber-50 flex items-center justify-center">
+                        <PackageSearch className="w-8 h-8 text-amber-400" />
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm font-bold text-slate-600 font-montserrat">Sin Inventario Registrado</p>
+                        <p className="text-xs text-slate-400 mt-1">Esta sucursal aún no tiene productos en su inventario.<br/>Los productos aparecen aquí al registrar movimientos de stock.</p>
+                      </div>
+                    </>
+                  )}
+                </div>
               </td>
             </tr>
           ) : (
