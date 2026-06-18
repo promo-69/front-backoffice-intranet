@@ -11,8 +11,13 @@ export const getInventoryById = async (id) => {
 };
 
 export const getInventoryByCinema = async (cinemaId, params = {}) => {
-  const response = await api.get(`/concessions/inventory/${cinemaId}`, { params });
-  return response.data;
+  try {
+    const response = await api.get(`/cinemas/${cinemaId}/inventory`, { params });
+    return response.data;
+  } catch (err) {
+    const response = await api.get(`/concessions/inventory/${cinemaId}`, { params });
+    return response.data;
+  }
 };
 
 export const createInventoryItem = async (payload) => {
