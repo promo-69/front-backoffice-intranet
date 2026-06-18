@@ -3,6 +3,7 @@ import {
   loginRequest,
   refreshSession,
   logoutRequest,
+  getPermissionsRequest,
 } from "../services/auth.service";
 import { useLoading } from "./LoadingContext";
 
@@ -32,11 +33,18 @@ export function AuthProvider({ children }) {
       try {
         const refreshed = await refreshSession();
         if (refreshed) {
-          // El backend debe devolver nuevamente roleCode y permissions
+          let permissions = [];
+          try {
+            permissions = await getPermissionsRequest();
+          } catch (err) {
+            console.error("Error fetching permissions on refresh:", err);
+          }
+
+          // El backend debe devolver nuevamente roleCode
           const updatedUser = {
             ...JSON.parse(saved),
             role: refreshed.roleCode,
-            permissions: refreshed.permissions || [],
+            permissions: permissions || [],
           };
 
           localStorage.setItem("user", JSON.stringify(updatedUser));
@@ -68,10 +76,17 @@ export function AuthProvider({ children }) {
         return { success: false, message: "El usuario no tiene rol asignado" };
       }
 
+      let permissions = [];
+      try {
+        permissions = await getPermissionsRequest();
+      } catch (err) {
+        console.error("Error fetching permissions on login:", err);
+      }
+
       const userData = {
         ...data,
         role: data.roleCode, // ← rol real del backend
-        permissions: data.permissions || [], // ← permisos del backend
+        permissions: permissions || [], // ← permisos obtenidos del endpoint
       };
 
       localStorage.setItem("user", JSON.stringify(userData));

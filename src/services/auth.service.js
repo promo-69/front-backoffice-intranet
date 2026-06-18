@@ -24,3 +24,8 @@ export const refreshSession = async () => {
 export const logoutRequest = async () => {
   await api.post("/auth/logout");
 };
+
+export const getPermissionsRequest = async () => {
+  const response = await api.get("/auth/permissions");
+  return response.data.data.permissions;
+};
