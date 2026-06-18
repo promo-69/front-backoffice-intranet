@@ -126,8 +126,9 @@ const ProductsPage = () => {
   };
 
   const handleSaveProduct = async (payload) => {
-    if (payload.id) {
-      await updateInventoryItem(payload.id, payload);
+    const id = payload.get("id");
+    if (id) {
+      await updateInventoryItem(id, payload);
     } else {
       await createInventoryItem(payload);
     }

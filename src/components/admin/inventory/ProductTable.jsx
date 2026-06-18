@@ -1,4 +1,4 @@
-import { Pencil, Trash2, DollarSign, Tag, Award } from "lucide-react";
+import { Pencil, Trash2, DollarSign, Tag, Award, Image } from "lucide-react";
 
 const ProductTable = ({ data, onEdit, onDelete, categories = [], currencies = [] }) => {
   const safeData = Array.isArray(data) ? data : [];
@@ -25,6 +25,7 @@ const ProductTable = ({ data, onEdit, onDelete, categories = [], currencies = []
       <table className="w-full text-left text-xs">
         <thead>
           <tr className="text-gray-600 uppercase tracking-wider border-b border-border font-montserrat">
+            <th className="py-4 px-4 text-center">Imagen</th>
             <th className="py-4 px-4">Nombre</th>
             <th className="py-4 px-4">Código</th>
             <th className="py-4 px-4 text-center">Categoría</th>
@@ -37,7 +38,7 @@ const ProductTable = ({ data, onEdit, onDelete, categories = [], currencies = []
         <tbody className="divide-y divide-border">
           {safeData.length === 0 ? (
             <tr>
-              <td colSpan="6" className="text-center py-10 text-gray-400 font-montserrat">
+              <td colSpan="7" className="text-center py-10 text-gray-400 font-montserrat">
                 No hay productos disponibles
               </td>
             </tr>
@@ -47,6 +48,20 @@ const ProductTable = ({ data, onEdit, onDelete, categories = [], currencies = []
                 key={item.id}
                 className="transition-colors group font-montserrat hover:bg-brand-primary/10 bg-transparent"
               >
+                <td className="py-3 px-4 text-center">
+                  {item.image_url ? (
+                    <img
+                      src={item.image_url}
+                      alt={item.name}
+                      className="w-10 h-10 object-cover rounded-full mx-auto border border-border bg-white"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center mx-auto text-gray-400 border border-border">
+                      <Image className="w-4 h-4" />
+                    </div>
+                  )}
+                </td>
+
                 <td className="py-4 px-4 font-bold text-slate-700">
                   {item.name}
                 </td>

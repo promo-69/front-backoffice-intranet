@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { InputForm } from "@/components/ui/inputForm";
+import { Upload, X } from "lucide-react";
 
 function ErrorMessage({ message }) {
   return message ? (
@@ -29,8 +30,11 @@ const emptyProductForm = {
 
 export default function ProductModal({ open, onClose, initialData, categories = [], currencies = [], onSave }) {
   const isEdit = !!initialData;
+  const fileInputRef = useRef(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState(emptyProductForm);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
@@ -41,12 +45,15 @@ export default function ProductModal({ open, onClose, initialData, categories = 
           code: initialData.code || initialData.sku || "",
           product_category: initialData.product_category?.toString() || "",
           currency: (initialData.pricing?.currency ?? initialData.currency)?.toString() || "",
-          price: (initialData.pricing?.final_price ?? initialData.pricing?.base_price ?? initialData.price)?.toString() || "",
-          earned_loyalty_points: initialData.earned_loyalty_points?.toString() || "0",
+          price: (initialData.pricing?.base_price ?? initialData.price)?.toString() || "",
+          earned_loyalty_points: initialData.earned_loyalty_points !== null && initialData.earned_loyalty_points !== undefined ? initialData.earned_loyalty_points.toString() : "",
         });
+        setImagePreview(initialData.image_url || null);
       } else {
         setFormData(emptyProductForm);
+        setImagePreview(null);
       }
+      setImageFile(null);
       setErrors({});
     }
   }, [open, initialData]);
@@ -55,6 +62,23 @@ export default function ProductModal({ open, onClose, initialData, categories = 
     const { name, value } = e.target;
     setErrors((prev) => ({ ...prev, [name]: null, general: null }));
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        setErrors((prev) => ({ ...prev, image: "La imagen excede los 2MB" }));
+        return;
+      }
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+        setErrors((prev) => ({ ...prev, image: "Solo se permite JPG, PNG o WebP" }));
+        return;
+      }
+      setErrors((prev) => ({ ...prev, image: null }));
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+    }
   };
 
   const validateField = (name, value) => {
@@ -109,24 +133,31 @@ export default function ProductModal({ open, onClose, initialData, categories = 
     setIsSubmitting(true);
 
     try {
-      const payload = {
-        name: formData.name.trim(),
-        sku: formData.code.trim(),
-        productCategory: Number(formData.product_category),
-        currencyId: Number(formData.currency),
-        price: parseFloat(formData.price),
-        earnedLoyaltyPoints: formData.earned_loyalty_points
-          ? parseInt(formData.earned_loyalty_points, 10)
-          : null,
-      };
+      const payload = new FormData();
+      payload.append("name", formData.name.trim());
+      payload.append("sku", formData.code.trim());
+      payload.append("productCategory", Number(formData.product_category));
+      payload.append("currencyId", Number(formData.currency));
+      payload.append("price", parseFloat(formData.price));
+      
+      if (formData.earned_loyalty_points) {
+        payload.append("earnedLoyaltyPoints", parseInt(formData.earned_loyalty_points, 10));
+      }
+
+      if (imageFile) {
+        payload.append("image", imageFile);
+      }
 
       if (isEdit) {
-        payload.id = initialData.id;
+        payload.append("id", initialData.id);
       }
       await onSave(payload);
       onClose(true);
     } catch (error) {
       console.error("Error al guardar producto:", error);
+      if (error.response?.data) {
+        console.log("DETALLE DEL ERROR DEL SERVIDOR:", JSON.stringify(error.response.data, null, 2));
+      }
       const serverMessage = error.response?.data?.message || error.response?.data?.error || error.message;
       setErrors((prev) => ({
         ...prev,
@@ -139,7 +170,7 @@ export default function ProductModal({ open, onClose, initialData, categories = 
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose(false)}>
-      <DialogContent className="max-w-md bg-white rounded-cineflix p-6 shadow-2xl border-none">
+      <DialogContent className="max-w-md bg-white rounded-cineflix p-6 shadow-2xl border-none max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-brand-primary">
             {isEdit ? "Editar Producto" : "Nuevo Producto"}
@@ -152,6 +183,42 @@ export default function ProductModal({ open, onClose, initialData, categories = 
         </DialogHeader>
 
         <div className="space-y-4 mt-6">
+          {/* Imagen del Producto */}
+          <div className="flex flex-col items-center gap-2 pb-2">
+            <div className="w-full text-left">
+              <span className="text-[11px] font-montserrat font-bold text-brand-primary tracking-wide uppercase">
+                Imagen del Producto (Opcional)
+              </span>
+            </div>
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className={`relative w-28 h-28 rounded-full border-2 border-dashed flex flex-col items-center justify-center cursor-pointer overflow-hidden transition-all ${
+                errors.image ? 'border-red-500 bg-red-50' : imagePreview ? 'border-brand-primary' : 'border-gray-200 bg-gray-50'
+              }`}
+            >
+              {imagePreview ? (
+                <img src={imagePreview} alt="Preview" className="h-full w-full object-cover" />
+              ) : (
+                <div className="text-center p-2 flex flex-col items-center">
+                  <Upload className={`h-6 w-6 mb-1 ${errors.image ? 'text-red-400' : 'text-gray-300'}`} />
+                  <p className={`text-[8px] font-bold ${errors.image ? 'text-red-500' : 'text-gray-400'}`}>SUBIR</p>
+                </div>
+              )}
+            </div>
+            {errors.image && (
+              <p className="text-[10px] text-red-500 font-bold uppercase mt-1 italic">
+                * {errors.image}
+              </p>
+            )}
+            <input
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handleImageChange}
+            />
+          </div>
+
           {/* Nombre */}
           <div>
             <InputForm
