@@ -79,6 +79,7 @@ export default function ProductModal({ open, onClose, initialData, categories = 
       setImageFile(file);
       setImagePreview(URL.createObjectURL(file));
     }
+    e.target.value = ""; // Limpiar el valor para permitir volver a seleccionar el mismo archivo
   };
 
   const validateField = (name, value) => {
