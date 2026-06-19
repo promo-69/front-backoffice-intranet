@@ -8,6 +8,7 @@ import {
   deleteInventoryItem,
   getInventoryByCinema,
   registerCinemaMovement,
+  provisionCinemaProduct,
 } from "../../../services/inventory.service";
 import { getCatalogRecords } from "../../../services/catalog.service";
 import { concessionsService } from "../../../services/concessions.service";
@@ -19,6 +20,7 @@ import ComboTable from "../../../components/admin/inventory/ComboTable";
 import ComboModal from "../../../components/admin/inventory/ComboModal";
 import CinemaSelector from "../../../components/admin/inventory/CinemaSelector";
 import AdjustStockModal from "../../../components/admin/inventory/AdjustStockModal";
+import ProvisionProductModal from "../../../components/admin/inventory/ProvisionProductModal";
 import DeleteConfirmModal from "../../../components/ui/DialogConfirmModal";
 import SuccessModal from "../../../components/ui/SuccessModal";
 import { useLoading } from "../../../context/LoadingContext";
@@ -81,6 +83,9 @@ const ProductsPage = () => {
   // Ajuste de Stock
   const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false);
   const [itemToAdjust, setItemToAdjust] = useState(null);
+
+  // Habilitar / Aprovisionar Producto en Sucursal
+  const [isProvisionModalOpen, setIsProvisionModalOpen] = useState(false);
 
   const fetchCatalogs = async () => {
     try {
@@ -327,16 +332,45 @@ const ProductsPage = () => {
     setIsAdjustModalOpen(true);
   };
 
+  const handleProvisionProduct = async ({ productId, minimumStock }) => {
+    if (!selectedCinemaId) return;
+    try {
+      showLoader();
+      await provisionCinemaProduct(selectedCinemaId, productId, minimumStock);
+
+      // Recargar inventario
+      await fetchCinemaInventory();
+
+      setSuccessConfig({
+        title: "¡Producto Habilitado!",
+        message: "El producto ha sido asignado al inventario de esta sucursal con éxito.",
+      });
+      setIsSuccessOpen(true);
+    } catch (error) {
+      console.error("Error al habilitar producto en sucursal:", error);
+      toast.error(error?.response?.data?.message || "No se pudo habilitar el producto en la sucursal.");
+      throw error;
+    } finally {
+      hideLoader();
+    }
+  };
+
   const handleSaveAdjustStock = async (payload) => {
     if (!selectedCinemaId || !itemToAdjust) return;
     try {
       showLoader();
-      // payload = { quantity, type, reason }
-      await registerCinemaMovement(selectedCinemaId, itemToAdjust.id, {
-        type: payload.type,
-        quantity: payload.quantity,
-        description: payload.reason,
-      });
+      // El backend requiere un ARREGLO de movimientos con IDs de tipo de operación reales
+      // 3 = Entrada de Inventario (Compra a Proveedor), 5 = Ajuste de Inventario (Merma/Dañado)
+      const movementPayload = [
+        {
+          operationType: payload.type === "IN" ? 3 : 5,
+          quantity: Number(payload.quantity),
+          remarks: payload.reason,
+          unit_cost: 0,
+        }
+      ];
+
+      await registerCinemaMovement(selectedCinemaId, itemToAdjust.id, movementPayload);
 
       // Refrescar inventario
       await fetchCinemaInventory();
@@ -415,13 +449,23 @@ const ProductsPage = () => {
               }}
             />
           ) : activeTab === "byBranch" ? (
-            <input
-              type="text"
-              placeholder="Buscar en inventario..."
-              value={inventorySearchTerm}
-              onChange={(e) => setInventorySearchTerm(e.target.value)}
-              className="px-4 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-brand-primary/20 outline-none transition-all w-60"
-            />
+            <div className="flex items-center gap-3">
+              <input
+                type="text"
+                placeholder="Buscar en inventario..."
+                value={inventorySearchTerm}
+                onChange={(e) => setInventorySearchTerm(e.target.value)}
+                className="px-4 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-brand-primary/20 outline-none transition-all w-60"
+              />
+              <button
+                disabled={!selectedCinemaId}
+                onClick={() => setIsProvisionModalOpen(true)}
+                className="bg-brand-primary text-white px-6 py-2.5 rounded-xl flex items-center gap-2 text-[11px] font-black uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-md cursor-pointer whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100 font-montserrat"
+              >
+                <Plus className="w-4 h-4 text-brand-gold" strokeWidth={3} />
+                Habilitar Producto
+              </button>
+            </div>
           ) : (
             <div className="flex items-center gap-3">
               <input
@@ -618,6 +662,15 @@ const ProductsPage = () => {
         }}
         item={itemToAdjust}
         onSave={handleSaveAdjustStock}
+      />
+
+      {/* Modal Habilitar Producto */}
+      <ProvisionProductModal
+        open={isProvisionModalOpen}
+        onClose={() => setIsProvisionModalOpen(false)}
+        allProducts={allProducts}
+        cinemaInventory={cinemaInventory}
+        onSave={handleProvisionProduct}
       />
     </div>
   );
