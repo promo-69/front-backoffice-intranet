@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "../pages/auth/login";
 import Dashboard from "../pages/admin/dashboard";
 import DashboardCashier from "../pages/ticketOffice/dashboardCashier";
-import Billboard from "../pages/admin/billboard/billboard"
+import Billboard from "../pages/admin/billboard/billboard";
 //import Exhibition from "@/pages/admin/exhibition/bilboardPage";
 import SellTickets from "../pages/ticketOffice/sellTickets";
 import CandyBar from "../pages/ticketOffice/candyBar";
@@ -15,6 +15,7 @@ import Personal from "../pages/admin/personal/personalPage";
 import CinemasPage from "../pages/admin/cinemas/cinemas";
 import CatalogsPage from "../pages/admin/catalogs/catalogs";
 import ProductsPage from "../pages/admin/inventory/products";
+import FinancesPage from "../pages/admin/finances/finances";
 
 import ProtectedRoute from "./ProtectedRoute";
 import GlobalLoader from "../components/ui/GlobalLoader";
@@ -25,6 +26,8 @@ import EditRolePage from "@/pages/admin/personal/editRolePage";
 import NoAccess from "@/pages/noAccess";
 import RentalRequestsList from "@/pages/rentals/RentalRequestsList";
 import RentalRequestDetail from "@/pages/rentals/RentalRequestDetail";
+
+import ReportsDashboard from "@/pages/admin/reports/reportsDashboard";
 
 import { ROUTE_PERMISSIONS } from "@/lib/route-permissions";
 
@@ -134,21 +137,11 @@ function AppRoute() {
         />
 
         <Route
-          path="/admin/rentals"
+          path="/admin/finanzas"
           element={
-            <ProtectedRoute anyOf={[ROUTE_PERMISSIONS.RENTALS_READ, ROUTE_PERMISSIONS.RENTALS_GLOBAL_READ]}>
+            <ProtectedRoute permission={ROUTE_PERMISSIONS.FINANCES_READ}>
               <AdminLayout>
-                <RentalRequestsList />
-              </AdminLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/rentals/:id"
-          element={
-            <ProtectedRoute anyOf={[ROUTE_PERMISSIONS.RENTALS_READ, ROUTE_PERMISSIONS.RENTALS_GLOBAL_READ]}>
-              <AdminLayout>
-                <RentalRequestDetail />
+                <FinancesPage />
               </AdminLayout>
             </ProtectedRoute>
           }
@@ -159,7 +152,7 @@ function AppRoute() {
           element={
             <ProtectedRoute permission={ROUTE_PERMISSIONS.REPORTS_READ}>
               <AdminLayout>
-                <div className="p-4">Próximamente: Reportes</div>
+                <ReportsDashboard />
               </AdminLayout>
             </ProtectedRoute>
           }

@@ -19,7 +19,7 @@ export const menuByRole = {
     { label: "Dashboard", path: "/admin/dashboard" },
     { label: "Empleados", path: "/admin/employees" },
     { label: "Funciones", path: "/admin/functions" },
-    { label: "Alquiler de Salas", path: "/admin/rentals" },
+    { label: "Reportes", patch: "/admin/reports" },
   ],
 
   CASHIER: [{ label: "Caja", path: "/ticketOffice/dashboard" }],

@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "../../../components/ui/dropdown-menu";
 import { getAvailableCatalogs, getCatalogRecords, deleteCatalogRecord, getCatalogMetadata } from "../../../services/catalog.service";
 import CatalogSearchBar from "../../../components/admin/catalogs/CatalogSearchBar";
 import CatalogTable from "../../../components/admin/catalogs/CatalogTable";
@@ -13,12 +19,32 @@ const CATALOG_TRANSLATIONS = {
   "actions": "Maestros",
   "age-classifications": "Clasificaciones por Edad",
   "audience-categories": "Categorías de Audiencia",
+  "booking-types": "Tipos de Reserva",
   "cinemas": "Sucursales",
-  "product-categories": "Categorías de Producto",
   "currencies": "Monedas",
   "customers": "Clientes",
   "employee-positions": "Cargos de Empleados",
   "employees": "Empleados",
+  "genres": "Géneros",
+  "genders": "Género",
+  "job-positions": "Puestos de Trabajo",
+  "languages": "Idiomas",
+  "line-types": "Tipos de Línea",
+  "loyalty-levels": "Niveles de Fidelidad",
+  "modifier-scopes": "Alcances de Modificadores",
+  "movie-lifecycle-states": "Estados de Película",
+  "operation-types": "Tipos de Operación",
+  "order-statuses": "Estados de Pedido",
+  "payment-methods": "Métodos de Pago",
+  "permission-types": "Tipos de Permiso",
+  "product-categories": "Categorías de Producto",
+  "projection-types": "Tipos de Proyección",
+  "resources": "Recursos",
+  "room-types": "Tipos de Sala",
+  "seat-categories": "Categorías de Asientos",
+  "seat-conditions": "Condición de Asiento",
+  "user-types": "Tipos de Usuario",
+  "week-days": "Días de la Semana",
 };
 
 // Lista blanca de catálogos que queremos mostrar
@@ -37,6 +63,8 @@ const CatalogsPage = () => {
   const { showLoader, hideLoader } = useLoading();
 
   const [availableCatalogs, setAvailableCatalogs] = useState(["actions", "product-categories"]);
+  const [availablePage, setAvailablePage] = useState(1);
+  const [availableMetadata, setAvailableMetadata] = useState(null);
   const [selectedCatalog, setSelectedCatalog] = useState("actions");
   const [catalogs, setCatalogs] = useState([]);
   const [catalogMetadata, setCatalogMetadata] = useState(null);
@@ -61,34 +89,61 @@ const CatalogsPage = () => {
   const [successConfig, setSuccessConfig] = useState({ title: "", message: "" });
 
   // Cargar lista de catálogos disponibles al iniciar
+  const fetchedAvailableRef = React.useRef(false);
+
   useEffect(() => {
     const fetchAvailable = async () => {
       try {
-        const res = await getAvailableCatalogs();
+        const res = await getAvailableCatalogs(1);
         // La API puede devolver { data: [...] } o simplemente [...]
         let list = res.data || res;
+        const metadata = res.metadata || null;
+        setAvailableMetadata(metadata);
 
-        // Filtrar los catálogos usando la lista blanca (WHITELIST)
-        list = list.filter(cat => {
-          const val = typeof cat === "string" ? cat : cat.name;
-          return CATALOG_WHITELIST.includes(val);
-        });
+        // Normalizar como array de nombres (strings)
+        const names = list.map(c => (typeof c === "string" ? c : c.name)).filter(Boolean);
+        // Normalizar como array de nombres (strings) (no whitelist)
 
         // Mezclar con "actions" y "product-categories" precargados sin duplicar
         setAvailableCatalogs(prev => {
-          const existing = new Set(prev.map(c => typeof c === "string" ? c : c.name));
-          const newItems = list.filter(c => {
-            const val = typeof c === "string" ? c : c.name;
-            return !existing.has(val);
-          });
+          const existing = new Set(prev.map(c => (typeof c === "string" ? c : c.name)));
+          const newItems = names.filter(name => !existing.has(name));
           return [...prev, ...newItems];
         });
+        setAvailablePage(1);
       } catch (error) {
         console.error("Error al cargar catálogos disponibles:", error);
       }
     };
-    fetchAvailable();
+    // Evitar llamadas duplicadas (React StrictMode monta dos veces en dev)
+    if (!fetchedAvailableRef.current) {
+      fetchedAvailableRef.current = true;
+      fetchAvailable();
+    }
   }, []);
+
+  const loadMoreAvailable = async () => {
+    try {
+      const nextPage = (availablePage || 1) + 1;
+      const res = await getAvailableCatalogs(nextPage);
+      let list = res.data || res;
+      const metadata = res.metadata || null;
+      setAvailableMetadata(metadata);
+
+      // Normalizar como array de nombres (strings) (no whitelist)
+      const names = list.map(c => (typeof c === "string" ? c : c.name)).filter(Boolean);
+
+      setAvailableCatalogs(prev => {
+        const existing = new Set(prev.map(c => (typeof c === "string" ? c : c.name)));
+        const newItems = names.filter(name => !existing.has(name));
+        return [...prev, ...newItems];
+      });
+
+      setAvailablePage(nextPage);
+    } catch (error) {
+      console.error("Error cargando más catálogos:", error);
+    }
+  };
 
   const fetchCatalogs = async (page = 1) => {
     if (!selectedCatalog || selectedCatalog === "actions") {
@@ -178,28 +233,62 @@ const CatalogsPage = () => {
         </div>
 
         <div className="flex gap-4 items-center">
-          <select
-            value={selectedCatalog}
-            onChange={(e) => {
-              setSelectedCatalog(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="border border-gray-200 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold bg-gray-50 text-brand-primary font-semibold capitalize"
-          >
-            {availableCatalogs.map((cat, idx) => {
-              const val = typeof cat === "string" ? cat : cat.name;
+          <div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="w-[320px] flex items-center justify-between border border-gray-200 rounded-lg p-2 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold bg-white text-brand-primary font-semibold capitalize">
+                  <span>
+                    {(() => {
+                      const val = selectedCatalog;
+                      const autoLabel = val ? val.split("-").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ") : "";
+                      return CATALOG_TRANSLATIONS[val?.toLowerCase()] || autoLabel;
+                    })()}
+                  </span>
+                  <ChevronDown className="h-4 w-4 text-gray-500" />
+                </button>
+              </DropdownMenuTrigger>
 
-              // Generar un label bonito por si no está en el diccionario (ej: "movie-genres" -> "Movie Genres")
-              const autoLabel = val
-                ? val.split("-").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ")
-                : "";
+              <DropdownMenuContent className="w-[320px] max-h-64 bg-white text-brand-primary border border-gray-200 shadow-sm rounded-lg p-1">
+                {availableCatalogs.map((cat, idx) => {
+                  const val = typeof cat === "string" ? cat : cat.name;
+                  const autoLabel = val ? val.split("-").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ") : "";
+                  const label = CATALOG_TRANSLATIONS[val?.toLowerCase()] || autoLabel;
+                  return (
+                    <DropdownMenuItem
+                      key={idx}
+                      onSelect={() => {
+                        setSelectedCatalog(val);
+                        setCurrentPage(1);
+                      }}
+                    >
+                      {label}
+                    </DropdownMenuItem>
+                  );
+                })}
 
-              // Si tenemos traducción la usamos, si no, mostramos el valor arreglado
-              const label = CATALOG_TRANSLATIONS[val?.toLowerCase()] || autoLabel;
-
-              return <option key={idx} value={val}>{label}</option>
-            })}
-          </select>
+                <div className="px-2 py-2 border-t">
+                  {(() => {
+                    const canLoadMore = availableMetadata
+                      ? (availableMetadata.next_page || (availableMetadata.current_page && availableMetadata.total_pages && availableMetadata.current_page < availableMetadata.total_pages))
+                      : (availableCatalogs.length >= 10);
+                    return (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          loadMoreAvailable();
+                        }}
+                        disabled={!canLoadMore}
+                        className="w-full text-left text-sm px-3 py-2 rounded-md bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-50"
+                      >
+                        Cargar más...
+                      </button>
+                    );
+                  })()}
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
 
           <CatalogSearchBar
             searchTerm={searchTerm}

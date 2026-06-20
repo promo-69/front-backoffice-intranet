@@ -10,6 +10,7 @@ import {
   ShoppingBag,
   BookOpen,
   Calendar,
+  Landmark,
 } from "lucide-react";
 
 import {
@@ -89,6 +90,13 @@ const navItems = [
     url: "/admin/reports",
     icon: BarChart3,
     permission: "CRUD:READ:REPORTS", 
+  },
+  {
+    id: "finances",
+    title: "Finanzas",
+    url: "/admin/finanzas",
+    icon: Landmark,
+    permission: "CRUD:READ:CURRENCIES",
   },
 
   // Cajero

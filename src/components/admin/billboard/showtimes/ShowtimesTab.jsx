@@ -2,8 +2,6 @@ import { Pencil, Trash2, Clock, Calendar } from "lucide-react";
 
 export function ShowtimesTab({ data, onEdit, onDelete, isLoading = false }) {
   
-  console.log("¿Qué le llega a la Tabla?", data);
-
   const formatTime = (dateStr) => {
     if (!dateStr) return "N/A";
     return new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -13,6 +11,7 @@ export function ShowtimesTab({ data, onEdit, onDelete, isLoading = false }) {
     if (!isoStr) return "N/A";
     return new Date(isoStr).toLocaleDateString();
   };
+  
   
   const skeletonRows = Array(5).fill(0);
 

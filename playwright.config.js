@@ -13,10 +13,10 @@ export default defineConfig({
   reporter: 'html',
   
   use: {
-    /* URL base de tu servidor local de Vite */
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'https://localhost:5174/',
+    /* Ajustado a 127.0.0.1 para coincidir con el --host de tu package.json */
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'https://127.0.0.1:5174/',
 
-    /* Ignora errores de certificados SSL auto-firmados */
+    /* Ignora errores de certificados SSL auto-firmados (esencial por tu basic-ssl) */
     ignoreHTTPSErrors: true,
 
     /* Recolecta trazas en caso de fallos */
@@ -37,4 +37,11 @@ export default defineConfig({
       use: { ...devices['Desktop Safari'] },
     },
   ],
+
+  webServer: {
+    command: 'yarn dev',                 
+    url: 'https://127.0.0.1:5174/',       
+    reuseExistingServer: !process.env.CI, 
+    timeout: 60000,                      
+  },
 });
