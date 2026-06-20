@@ -5,6 +5,7 @@ export const menuByRole = {
     { label: "Empleados", path: "/admin/employees" },
     { label: "Roles", path: "/admin/roles" },
     { label: "Permisos", path: "/admin/permissions" },
+    { label: "Alquiler de Salas", path: "/admin/rentals" },
     { label: "Reportes", path: "/admin/reports" },
   ],
 
@@ -18,6 +19,7 @@ export const menuByRole = {
     { label: "Dashboard", path: "/admin/dashboard" },
     { label: "Empleados", path: "/admin/employees" },
     { label: "Funciones", path: "/admin/functions" },
+    { label: "Alquiler de Salas", path: "/admin/rentals" },
   ],
 
   CASHIER: [{ label: "Caja", path: "/ticketOffice/dashboard" }],

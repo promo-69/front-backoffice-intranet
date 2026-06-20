@@ -23,6 +23,8 @@ import { useLoading } from "../context/LoadingContext";
 import CreateRolePage from "@/pages/admin/personal/createRolePage";
 import EditRolePage from "@/pages/admin/personal/editRolePage";
 import NoAccess from "@/pages/noAccess";
+import RentalRequestsList from "@/pages/rentals/RentalRequestsList";
+import RentalRequestDetail from "@/pages/rentals/RentalRequestDetail";
 
 import { ROUTE_PERMISSIONS } from "@/lib/route-permissions";
 
@@ -126,6 +128,27 @@ function AppRoute() {
             <ProtectedRoute permission={ROUTE_PERMISSIONS.INVENTORY_READ}>
               <AdminLayout>
                 <ProductsPage />
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/rentals"
+          element={
+            <ProtectedRoute anyOf={[ROUTE_PERMISSIONS.RENTALS_READ, ROUTE_PERMISSIONS.RENTALS_GLOBAL_READ]}>
+              <AdminLayout>
+                <RentalRequestsList />
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/rentals/:id"
+          element={
+            <ProtectedRoute anyOf={[ROUTE_PERMISSIONS.RENTALS_READ, ROUTE_PERMISSIONS.RENTALS_GLOBAL_READ]}>
+              <AdminLayout>
+                <RentalRequestDetail />
               </AdminLayout>
             </ProtectedRoute>
           }

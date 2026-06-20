@@ -45,7 +45,6 @@ export default function Step2Seats({ showtime, movie, seatMap, onNext, onBack })
     };
 
     const onSeatsSoldFinal = ({ seats: seatIds }) => {
-      saveSoldSeats(showtime.id, seatIds);
       const idSet = new Set(seatIds);
       setSeats((prev) =>
         prev.map((s) => (idSet.has(s.dbId) ? { ...s, status: "sold" } : s))
