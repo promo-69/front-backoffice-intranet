@@ -24,6 +24,8 @@ import { useLoading } from "../context/LoadingContext";
 import CreateRolePage from "@/pages/admin/personal/createRolePage";
 import EditRolePage from "@/pages/admin/personal/editRolePage";
 import NoAccess from "@/pages/noAccess";
+import RentalRequestsList from "@/pages/rentals/RentalRequestsList";
+import RentalRequestDetail from "@/pages/rentals/RentalRequestDetail";
 
 import ReportsDashboard from "@/pages/admin/reports/reportsDashboard";
 
