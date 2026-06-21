@@ -34,7 +34,7 @@ const CATALOG_FALLBACKS = {
 };
 // Catálogos que tienen endpoints específicos en el backend
 const CATALOG_API_ROUTES = {
-  
+  "cinemas": { base: "/cinemas", metadata: [] },
 };
 
 function hasSpecialRoute(catalogName) {
@@ -89,9 +89,19 @@ export const getAvailableCatalogs = async (page = 1, perPage = 10) => {
 export const getCatalogRecords = async (catalogName, page = 1) => {
   if (hasSpecialRoute(catalogName)) {
     const response = await api.get(getRoute(catalogName));
-    
-    const list = Array.isArray(response.data) ? response.data : response.data.data || [];
-    
+
+    // Handle: array | { data: [] } | { rows: [], count: N }
+    let list;
+    if (Array.isArray(response.data)) {
+      list = response.data;
+    } else if (Array.isArray(response.data?.data)) {
+      list = response.data.data;
+    } else if (Array.isArray(response.data?.rows)) {
+      list = response.data.rows;
+    } else {
+      list = [];
+    }
+
     return {
       data: list,
       metadata: {
@@ -105,7 +115,7 @@ export const getCatalogRecords = async (catalogName, page = 1) => {
     };
   }
   const response = await api.get(`/catalogs/${catalogName}?page=${page}`);
-  return response.data; 
+  return response.data;
 };
 
 export const getCatalogByName = async (catalogName) => {
@@ -121,7 +131,7 @@ export const getCatalogMetadata = async (catalogName) => {
   const response = await api.get(`/catalogs/${catalogName}/metadata`);
   return response.data;
 };
- 
+
 // Crear un registro en un catálogo
 export const createCatalogRecord = async (catalogName, data) => {
   if (hasSpecialRoute(catalogName)) {

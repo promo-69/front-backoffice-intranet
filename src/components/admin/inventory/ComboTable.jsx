@@ -1,20 +1,19 @@
-import { Pencil, Trash2, DollarSign, Tag, Award, Image } from "lucide-react";
+import React from "react";
+import { Pencil, Trash2, Tag, Award, Image, Info } from "lucide-react";
 
-const ProductTable = ({ data, onEdit, onDelete, categories = [], currencies = [] }) => {
+const ComboTable = ({ data = [], onEdit, onDelete, cinemas = [], currencies = [] }) => {
   const safeData = Array.isArray(data) ? data : [];
 
-  // Helper para formatear precio
   const formatPrice = (value) => {
     if (value == null) return "—";
     return Number(value).toFixed(2);
   };
 
-  const getCategoryLabel = (categoryId) => {
-    const cat = categories.find((c) => c.id == categoryId);
-    return cat?.name || cat?.description || "—";
+  const getCinemaLabel = (cinemaId) => {
+    const cinema = cinemas.find((c) => c.id == cinemaId);
+    return cinema?.name || cinema?.description || "—";
   };
 
-  // Helper para obtener símbolo de moneda desde el FK
   const getCurrencySymbol = (currencyId) => {
     const curr = currencies.find((c) => c.id == currencyId);
     return curr?.symbol || "$";
@@ -26,9 +25,10 @@ const ProductTable = ({ data, onEdit, onDelete, categories = [], currencies = []
         <thead>
           <tr className="text-gray-600 uppercase tracking-wider border-b border-border font-montserrat">
             <th className="py-4 px-4 text-center">Imagen</th>
-            <th className="py-4 px-4">Nombre</th>
-            <th className="py-4 px-4">Código</th>
-            <th className="py-4 px-4 text-center">Categoría</th>
+            <th className="py-4 px-4">Combo</th>
+            <th className="py-4 px-4">Código (SKU)</th>
+            <th className="py-4 px-4">Descripción</th>
+            <th className="py-4 px-4 text-center">Sucursal</th>
             <th className="py-4 px-4 text-center">Precio</th>
             <th className="py-4 px-4 text-center">Puntos Lealtad</th>
             <th className="py-4 px-4 text-center">Acciones</th>
@@ -38,8 +38,8 @@ const ProductTable = ({ data, onEdit, onDelete, categories = [], currencies = []
         <tbody className="divide-y divide-border">
           {safeData.length === 0 ? (
             <tr>
-              <td colSpan="7" className="text-center py-10 text-gray-400 font-montserrat">
-                No hay productos disponibles
+              <td colSpan="8" className="text-center py-10 text-gray-400 font-montserrat">
+                No hay combos registrados para esta sucursal
               </td>
             </tr>
           ) : (
@@ -48,6 +48,7 @@ const ProductTable = ({ data, onEdit, onDelete, categories = [], currencies = []
                 key={item.id}
                 className="transition-colors group font-montserrat hover:bg-brand-primary/10 bg-transparent"
               >
+                {/* Imagen */}
                 <td className="py-3 px-4 text-center">
                   {item.image_url ? (
                     <img
@@ -62,21 +63,29 @@ const ProductTable = ({ data, onEdit, onDelete, categories = [], currencies = []
                   )}
                 </td>
 
+                {/* Nombre */}
                 <td className="py-4 px-4 font-bold text-slate-700">
                   {item.name}
                 </td>
 
+                {/* SKU */}
                 <td className="py-4 px-4 text-gray-500 font-mono text-[11px]">
-                  {item.code || item.sku || "—"}
+                  {item.sku || "—"}
                 </td>
 
+                {/* Descripción */}
+                <td className="py-4 px-4 text-gray-600 max-w-xs truncate">
+                  {item.description || "—"}
+                </td>
+
+                {/* Sucursal */}
                 <td className="py-4 px-4 text-center">
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-brand-gold/15 text-brand-primary">
-                    <Tag className="w-3 h-3" />
-                    {getCategoryLabel(item.product_category)}
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 border">
+                    {getCinemaLabel(item.cinema)}
                   </span>
                 </td>
 
+                {/* Precio */}
                 <td className="py-4 px-4 text-center">
                   <div className="flex items-center justify-center gap-1 text-gray-600 font-semibold">
                     <span>
@@ -86,6 +95,7 @@ const ProductTable = ({ data, onEdit, onDelete, categories = [], currencies = []
                   </div>
                 </td>
 
+                {/* Puntos de Lealtad */}
                 <td className="py-4 px-4 text-center">
                   <div className="flex items-center justify-center gap-1">
                     <Award className="w-3 h-3 text-yellow-500" />
@@ -95,6 +105,7 @@ const ProductTable = ({ data, onEdit, onDelete, categories = [], currencies = []
                   </div>
                 </td>
 
+                {/* Acciones */}
                 <td className="py-4 px-4">
                   <div className="flex justify-center gap-3">
                     <button
@@ -127,4 +138,4 @@ const ProductTable = ({ data, onEdit, onDelete, categories = [], currencies = []
   );
 };
 
-export default ProductTable;
+export default ComboTable;

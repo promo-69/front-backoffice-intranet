@@ -11,8 +11,13 @@ export const getInventoryById = async (id) => {
 };
 
 export const getInventoryByCinema = async (cinemaId, params = {}) => {
-  const response = await api.get(`/concessions/inventory/${cinemaId}`, { params });
-  return response.data;
+  try {
+    const response = await api.get(`/cinemas/${cinemaId}/inventory`, { params });
+    return response.data;
+  } catch (err) {
+    const response = await api.get(`/concessions/inventory/${cinemaId}`, { params });
+    return response.data;
+  }
 };
 
 export const createInventoryItem = async (payload) => {
@@ -39,3 +44,14 @@ export const registerCinemaMovement = async (cinemaId, id, payload) => {
   const response = await api.post(`/cinemas/${cinemaId}/inventory/${id}/movements`, payload);
   return response.data;
 };
+
+export const provisionCinemaProduct = async (cinemaId, productId, minimumStock = 0) => {
+  const response = await api.post(`/cinemas/${cinemaId}/inventory/products/${productId}`, { minimumStock });
+  return response.data;
+};
+
+export const getGlobalInventory = async (params = {}) => {
+  const response = await api.get("/inventory/admin/all", { params });
+  return response.data;
+};
+
