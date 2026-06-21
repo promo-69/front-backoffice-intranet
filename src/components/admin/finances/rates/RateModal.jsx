@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { InputForm } from "@/components/ui/inputForm";
+import { SelectForm } from "@/components/ui/SelectForm";
 
 function ErrorMessage({ message }) {
   return message ? (
@@ -80,8 +81,8 @@ export default function RateModal({ open, onClose, currencies = [], onSave }) {
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose(false)}>
-      <DialogContent className="max-w-sm bg-white rounded-cineflix p-6 shadow-2xl border-none">
-        <DialogHeader>
+      <DialogContent className="max-w-md bg-white rounded-cineflix p-0 shadow-2xl border-none flex flex-col max-h-[90vh]">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b border-gray-100">
           <DialogTitle className="text-xl font-bold text-brand-primary">
             Nueva Tasa de Cambio
           </DialogTitle>
@@ -90,93 +91,62 @@ export default function RateModal({ open, onClose, currencies = [], onSave }) {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 mt-6">
-          <div className="relative w-full">
-            <label
-              className="
-                absolute 
-                top-1 
-                left-0 
-                pl-2
-                text-[11px] 
-                font-montserrat 
-                font-bold 
-                text-brand-primary 
-                tracking-wide 
-                uppercase
-              "
-            >
-              Moneda
-            </label>
-            <select
-              name="currency_id"
-              value={formData.currency_id}
-              onChange={handleChange}
-              className="
-                w-full 
-                bg-white 
-                border 
-                border-border 
-                rounded-cineflix 
-                px-3 
-                pt-6 
-                pb-2 
-                text-sm 
-                font-montserrat
-                focus:outline-none 
-                focus:ring-2 
-                focus:ring-brand-primary/40 
-                focus:border-brand-primary
-                appearance-none
-                cursor-pointer
-              "
-            >
-              <option value="">Selecciona una moneda</option>
-              {currencies.map((curr) => (
-                <option key={curr.id} value={curr.id}>
-                  {curr.code} — {curr.description}
-                </option>
-              ))}
-            </select>
-            <ErrorMessage message={errors.currency_id} />
+        <div className="flex flex-col flex-1 overflow-hidden">
+          <div className="p-6 overflow-y-auto flex-1 space-y-4">
+            <div>
+              <SelectForm
+                label="Moneda"
+                name="currency_id"
+                value={formData.currency_id}
+                onChange={handleChange}
+                error={errors.currency_id}
+              >
+                <option value="">Selecciona una moneda</option>
+                {currencies.map((curr) => (
+                  <option key={curr.id} value={curr.id}>
+                    {curr.code} — {curr.description}
+                  </option>
+                ))}
+              </SelectForm>
+            </div>
+
+            <div>
+              <InputForm
+                label="Tasa de Cambio"
+                name="rate"
+                type="number"
+                step="0.0001"
+                value={formData.rate}
+                onChange={handleChange}
+                placeholder="Ej: 45.50"
+              />
+              <ErrorMessage message={errors.rate} />
+            </div>
+
+            {errors.general && (
+              <p className="text-red-500 text-xs text-center font-bold mt-2">
+                {errors.general}
+              </p>
+            )}
           </div>
 
-          <div>
-            <InputForm
-              label="Tasa de Cambio"
-              name="rate"
-              type="number"
-              step="0.0001"
-              value={formData.rate}
-              onChange={handleChange}
-              placeholder="Ej: 45.50"
-            />
-            <ErrorMessage message={errors.rate} />
-          </div>
-
-          {errors.general && (
-            <p className="text-red-500 text-xs text-center font-bold mt-2">
-              {errors.general}
-            </p>
-          )}
+          <DialogFooter className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex gap-3">
+            <Button
+              variant="outline"
+              onClick={() => onClose(false)}
+              className="flex-1"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="flex-1 bg-brand-primary text-white font-bold hover:bg-brand-primary/90"
+            >
+              Registrar
+            </Button>
+          </DialogFooter>
         </div>
-
-        <DialogFooter className="mt-8 flex gap-3">
-          <Button
-            variant="outline"
-            onClick={() => onClose(false)}
-            className="flex-1"
-          >
-            Cancelar
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="flex-1 bg-brand-primary text-white font-bold hover:bg-brand-primary/90"
-          >
-            Registrar
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
