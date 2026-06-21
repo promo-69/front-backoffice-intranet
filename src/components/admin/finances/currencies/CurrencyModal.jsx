@@ -95,8 +95,8 @@ export default function CurrencyModal({ open, onClose, initialData, onSave }) {
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose(false)}>
-      <DialogContent className="max-w-sm bg-white rounded-cineflix p-6 shadow-2xl border-none">
-        <DialogHeader>
+      <DialogContent className="max-w-md bg-white rounded-cineflix p-0 shadow-2xl border-none flex flex-col max-h-[90vh]">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b border-gray-100">
           <DialogTitle className="text-xl font-bold text-brand-primary">
             {isEdit ? "Editar Moneda" : "Nueva Moneda"}
           </DialogTitle>
@@ -107,63 +107,65 @@ export default function CurrencyModal({ open, onClose, initialData, onSave }) {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 mt-6">
-          <div>
-            <InputForm
-              label="Código (Ej: USD, VES)"
-              name="code"
-              value={formData.code}
-              onChange={handleChange}
-              placeholder="Ej: USD"
-            />
-            <ErrorMessage message={errors.code} />
+        <div className="flex flex-col flex-1 overflow-hidden">
+          <div className="p-6 overflow-y-auto flex-1 space-y-4">
+            <div>
+              <InputForm
+                label="Código (Ej: USD, VES)"
+                name="code"
+                value={formData.code}
+                onChange={handleChange}
+                placeholder="Ej: USD"
+              />
+              <ErrorMessage message={errors.code} />
+            </div>
+
+            <div>
+              <InputForm
+                label="Descripción"
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                placeholder="Ej: Dólares"
+              />
+              <ErrorMessage message={errors.description} />
+            </div>
+
+            <div>
+              <InputForm
+                label="Símbolo"
+                name="symbol"
+                value={formData.symbol}
+                onChange={handleChange}
+                placeholder="Ej: $"
+              />
+              <ErrorMessage message={errors.symbol} />
+            </div>
+
+            {errors.general && (
+              <p className="text-red-500 text-xs text-center font-bold mt-2">
+                {errors.general}
+              </p>
+            )}
           </div>
 
-          <div>
-            <InputForm
-              label="Descripción"
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              placeholder="Ej: Dólares"
-            />
-            <ErrorMessage message={errors.description} />
-          </div>
-
-          <div>
-            <InputForm
-              label="Símbolo"
-              name="symbol"
-              value={formData.symbol}
-              onChange={handleChange}
-              placeholder="Ej: $"
-            />
-            <ErrorMessage message={errors.symbol} />
-          </div>
-
-          {errors.general && (
-            <p className="text-red-500 text-xs text-center font-bold mt-2">
-              {errors.general}
-            </p>
-          )}
+          <DialogFooter className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex gap-3">
+            <Button
+              variant="outline"
+              onClick={() => onClose(false)}
+              className="flex-1"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="flex-1 bg-brand-primary text-white font-bold hover:bg-brand-primary/90"
+            >
+              {isEdit ? "Actualizar" : "Registrar"}
+            </Button>
+          </DialogFooter>
         </div>
-
-        <DialogFooter className="mt-8 flex gap-3">
-          <Button
-            variant="outline"
-            onClick={() => onClose(false)}
-            className="flex-1"
-          >
-            Cancelar
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="flex-1 bg-brand-primary text-white font-bold hover:bg-brand-primary/90"
-          >
-            {isEdit ? "Actualizar" : "Registrar"}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

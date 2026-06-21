@@ -22,6 +22,14 @@ import RateModal from "@/components/admin/finances/rates/RateModal";
 
 import DeleteConfirmModal from "@/components/ui/DialogConfirmModal";
 import SuccessModal from "@/components/ui/SuccessModal";
+import { usePermission } from "@/hooks/usePermission";
+import { ROUTE_PERMISSIONS } from "@/lib/route-permissions";
+import { paymentsService } from "@/services/payments.service";
+import { toast } from "sonner";
+
+import BankAccountSearchBar from "@/components/admin/finances/bank-accounts/BankAccountSearchBar";
+import BankAccountTable from "@/components/admin/finances/bank-accounts/BankAccountTable";
+import BankAccountModal from "@/components/admin/finances/bank-accounts/BankAccountModal";
 
 function CurrenciesTab() {
   const { showLoader, hideLoader } = useLoading();
@@ -420,13 +428,222 @@ function RatesTab() {
   );
 }
 
-const FinancesPage = () => {
-  const [activeTab, setActiveTab] = useState("currencies");
+function BankAccountsTab() {
+  const { showLoader, hideLoader } = useLoading();
+  const [accounts, setAccounts] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  const TABS = [
-    { id: "currencies", label: "Monedas" },
-    { id: "rates", label: "Tasas de Cambio" },
-  ];
+  const [metadata, setMetadata] = useState({
+    total: 0,
+    per_page: 10,
+    current_page: 1,
+    total_pages: 1,
+    next_page: null,
+    prev_page: null,
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [accountToEdit, setAccountToEdit] = useState(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
+  const [isSuccessOpen, setIsSuccessOpen] = useState(false);
+  const [successConfig, setSuccessConfig] = useState({ title: "", message: "" });
+
+  const fetchData = async () => {
+    try {
+      showLoader();
+      const response = await paymentsService.getBankAccounts({ page: currentPage, limit: metadata.per_page });
+      setAccounts(response?.data ?? []);
+      if (response?.metadata) {
+        setMetadata(response.metadata);
+      }
+    } catch (error) {
+      console.error("Error al cargar cuentas bancarias:", error);
+      setAccounts([]);
+    } finally {
+      hideLoader();
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [currentPage]);
+
+  const handleOpenEditModal = (account) => {
+    setAccountToEdit(account);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = (shouldRefresh) => {
+    setIsModalOpen(false);
+    if (shouldRefresh) {
+      fetchData();
+      setSuccessConfig({
+        title: accountToEdit ? "¡Cambios Guardados!" : "¡Registro Exitoso!",
+        message: accountToEdit
+          ? "La información de la cuenta bancaria ha sido actualizada."
+          : "La nueva cuenta bancaria ha sido registrada.",
+      });
+      setIsSuccessOpen(true);
+    }
+    setAccountToEdit(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    try {
+      showLoader();
+      await paymentsService.deleteBankAccount(itemToDelete.id);
+      setIsDeleteModalOpen(false);
+      setSuccessConfig({
+        title: "¡Cuenta Eliminada!",
+        message: `Se ha eliminado la cuenta bancaria exitosamente.`,
+      });
+      setIsSuccessOpen(true);
+      fetchData();
+    } catch (error) {
+      console.error("Error al eliminar cuenta bancaria:", error);
+      const backendMessage = error.response?.data?.message || "Ocurrió un error al eliminar";
+      toast.error(backendMessage);
+    } finally {
+      setItemToDelete(null);
+      hideLoader();
+    }
+  };
+
+  const handleSaveAccount = async (payload) => {
+    if (payload.id) {
+      await paymentsService.updateBankAccount(payload.id, payload);
+    } else {
+      await paymentsService.createBankAccount(payload);
+    }
+  };
+
+  const filteredAccounts = accounts.filter((a) => {
+    if (!searchTerm) return true;
+    const search = searchTerm.toLowerCase();
+    const bankName = a._Banks?.name?.toLowerCase() || "";
+    const currency = a._Currencies?.code?.toLowerCase() || "";
+    return bankName.includes(search) || currency.includes(search);
+  });
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-300">
+      <div className="flex justify-between items-center border-b border-gray-100 pb-4">
+        <div>
+          <h3 className="text-lg font-montserrat font-bold text-brand-primary">
+            Cuentas Bancarias
+          </h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            Gestiona las cuentas bancarias para métodos de pago.
+          </p>
+        </div>
+        <BankAccountSearchBar
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          onAddClick={() => {
+            setAccountToEdit(null);
+            setIsModalOpen(true);
+          }}
+        />
+      </div>
+
+      <BankAccountTable
+        data={filteredAccounts}
+        onEdit={handleOpenEditModal}
+        onDelete={(id) => {
+          const acc = accounts.find((x) => x.id === id);
+          setItemToDelete(acc);
+          setIsDeleteModalOpen(true);
+        }}
+      />
+
+      {/* Paginación simplificada */}
+      <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6 rounded-b-xl shadow-sm">
+        <div className="flex justify-between flex-1 sm:hidden">
+          <button
+            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            disabled={!metadata.prev_page}
+            className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+          >
+            Anterior
+          </button>
+          <button
+            onClick={() => setCurrentPage((prev) => prev + 1)}
+            disabled={!metadata.next_page}
+            className="relative ml-3 inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+          >
+            Siguiente
+          </button>
+        </div>
+        <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm text-gray-700">
+              Mostrando página <span className="font-medium">{metadata.current_page}</span> de <span className="font-medium">{metadata.total_pages}</span>
+            </p>
+          </div>
+          <div>
+            <nav className="inline-flex -space-x-px rounded-md shadow-sm">
+              <button
+                onClick={() => setCurrentPage(metadata.prev_page)}
+                disabled={!metadata.prev_page}
+                className="relative inline-flex items-center px-2 py-2 text-gray-400 rounded-l-md border border-gray-300 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+              <button
+                onClick={() => setCurrentPage(metadata.next_page)}
+                disabled={!metadata.next_page}
+                className="relative inline-flex items-center px-2 py-2 text-gray-400 rounded-r-md border border-gray-300 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            </nav>
+          </div>
+        </div>
+      </div>
+
+      <DeleteConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        itemName={`Cuenta de ${itemToDelete?._Banks?.name || 'Banco'}`}
+      />
+      <SuccessModal
+        isOpen={isSuccessOpen}
+        onClose={() => setIsSuccessOpen(false)}
+        title={successConfig.title}
+        message={successConfig.message}
+      />
+      <BankAccountModal
+        open={isModalOpen}
+        onClose={handleCloseModal}
+        initialData={accountToEdit}
+        onSave={handleSaveAccount}
+      />
+    </div>
+  );
+}
+
+const FinancesPage = () => {
+  const { can } = usePermission();
+
+  const TABS = [];
+  if (can(ROUTE_PERMISSIONS.CURRENCIES_PAGE) || can(ROUTE_PERMISSIONS.FINANCES_READ)) {
+    TABS.push({ id: "currencies", label: "Monedas" });
+  }
+  if (can(ROUTE_PERMISSIONS.RATES_PAGE) || can(ROUTE_PERMISSIONS.FINANCES_READ)) {
+    TABS.push({ id: "rates", label: "Tasas de Cambio" });
+  }
+  if (can(ROUTE_PERMISSIONS.BANK_ACCOUNTS_PAGE) || can(ROUTE_PERMISSIONS.BANK_ACCOUNTS_READ)) {
+    TABS.push({ id: "bank-accounts", label: "Cuentas Bancarias" });
+  }
+
+  const [activeTab, setActiveTab] = useState(TABS[0]?.id || "");
+
+  if (TABS.length === 0) {
+    return <div className="p-6 text-center text-gray-500">No tienes permisos para ver las opciones de finanzas.</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -437,6 +654,7 @@ const FinancesPage = () => {
       <div className="bg-white p-6 rounded-cineflix border border-gray-100 shadow-sm min-h-[500px]">
         {activeTab === "currencies" && <CurrenciesTab />}
         {activeTab === "rates" && <RatesTab />}
+        {activeTab === "bank-accounts" && <BankAccountsTab />}
       </div>
     </div>
   );

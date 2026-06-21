@@ -137,7 +137,13 @@ function AppRoute() {
         <Route
           path="/admin/finanzas"
           element={
-            <ProtectedRoute permission={ROUTE_PERMISSIONS.FINANCES_READ}>
+            <ProtectedRoute 
+              anyOf={[
+                ROUTE_PERMISSIONS.CURRENCIES_PAGE, 
+                ROUTE_PERMISSIONS.RATES_PAGE, 
+                ROUTE_PERMISSIONS.BANK_ACCOUNTS_PAGE
+              ]}
+            >
               <AdminLayout>
                 <FinancesPage />
               </AdminLayout>
