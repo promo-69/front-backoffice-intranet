@@ -1,23 +1,24 @@
 import { BarChart2, LineChart, RefreshCw, Table } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DatePickerCustom } from "@/components/ui/DatePickerCustom";
 
 const CHANNELS = [
-  { value: "all", label: "Todos los canales" },
-  { value: "taquilla", label: "Taquilla" },
-  { value: "web", label: "Web" },
-  { value: "app", label: "App" },
+  { value: "all",      label: "Todos los canales" },
+  { value: "taquilla", label: "Taquilla"           },
+  { value: "web",      label: "Web"                },
+  { value: "app",      label: "App"                },
 ];
 
 const GROUP_BY = [
-  { value: "day", label: "Por día" },
-  { value: "week", label: "Por semana" },
-  { value: "month", label: "Por mes" },
+  { value: "day",   label: "Por día"    },
+  { value: "week",  label: "Por semana" },
+  { value: "month", label: "Por mes"    },
 ];
 
 const CHART_TYPES = [
-  { value: "line", icon: LineChart, label: "Línea" },
-  { value: "bar", icon: BarChart2, label: "Barras" },
-  { value: "table", icon: Table, label: "Tabla" },
+  { value: "line",  icon: LineChart, label: "Línea"  },
+  { value: "bar",   icon: BarChart2, label: "Barras" },
+  { value: "table", icon: Table,     label: "Tabla"  },
 ];
 
 export function ReportFilters({
@@ -34,9 +35,9 @@ export function ReportFilters({
   onChartTypeChange,
   onViewModeChange,
   onRefresh,
-  loading = false,
-  showChannel = true,
-  showGroupBy = true,
+  loading       = false,
+  showChannel   = true,
+  showGroupBy   = true,
   showChartType = true,
 }) {
   const handleTypeClick = (value) => {
@@ -47,29 +48,18 @@ export function ReportFilters({
 
   return (
     <div className="flex flex-wrap items-end gap-3">
-      {/* Rango de fechas */}
-      <div className="flex flex-col gap-1">
-        <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-          Desde
-        </label>
-        <input
-          type="date"
-          value={from}
-          onChange={(e) => onFromChange(e.target.value)}
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-        />
-      </div>
-      <div className="flex flex-col gap-1">
-        <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-          Hasta
-        </label>
-        <input
-          type="date"
-          value={to}
-          onChange={(e) => onToChange(e.target.value)}
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-        />
-      </div>
+
+      {/* Rango de fechas — DatePickerCustom */}
+      <DatePickerCustom
+        label="Desde"
+        value={from}
+        onChange={onFromChange}
+      />
+      <DatePickerCustom
+        label="Hasta"
+        value={to}
+        onChange={onToChange}
+      />
 
       {/* Canal */}
       {showChannel && (
@@ -80,12 +70,10 @@ export function ReportFilters({
           <select
             value={channel}
             onChange={(e) => onChannelChange(e.target.value)}
-            className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[#231640]"
           >
             {CHANNELS.map((c) => (
-              <option key={c.value} value={c.value}>
-                {c.label}
-              </option>
+              <option key={c.value} value={c.value}>{c.label}</option>
             ))}
           </select>
         </div>
@@ -100,12 +88,10 @@ export function ReportFilters({
           <select
             value={groupBy}
             onChange={(e) => onGroupByChange(e.target.value)}
-            className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[#231640]"
           >
             {GROUP_BY.map((g) => (
-              <option key={g.value} value={g.value}>
-                {g.label}
-              </option>
+              <option key={g.value} value={g.value}>{g.label}</option>
             ))}
           </select>
         </div>
@@ -125,7 +111,7 @@ export function ReportFilters({
                 onClick={() => handleTypeClick(value)}
                 className={`h-9 w-9 flex items-center justify-center rounded-md border transition-colors ${
                   chartType === value
-                    ? "bg-primary border-primary text-primary-foreground"
+                    ? "bg-[#231640] border-[#231640] text-white"
                     : "border-input bg-background text-muted-foreground hover:bg-secondary"
                 }`}
               >
