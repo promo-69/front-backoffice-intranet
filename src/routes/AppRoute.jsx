@@ -27,6 +27,8 @@ import NoAccess from "@/pages/noAccess";
 
 import ReportsDashboard from "@/pages/admin/reports/reportsDashboard";
 
+import InvoicesPage from "@/pages/admin/invoices/InvoicesPage";
+
 import { ROUTE_PERMISSIONS } from "@/lib/route-permissions";
 
 import PublicRoute from "./PublicRoute";
@@ -151,6 +153,17 @@ function AppRoute() {
             <ProtectedRoute permission={ROUTE_PERMISSIONS.REPORTS_READ}>
               <AdminLayout>
                 <ReportsDashboard />
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/invoices"
+          element={
+            <ProtectedRoute permission={ROUTE_PERMISSIONS.INVOICES_READ}>
+              <AdminLayout>
+                <InvoicesPage />
               </AdminLayout>
             </ProtectedRoute>
           }
