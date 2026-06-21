@@ -1,32 +1,30 @@
-import { useState } from "react";
-import { Eye, Download } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Eye, Download, Building2, Search } from "lucide-react";
 import { useInvoices, useVoidInvoice } from "@/hooks/useInvoices";
 import { InvoiceDetailSheet } from "@/components/admin/invoices/InvoiceDetailSheet";
 import { VoidInvoiceModal } from "@/components/admin/invoices/VoidInvoiceModal";
 import { CustomPagination } from "@/components/ui/CustomPagination";
-import { InputCustom } from "@/components/ui/InputCustom";
 import { Button } from "@/components/ui/button";
+import { DatePickerCustom } from "@/components/ui/DatePickerCustom";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
 import { downloadInvoicePdf } from "@/services/invoices.service";
+import { getCinemas } from "@/services/cinema.service";
 import { toast } from "react-hot-toast";
 import { CustomToast } from "@/components/ui/CustomToast";
 
 const STATUS_FILTERS = [
-  { value: "all", label: "Todas" },
-  { value: "active", label: "Activas" },
+  { value: "all",    label: "Todas"    },
+  { value: "active", label: "Activas"  },
   { value: "voided", label: "Anuladas" },
 ];
 
 function StatusBadge({ isVoided }) {
-  if (isVoided) {
-    return (
-      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-50 text-red-600 border border-red-200">
-        Anulada
-      </span>
-    );
-  }
-  return (
+  return isVoided ? (
+    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-50 text-red-600 border border-red-200">
+      Anulada
+    </span>
+  ) : (
     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-600 border border-emerald-200">
       Activa
     </span>
@@ -34,23 +32,30 @@ function StatusBadge({ isVoided }) {
 }
 
 export default function InvoicesPage() {
-  const { _user } = useAuth();
+  const { _user }             = useAuth();
   const { can, isSuperAdmin } = usePermission();
-
-  const canVoid = can("CRUD:DELETE:INVOICES-VOID");
+  const canVoid    = can("CRUD:DELETE:INVOICES-VOID");
   const canViewAll = isSuperAdmin || can("CRUD:READ:INVOICES-ALL");
 
-  const [cinemaId, _setCinemaId] = useState(undefined);
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("all");
-  const [page, setPage] = useState(1);
+  const [cinemaId, setCinemaId] = useState(undefined);
+  const [from,     setFrom]     = useState("");
+  const [to,       setTo]       = useState("");
+  const [search,   setSearch]   = useState("");
+  const [status,   setStatus]   = useState("all");
+  const [page,     setPage]     = useState(1);
+  const [cinemas,  setCinemas]  = useState([]);
+
+  useEffect(() => {
+    if (!canViewAll) return;
+    getCinemas({ page: 1, limit: 100 })
+      .then((res) => setCinemas(res?.data?.cinemas ?? res?.data ?? []))
+      .catch(() => {});
+  }, [canViewAll]);
 
   const { invoices, pagination, loading, refetch } = useInvoices({
     cinemaId,
-    from: from || undefined,
-    to: to || undefined,
+    from:   from   || undefined,
+    to:     to     || undefined,
     search: search || undefined,
     status,
     page,
@@ -58,41 +63,26 @@ export default function InvoicesPage() {
   });
 
   const { voidInvoice, loading: voiding } = useVoidInvoice();
-
   const [selectedId, setSelectedId] = useState(null);
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetOpen,  setSheetOpen]  = useState(false);
   const [voidTarget, setVoidTarget] = useState(null);
 
-  const openDetail = (id) => {
-    setSelectedId(id);
-    setSheetOpen(true);
-  };
+  const openDetail = (id) => { setSelectedId(id); setSheetOpen(true); };
 
   const handleVoidConfirm = async (reason) => {
     try {
       await voidInvoice(voidTarget.id, reason, cinemaId);
       toast.custom((t) => (
-        <CustomToast
-          t={t}
-          type="success"
-          title="Factura anulada"
-          message={`Factura ${voidTarget.invoice_number} anulada exitosamente.`}
-        />
+        <CustomToast t={t} type="success" title="Factura anulada"
+          message={`Factura ${voidTarget.invoice_number} anulada exitosamente.`} />
       ));
       setVoidTarget(null);
       setSheetOpen(false);
       refetch();
     } catch (e) {
       toast.custom((t) => (
-        <CustomToast
-          t={t}
-          type="error"
-          title="No se pudo anular"
-          message={
-            e?.response?.data?.message ||
-            "Ocurrió un error al anular la factura."
-          }
-        />
+        <CustomToast t={t} type="error" title="No se pudo anular"
+          message={e?.response?.data?.message || "Ocurrió un error al anular la factura."} />
       ));
     }
   };
@@ -103,65 +93,91 @@ export default function InvoicesPage() {
       await downloadInvoicePdf(inv.id, inv.invoice_number, cinemaId);
     } catch {
       toast.custom((t) => (
-        <CustomToast
-          t={t}
-          type="error"
-          title="Error"
-          message="No se pudo descargar la factura."
-        />
+        <CustomToast t={t} type="error" title="Error" message="No se pudo descargar la factura." />
       ));
     }
   };
 
   const paginationMeta = pagination.total
     ? {
-        total: pagination.total,
-        per_page: pagination.limit,
+        total:        pagination.total,
+        per_page:     pagination.limit,
         current_page: pagination.page,
-        total_pages: Math.ceil(pagination.total / pagination.limit),
-        prev_page: pagination.page > 1 ? pagination.page - 1 : null,
-        next_page:
-          pagination.page * pagination.limit < pagination.total
-            ? pagination.page + 1
-            : null,
+        total_pages:  Math.ceil(pagination.total / pagination.limit),
+        prev_page:    pagination.page > 1 ? pagination.page - 1 : null,
+        next_page:    pagination.page * pagination.limit < pagination.total ? pagination.page + 1 : null,
       }
     : null;
 
   return (
-    <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold text-[#231640] font-montserrat">
-          Facturas
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Listado general de facturas activas y anuladas.
-        </p>
-      </div>
+    <div className="max-w-7xl mx-auto font-montserrat space-y-6">
 
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex flex-wrap items-center gap-3">
-        {/* Fechas */}
-        <div className="flex flex-col gap-1">
-          <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Desde</label>
+      {/* ── HEADER — patrón Billboard ── */}
+      <header className="flex flex-wrap justify-between items-center bg-white p-6 rounded-xl border border-gray-100 shadow-sm gap-4">
+        <div>
+          <h3 className="text-lg font-bold text-[#231640] leading-tight">
+            Gestión de Facturas
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            Listado general de facturas activas y anuladas.
+          </p>
+        </div>
+
+        {/* Buscador arriba a la derecha — igual que Billboard */}
+        <div className="relative flex-1 max-w-sm min-w-[220px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
           <input
-            type="date"
-            value={from}
-            onChange={(e) => { setFrom(e.target.value); setPage(1); }}
-            className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            type="text"
+            placeholder="Nombre, cédula, nro de factura..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            className="w-full h-9 pl-9 pr-4 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-[#231640]/20 focus:border-[#231640] outline-none transition-all"
           />
         </div>
-        <div className="flex flex-col gap-1">
-          <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Hasta</label>
-          <input
-            type="date"
-            value={to}
-            onChange={(e) => { setTo(e.target.value); setPage(1); }}
-            className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-        </div>
+      </header>
+
+      {/* ── BARRA DE FILTROS ── */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex flex-wrap items-end gap-3">
+
+        {/* Selector de sucursal — solo superadmin */}
+        {canViewAll && (
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+              Sucursal
+            </label>
+            <div className="relative">
+              <Building2 className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <select
+                value={cinemaId ?? ""}
+                onChange={(e) => { setCinemaId(e.target.value ? Number(e.target.value) : undefined); setPage(1); }}
+                className="h-9 pl-8 pr-3 rounded-md border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[#231640] min-w-[180px]"
+              >
+                <option value="">Todas las sucursales</option>
+                {cinemas.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
+
+        {/* Fechas con calendario propio */}
+        <DatePickerCustom
+          label="Desde"
+          value={from}
+          onChange={(v) => { setFrom(v); setPage(1); }}
+        />
+        <DatePickerCustom
+          label="Hasta"
+          value={to}
+          onChange={(v) => { setTo(v); setPage(1); }}
+        />
 
         {/* Estado */}
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Estado</label>
+          <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+            Estado
+          </label>
           <div className="flex gap-1">
             {STATUS_FILTERS.map((s) => (
               <button
@@ -178,18 +194,9 @@ export default function InvoicesPage() {
             ))}
           </div>
         </div>
-
-        {/* Buscar - ocupa el espacio restante sin desbordarse */}
-        <div className="flex-1 min-w-[180px] max-w-full">
-          <InputCustom
-            label="Buscar"
-            placeholder=" "
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          />
-        </div>
       </div>
 
+      {/* ── TABLA ── */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
         {loading ? (
           <div className="py-12 text-center text-sm text-muted-foreground">
@@ -203,32 +210,16 @@ export default function InvoicesPage() {
           <table className="w-full text-sm">
             <thead className="bg-secondary/50">
               <tr>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  N° Factura
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Fecha
-                </th>
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">N° Factura</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Fecha</th>
                 {canViewAll && (
-                  <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Sucursal
-                  </th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sucursal</th>
                 )}
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Empleado
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Cliente
-                </th>
-                <th className="text-right px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Total
-                </th>
-                <th className="text-center px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Estado
-                </th>
-                <th className="text-right px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Acciones
-                </th>
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Empleado</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Cliente</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total</th>
+                <th className="text-center px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Estado</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -238,49 +229,29 @@ export default function InvoicesPage() {
                   onClick={() => openDetail(inv.id)}
                   className={`border-t border-border hover:bg-secondary/20 transition-colors cursor-pointer ${inv.is_voided ? "bg-red-50/30" : ""}`}
                 >
-                  <td className="px-4 py-3 font-medium text-foreground">
-                    {inv.invoice_number}
-                  </td>
+                  <td className="px-4 py-3 font-medium text-foreground">{inv.invoice_number}</td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {new Date(inv.issued_at).toLocaleDateString("es-VE")}
                   </td>
                   {canViewAll && (
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {inv.order?.cinema?.name ?? "—"}
-                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">{inv.order?.cinema?.name ?? "—"}</td>
                   )}
-                  <td className="px-4 py-3 text-foreground">
-                    {inv.order?.employee?.name ?? "—"}
-                  </td>
-                  <td className="px-4 py-3 text-foreground">
-                    {inv.billing_name}
-                  </td>
+                  <td className="px-4 py-3 text-foreground">{inv.order?.employee?.name ?? "—"}</td>
+                  <td className="px-4 py-3 text-foreground">{inv.billing_name}</td>
                   <td className="px-4 py-3 text-right font-semibold text-foreground">
-                    {inv.order?.currency?.symbol ?? "$"}{" "}
-                    {Number(inv.order?.total ?? 0).toFixed(2)}
+                    {inv.order?.currency?.symbol ?? "$"} {Number(inv.order?.total ?? 0).toFixed(2)}
                   </td>
                   <td className="px-4 py-3 text-center">
                     <StatusBadge isVoided={inv.is_voided} />
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openDetail(inv.id);
-                        }}
-                      >
+                      <Button variant="ghost" size="icon" className="h-8 w-8"
+                        onClick={(e) => { e.stopPropagation(); openDetail(inv.id); }}>
                         <Eye className="w-4 h-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={(e) => handleQuickDownload(inv, e)}
-                      >
+                      <Button variant="ghost" size="icon" className="h-8 w-8"
+                        onClick={(e) => handleQuickDownload(inv, e)}>
                         <Download className="w-4 h-4" />
                       </Button>
                     </div>
@@ -293,11 +264,7 @@ export default function InvoicesPage() {
       </div>
 
       {paginationMeta && (
-        <CustomPagination
-          metadata={paginationMeta}
-          currentPage={page}
-          onPageChange={setPage}
-        />
+        <CustomPagination metadata={paginationMeta} currentPage={page} onPageChange={setPage} />
       )}
 
       <InvoiceDetailSheet
