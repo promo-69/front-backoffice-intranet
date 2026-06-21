@@ -28,6 +28,7 @@ import RentalRequestsList from "@/pages/rentals/RentalRequestsList";
 import RentalRequestDetail from "@/pages/rentals/RentalRequestDetail";
 
 import ReportsDashboard from "@/pages/admin/reports/reportsDashboard";
+import LoyaltyDashboard from "@/pages/admin/loyalty/LoyaltyDashboard";
 
 import { ROUTE_PERMISSIONS } from "@/lib/route-permissions";
 
@@ -153,6 +154,17 @@ function AppRoute() {
             <ProtectedRoute permission={ROUTE_PERMISSIONS.REPORTS_READ}>
               <AdminLayout>
                 <ReportsDashboard />
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/loyalty"
+          element={
+            <ProtectedRoute permission={ROUTE_PERMISSIONS.CATALOG_READ}>
+              <AdminLayout>
+                <LoyaltyDashboard />
               </AdminLayout>
             </ProtectedRoute>
           }

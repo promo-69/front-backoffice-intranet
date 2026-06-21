@@ -11,6 +11,7 @@ import {
   BookOpen,
   Calendar,
   Landmark,
+  Sparkles,
 } from "lucide-react";
 
 import {
@@ -75,6 +76,13 @@ const navItems = [
     title: "Maestros",
     url: "/admin/catalogo",
     icon: BookOpen,
+    permission: "CRUD:READ:CATALOGS",
+  },
+  {
+    id: "loyalty",
+    title: "Fidelización",
+    url: "/admin/loyalty",
+    icon: Sparkles,
     permission: "CRUD:READ:CATALOGS",
   },
   {
