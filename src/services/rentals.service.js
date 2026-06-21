@@ -1,0 +1,23 @@
+import api from "@/api/axios";
+
+const BASE = "/rentals/requests";
+
+export const getRentalRequests = async (params = {}) => {
+  const res = await api.get(BASE, { params });
+  return res.data;
+};
+
+export const getRentalRequestById = async (id) => {
+  const res = await api.get(`${BASE}/${id}`);
+  return res.data;
+};
+
+export const getAdminRentalRequests = async (params = {}) => {
+  const res = await api.get("/rentals/admin/requests", { params });
+  return res.data;
+};
+
+export const updateRentalStatus = async (id, payload) => {
+  const res = await api.patch(`${BASE}/${id}/status`, payload);
+  return res.data;
+};

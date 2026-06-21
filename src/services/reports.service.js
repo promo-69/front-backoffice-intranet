@@ -8,6 +8,25 @@ const p = (params = {}, cinemaId) => {
   return out;
 };
 
+const MIME = {
+  csv: "text/csv",
+  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  pdf: "application/pdf",
+};
+
+const triggerDownload = (data, format, reportType) => {
+  const blob =
+    data instanceof Blob ? data : new Blob([data], { type: MIME[format] });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${reportType}-report.${format}`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
 export const getDashboard = (params = {}, cinemaId) =>
@@ -55,21 +74,6 @@ export const getRentalsReport = (params = {}, cinemaId) =>
 
 // ── Exportación ───────────────────────────────────────────────────────────────
 
-const MIME = {
-  csv: "text/csv",
-  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  pdf: "application/pdf",
-};
-
-const triggerDownload = (data, format, reportType) => {
-  const url = URL.createObjectURL(new Blob([data], { type: MIME[format] }));
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${reportType}-report.${format}`;
-  a.click();
-  URL.revokeObjectURL(url);
-};
-
 export const exportReport = async (
   reportType,
   format,
@@ -80,24 +84,33 @@ export const exportReport = async (
     const response = await api.get(`${BASE}/${reportType}/export`, {
       params: p({ ...params, format }, cinemaId),
       responseType: "blob",
+      // Forzar explícitamente — responseType:'blob' puede perder withCredentials
+      // del instance default en producción con dominios cruzados
+      withCredentials: true,
     });
 
-    // Si la respuesta no es un blob válido o el content-type indica error
-    const contentType = response.headers["content-type"] || "";
+    // Detectar si el backend devolvió un error JSON disfrazado de blob
+    const contentType = response.headers?.["content-type"] || "";
     if (contentType.includes("application/json")) {
-      // El backend devolvió un error JSON (posible error de validación)
-      const text = await response.data.text();
+      const text =
+        response.data instanceof Blob
+          ? await response.data.text()
+          : JSON.stringify(response.data);
       const errorData = JSON.parse(text);
       throw new Error(errorData.message || "Error al exportar");
     }
 
     triggerDownload(response.data, format, reportType);
   } catch (error) {
-    // Si el error es del axios (status 400, 403, etc.)
+    // Error HTTP (4xx/5xx) — el body también llega como blob por responseType:'blob'
     if (error.response?.data instanceof Blob) {
-      const text = await error.response.data.text();
-      const errorData = JSON.parse(text);
-      throw new Error(errorData.message || "Error al exportar");
+      try {
+        const text = await error.response.data.text();
+        const errorData = JSON.parse(text);
+        throw new Error(errorData.message || "Error al exportar");
+      } catch {
+        throw new Error("Error en la descarga del reporte");
+      }
     }
     throw error;
   }

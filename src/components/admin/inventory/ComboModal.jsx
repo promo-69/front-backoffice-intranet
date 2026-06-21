@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { InputForm } from "@/components/ui/inputForm";
-import { Upload, X } from "lucide-react";
+import { Upload, X, Plus, Trash2 } from "lucide-react";
 
 function ErrorMessage({ message }) {
   return message ? (
@@ -19,22 +19,23 @@ function ErrorMessage({ message }) {
   ) : null;
 }
 
-const emptyProductForm = {
+const emptyComboForm = {
   name: "",
   code: "",
-  product_category: "",
+  description: "",
   currency: "",
   price: "",
   earned_loyalty_points: "",
 };
 
-export default function ProductModal({ open, onClose, initialData, categories = [], currencies = [], onSave }) {
+export default function ComboModal({ open, onClose, initialData, products = [], currencies = [], onSave }) {
   const isEdit = !!initialData;
   const fileInputRef = useRef(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState(emptyProductForm);
+  const [formData, setFormData] = useState(emptyComboForm);
   const [imagePreview, setImagePreview] = useState(null);
   const [imageFile, setImageFile] = useState(null);
+  const [selectedItems, setSelectedItems] = useState([]); // [{ productId, quantity }]
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
@@ -42,16 +43,25 @@ export default function ProductModal({ open, onClose, initialData, categories = 
       if (initialData) {
         setFormData({
           name: initialData.name || "",
-          code: initialData.code || initialData.sku || "",
-          product_category: initialData.product_category?.toString() || "",
+          code: initialData.sku || "",
+          description: initialData.description || "",
           currency: (initialData.pricing?.currency ?? initialData.currency)?.toString() || "",
           price: (initialData.pricing?.base_price ?? initialData.price)?.toString() || "",
           earned_loyalty_points: initialData.earned_loyalty_points !== null && initialData.earned_loyalty_points !== undefined ? initialData.earned_loyalty_points.toString() : "",
         });
         setImagePreview(initialData.image_url || null);
+        
+        // Cargar productos asociados desde _ComboProducts
+        const rawComboProducts = initialData._ComboProducts || [];
+        const items = rawComboProducts.map((cp) => ({
+          productId: cp.product?.toString() || "",
+          quantity: cp.quantity || 1,
+        }));
+        setSelectedItems(items);
       } else {
-        setFormData(emptyProductForm);
+        setFormData(emptyComboForm);
         setImagePreview(null);
+        setSelectedItems([]);
       }
       setImageFile(null);
       setErrors({});
@@ -79,7 +89,7 @@ export default function ProductModal({ open, onClose, initialData, categories = 
       setImageFile(file);
       setImagePreview(URL.createObjectURL(file));
     }
-    e.target.value = ""; // Limpiar el valor para permitir volver a seleccionar el mismo archivo
+    e.target.value = "";
   };
 
   const validateField = (name, value) => {
@@ -102,11 +112,28 @@ export default function ProductModal({ open, onClose, initialData, categories = 
     return error;
   };
 
+  // Agregar un producto al combo
+  const handleAddItem = () => {
+    setSelectedItems((prev) => [...prev, { productId: "", quantity: 1 }]);
+  };
+
+  // Remover un producto del combo
+  const handleRemoveItem = (index) => {
+    setSelectedItems((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Modificar selección de producto o cantidad
+  const handleItemChange = (index, field, value) => {
+    setSelectedItems((prev) =>
+      prev.map((item, i) => (i === index ? { ...item, [field]: value } : item))
+    );
+  };
+
   const handleSubmit = async () => {
     const newErrors = {};
 
     // Campos requeridos
-    const requiredFields = ["name", "code", "product_category", "currency", "price"];
+    const requiredFields = ["name", "code", "description", "currency", "price"];
     requiredFields.forEach((key) => {
       const value = formData[key]?.toString().trim();
       if (!value) {
@@ -117,14 +144,15 @@ export default function ProductModal({ open, onClose, initialData, categories = 
       }
     });
 
-    // Validar campos opcionales con formato
-    ["earned_loyalty_points"].forEach((key) => {
-      const value = formData[key]?.toString().trim();
-      if (value) {
-        const fieldError = validateField(key, value);
-        if (fieldError) newErrors[key] = fieldError;
+    // Validar productos incluidos
+    if (selectedItems.length === 0) {
+      newErrors.general = "Debe añadir al menos un producto al combo.";
+    } else {
+      const invalidItem = selectedItems.some((item) => !item.productId || item.quantity <= 0);
+      if (invalidItem) {
+        newErrors.general = "Por favor, seleccione un producto y cantidad válidos para cada fila.";
       }
-    });
+    }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -137,13 +165,20 @@ export default function ProductModal({ open, onClose, initialData, categories = 
       const payload = new FormData();
       payload.append("name", formData.name.trim());
       payload.append("sku", formData.code.trim());
-      payload.append("productCategory", Number(formData.product_category));
+      payload.append("description", formData.description.trim());
       payload.append("currencyId", Number(formData.currency));
       payload.append("price", parseFloat(formData.price));
       
       if (formData.earned_loyalty_points) {
         payload.append("earnedLoyaltyPoints", parseInt(formData.earned_loyalty_points, 10));
       }
+
+      // Estructurar el array de productos y enviarlo como string JSON
+      const cleanProductsList = selectedItems.map((item) => ({
+        productId: Number(item.productId),
+        quantity: Number(item.quantity),
+      }));
+      payload.append("products", JSON.stringify(cleanProductsList));
 
       if (imageFile) {
         payload.append("image", imageFile);
@@ -155,14 +190,14 @@ export default function ProductModal({ open, onClose, initialData, categories = 
       await onSave(payload);
       onClose(true);
     } catch (error) {
-      console.error("Error al guardar producto:", error);
+      console.error("Error al guardar combo:", error);
       if (error.response?.data) {
         console.log("DETALLE DEL ERROR DEL SERVIDOR:", JSON.stringify(error.response.data, null, 2));
       }
       const serverMessage = error.response?.data?.message || error.response?.data?.error || error.message;
       setErrors((prev) => ({
         ...prev,
-        general: serverMessage || "Ocurrió un error inesperado al guardar el producto.",
+        general: serverMessage || "Ocurrió un error inesperado al guardar el combo.",
       }));
     } finally {
       setIsSubmitting(false);
@@ -174,21 +209,21 @@ export default function ProductModal({ open, onClose, initialData, categories = 
       <DialogContent className="max-w-md bg-white rounded-cineflix p-6 shadow-2xl border-none max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-brand-primary">
-            {isEdit ? "Editar Producto" : "Nuevo Producto"}
+            {isEdit ? "Editar Combo" : "Nuevo Combo"}
           </DialogTitle>
           <DialogDescription className="text-xs text-slate-500">
             {isEdit
-              ? "Modifica los datos del producto seleccionado."
-              : "Registra un nuevo producto de dulcería."}
+              ? "Modifica los datos del combo seleccionado."
+              : "Registra un nuevo combo promocional de dulcería."}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 mt-6">
-          {/* Imagen del Producto */}
+          {/* Imagen del Combo */}
           <div className="flex flex-col items-center gap-2 pb-2">
             <div className="w-full text-left">
               <span className="text-[11px] font-montserrat font-bold text-brand-primary tracking-wide uppercase">
-                Imagen del Producto (Opcional)
+                Imagen del Combo (Opcional)
               </span>
             </div>
             <div
@@ -223,118 +258,49 @@ export default function ProductModal({ open, onClose, initialData, categories = 
           {/* Nombre */}
           <div>
             <InputForm
-              label="Nombre"
+              label="Nombre del Combo"
               name="name"
               value={formData.name}
               onChange={handleChange}
-              placeholder="Ej: Palomitas Grandes"
+              placeholder="Ej: Combo Pareja"
             />
             <ErrorMessage message={errors.name} />
           </div>
 
-          {/* Código */}
+          {/* Código SKU */}
           <div>
             <InputForm
-              label="Código"
+              label="Código (SKU)"
               name="code"
               value={formData.code}
               onChange={handleChange}
-              placeholder="Ej: POP-LG-001"
+              placeholder="Ej: CMB-DUO"
             />
             <ErrorMessage message={errors.code} />
           </div>
 
-          {/* Categoría de Producto (FK → product_categories) */}
-          <div className="relative w-full">
-            <label
-              className="
-                absolute 
-                top-1 
-                left-0 
-                pl-2
-                text-[11px] 
-                font-montserrat 
-                font-bold 
-                text-brand-primary 
-                tracking-wide 
-                uppercase
-              "
-            >
-              Categoría
-            </label>
-            <select
-              name="product_category"
-              value={formData.product_category}
+          {/* Descripción */}
+          <div>
+            <InputForm
+              label="Descripción"
+              name="description"
+              value={formData.description}
               onChange={handleChange}
-              className="
-                w-full 
-                bg-white 
-                border 
-                border-border 
-                rounded-cineflix 
-                px-3 
-                pt-6 
-                pb-2 
-                text-sm 
-                font-montserrat
-                focus:outline-none 
-                focus:ring-2 
-                focus:ring-brand-primary/40 
-                focus:border-brand-primary
-                appearance-none
-                cursor-pointer
-              "
-            >
-              <option value="">Selecciona una categoría</option>
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name || cat.description}
-                </option>
-              ))}
-            </select>
-            <ErrorMessage message={errors.product_category} />
+              placeholder="Ej: 1 Cotufa Grande + 2 Refrescos Medianos"
+            />
+            <ErrorMessage message={errors.description} />
           </div>
 
-          {/* Moneda (FK → currencies) */}
+          {/* Moneda */}
           <div className="relative w-full">
-            <label
-              className="
-                absolute 
-                top-1 
-                left-0 
-                pl-2
-                text-[11px] 
-                font-montserrat 
-                font-bold 
-                text-brand-primary 
-                tracking-wide 
-                uppercase
-              "
-            >
+            <label className="absolute top-1 left-0 pl-2 text-[11px] font-montserrat font-bold text-brand-primary tracking-wide uppercase">
               Moneda
             </label>
             <select
               name="currency"
               value={formData.currency}
               onChange={handleChange}
-              className="
-                w-full 
-                bg-white 
-                border 
-                border-border 
-                rounded-cineflix 
-                px-3 
-                pt-6 
-                pb-2 
-                text-sm 
-                font-montserrat
-                focus:outline-none 
-                focus:ring-2 
-                focus:ring-brand-primary/40 
-                focus:border-brand-primary
-                appearance-none
-                cursor-pointer
-              "
+              className="w-full bg-white border border-border rounded-cineflix px-3 pt-6 pb-2 text-sm font-montserrat focus:outline-none focus:ring-2 focus:ring-brand-primary/40 focus:border-brand-primary appearance-none cursor-pointer"
             >
               <option value="">Selecciona una moneda</option>
               {currencies.map((curr) => (
@@ -346,7 +312,7 @@ export default function ProductModal({ open, onClose, initialData, categories = 
             <ErrorMessage message={errors.currency} />
           </div>
 
-          {/* Precio y Puntos de Lealtad */}
+          {/* Precio y Puntos */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <InputForm
@@ -357,7 +323,7 @@ export default function ProductModal({ open, onClose, initialData, categories = 
                 min="0"
                 value={formData.price}
                 onChange={handleChange}
-                placeholder="5.99"
+                placeholder="8.50"
               />
               <ErrorMessage message={errors.price} />
             </div>
@@ -369,9 +335,61 @@ export default function ProductModal({ open, onClose, initialData, categories = 
                 min="0"
                 value={formData.earned_loyalty_points}
                 onChange={handleChange}
-                placeholder="10"
+                placeholder="15"
               />
               <ErrorMessage message={errors.earned_loyalty_points} />
+            </div>
+          </div>
+
+          {/* Productos Incluidos (Dynamic Builder) */}
+          <div className="border-t pt-4">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-[11px] font-montserrat font-bold text-brand-primary tracking-wide uppercase">
+                Productos del Combo
+              </span>
+              <button
+                type="button"
+                onClick={handleAddItem}
+                className="text-[10px] font-black uppercase text-brand-primary hover:text-brand-primary/80 flex items-center gap-1 bg-brand-gold/15 p-1 px-2.5 rounded-lg active:scale-95 transition-all"
+              >
+                <Plus className="w-3 h-3 text-brand-gold" strokeWidth={3} />
+                Agregar
+              </button>
+            </div>
+
+            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+              {selectedItems.map((item, index) => (
+                <div key={index} className="flex gap-2 items-center bg-slate-50 p-2 rounded-lg border border-slate-100">
+                  <select
+                    value={item.productId}
+                    onChange={(e) => handleItemChange(index, "productId", e.target.value)}
+                    className="flex-1 bg-white border border-border rounded-lg p-2 text-xs focus:outline-none focus:ring-2 focus:ring-brand-primary/40 focus:border-brand-primary"
+                  >
+                    <option value="">Selecciona un producto</option>
+                    {products.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  <input
+                    type="number"
+                    min="1"
+                    value={item.quantity}
+                    onChange={(e) => handleItemChange(index, "quantity", parseInt(e.target.value, 10) || 1)}
+                    className="w-16 bg-white border border-border rounded-lg p-2 text-xs text-center focus:outline-none focus:ring-2 focus:ring-brand-primary/40 focus:border-brand-primary"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveItem(index)}
+                    className="text-red-500 hover:text-red-600 p-1 hover:bg-red-50 rounded-lg active:scale-90 transition-transform"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
 

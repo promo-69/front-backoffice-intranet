@@ -5,6 +5,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import SuccessModal from "@/components/ui/SuccessModal";
 
 import { getAllPermissions } from "@/services/permissions.service";
 import { getRoleById, updateRolePermissions } from "@/services/roles.service";
@@ -16,6 +17,7 @@ export default function EditRolePage() {
 
   const [roleName, setRoleName] = useState("");
   const [activeTab, setActiveTab] = useState("visual");
+  const [isSuccessOpen, setIsSuccessOpen] = useState(false);
 
   const [permissionsByResource, setPermissionsByResource] = useState({});
   const [selectedPermissions, setSelectedPermissions] = useState(new Set());
@@ -79,6 +81,8 @@ export default function EditRolePage() {
           const resourceCode = perm._Resources.code;
           const actionCode = perm._Actions.code;
 
+          if (!resourceCode || !actionCode) return;
+
           const readableResource =
             RESOURCE_LABELS[resourceCode] || resourceCode;
 
@@ -120,8 +124,15 @@ export default function EditRolePage() {
 
     try {
       await updateRolePermissions(roleId, permissionsArray);
-      alert("¡Permisos guardados correctamente!");
-      navigate("/admin/personal");
+      //alert("¡Permisos guardados correctamente!");
+      //navigate("/admin/personal");
+      // Activar modal estético de guardado exitoso
+      setIsSuccessOpen(true);
+
+      setTimeout(() => {
+        setIsSuccessOpen(false);
+        navigate("/admin/personal");
+      }, 2000);
     } catch (error) {
       console.error("Error guardando permisos:", error);
       alert("Hubo un error guardando los permisos.");
@@ -213,6 +224,12 @@ export default function EditRolePage() {
           Guardar Cambios
         </button>
       </div>
+      {/* MODAL DE CONFIRMACIÓN */}
+      <SuccessModal
+        isOpen={isSuccessOpen}
+        onClose={() => navigate("/admin/personal")}
+        message="¡Permisos del rol actualizados correctamente!"
+      />
     </div>
   );
 }
