@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { InputForm } from "@/components/ui/inputForm";
 import { SelectForm } from "@/components/ui/SelectForm";
+import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
 
 export default function BankAccountModal({ open, onClose, initialData, onSave }) {
   const { showLoader, hideLoader } = useLoading();
@@ -258,12 +259,14 @@ export default function BankAccountModal({ open, onClose, initialData, onSave })
             >
               Cancelar
             </Button>
-            <Button
-              type="submit"
-              className="flex-1 bg-brand-primary text-white font-bold hover:bg-brand-primary/90"
-            >
-              {initialData ? "Guardar Cambios" : "Crear Cuenta"}
-            </Button>
+            <DisableIfNoPermission permission={initialData ? "CRUD:UPDATE:BANK-ACCOUNTS" : "CRUD:CREATE:BANK-ACCOUNTS"} title="No tienes permiso para crear cuentas bancarias">
+              <Button
+                type="submit"
+                className="flex-1 bg-brand-primary text-white font-bold hover:bg-brand-primary/90"
+              >
+                {initialData ? "Guardar Cambios" : "Crear Cuenta"}
+              </Button>
+            </DisableIfNoPermission>
           </DialogFooter>
         </form>
       </DialogContent>

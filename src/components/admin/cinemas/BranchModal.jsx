@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useLoading } from "../../../context/LoadingContext";
 import api from '../../../api/axios';
+import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
 
 function ErrorMessage({ message }) {
   return message ? <p className="text-[10px] text-red-500 mt-1 ml-1 font-medium italic">{message}</p> : null;
@@ -296,13 +297,15 @@ export default function BranchModal({ open, onClose, initialData }) {
 
         <DialogFooter className="mt-8 flex gap-3">
           <Button variant="outline" onClick={() => onClose(false)} className="flex-1">Cancelar</Button>
-          <Button 
-            onClick={handleSubmit} 
-            disabled={isSubmitting} 
-            className="flex-1 bg-brand-primary text-white font-bold hover:bg-brand-primary/90"
-          >
-            {isEdit ? "Actualizar" : "Registrar"}
-          </Button>
+          <DisableIfNoPermission permission={isEdit ? "CRUD:UPDATE:CINEMAS" : "CRUD:CREATE:CINEMAS"} title="No tienes permiso para guardar sucursales">
+            <Button 
+              onClick={handleSubmit} 
+              disabled={isSubmitting} 
+              className="flex-1 bg-brand-primary text-white font-bold hover:bg-brand-primary/90"
+            >
+              {isEdit ? "Actualizar" : "Registrar"}
+            </Button>
+          </DisableIfNoPermission>
         </DialogFooter>
       </DialogContent>
     </Dialog>

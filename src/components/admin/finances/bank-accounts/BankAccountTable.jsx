@@ -1,5 +1,6 @@
 import React from 'react';
 import { Edit2, Trash2 } from 'lucide-react';
+import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
 
 export default function BankAccountTable({ data, onEdit, onDelete }) {
   return (
@@ -59,20 +60,24 @@ export default function BankAccountTable({ data, onEdit, onDelete }) {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      onClick={() => onEdit(account)}
-                      className="text-brand-primary hover:text-brand-primary/80 mr-4"
-                      title="Editar"
-                    >
-                      <Edit2 className="h-5 w-5 inline" />
-                    </button>
-                    <button
-                      onClick={() => onDelete(account.id)}
-                      className="text-red-600 hover:text-red-900"
-                      title="Eliminar"
-                    >
-                      <Trash2 className="h-5 w-5 inline" />
-                    </button>
+                    <DisableIfNoPermission permission={"CRUD:UPDATE:BANK-ACCOUNTS"} title="No tienes permiso para editar cuentas bancarias">
+                      <button
+                        onClick={() => onEdit(account)}
+                        className="text-brand-primary hover:text-brand-primary/80 mr-4"
+                        title="Editar"
+                      >
+                        <Edit2 className="h-5 w-5 inline" />
+                      </button>
+                    </DisableIfNoPermission>
+                    <DisableIfNoPermission permission={"CRUD:DELETE:BANK-ACCOUNTS"} title="No tienes permiso para eliminar cuentas bancarias">
+                      <button
+                        onClick={() => onDelete(account.id)}
+                        className="text-red-600 hover:text-red-900"
+                        title="Eliminar"
+                      >
+                        <Trash2 className="h-5 w-5 inline" />
+                      </button>
+                    </DisableIfNoPermission>
                   </td>
                 </tr>
               );

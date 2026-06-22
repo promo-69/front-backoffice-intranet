@@ -18,21 +18,25 @@ export default function ProtectedRoute({
 
   // 3. Validación por rol
   if (allowedRoles && !hasRole(allowedRoles)) {
+    console.log("[ProtectedRoute] denied by role", { role, allowedRoles });
     return <Navigate to="/no-access" replace />;
   }
 
   // 4. Validación por permiso único
   if (permission && !can(permission)) {
+    console.log("[ProtectedRoute] denied by permission", { role, permission });
     return <Navigate to="/no-access" replace />;
   }
 
   // 5. Validación por permisos (AND)
   if (permissions && !canAll(permissions)) {
+    console.log("[ProtectedRoute] denied by permissions (AND)", { role, permissions });
     return <Navigate to="/no-access" replace />;
   }
 
   // 6. Validación por permisos (OR)
   if (anyOf && !canAny(anyOf)) {
+    console.log("[ProtectedRoute] denied by anyOf (OR)", { role, anyOf });
     return <Navigate to="/no-access" replace />;
   }
 

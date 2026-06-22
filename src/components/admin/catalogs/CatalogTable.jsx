@@ -1,5 +1,6 @@
 import React from "react";
 import { Edit2, Trash2 } from "lucide-react";
+import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
 
 const CatalogTable = ({ data, selectedId, onSelectCatalog, onEdit, onDelete, metadata }) => {
   const dynamicFields = metadata
@@ -58,26 +59,30 @@ const CatalogTable = ({ data, selectedId, onSelectCatalog, onEdit, onDelete, met
                   )}
                   <td className="px-6 py-4">
                     <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onEdit(item);
-                        }}
-                        className="p-2 text-brand-primary hover:bg-brand-primary/10 rounded-lg transition-colors"
-                        title="Editar maestro"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDelete(item.id);
-                        }}
-                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Eliminar maestro"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      <DisableIfNoPermission permission={"CRUD:UPDATE:CATALOGS"} title="No tienes permiso para editar maestros">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEdit(item);
+                          }}
+                          className="p-2 text-brand-primary hover:bg-brand-primary/10 rounded-lg transition-colors"
+                          title="Editar maestro"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                      </DisableIfNoPermission>
+                      <DisableIfNoPermission permission={"CRUD:DELETE:CATALOGS"} title="No tienes permiso para eliminar maestros">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDelete(item.id);
+                          }}
+                          className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Eliminar maestro"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </DisableIfNoPermission>
                     </div>
                   </td>
                 </tr>

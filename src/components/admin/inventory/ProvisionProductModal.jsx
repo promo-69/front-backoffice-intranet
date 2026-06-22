@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { InputForm } from "@/components/ui/inputForm";
+import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
 import { Sparkles, Search, Package, AlertCircle, Check, MapPin } from "lucide-react";
 
 export default function ProvisionProductModal({
@@ -273,13 +274,15 @@ export default function ProvisionProductModal({
             >
               Cancelar
             </Button>
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="bg-brand-primary hover:bg-brand-secondary text-white rounded-xl px-6 text-xs font-bold transition-all shadow-sm"
-            >
-              {isSubmitting ? "Habilitando..." : "Habilitar en Sucursal"}
-            </Button>
+            <DisableIfNoPermission permission={"CRUD:UPDATE:PRODUCTS"} title="No tienes permiso para habilitar productos en sucursal">
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="bg-brand-primary hover:bg-brand-secondary text-white rounded-xl px-6 text-xs font-bold transition-all shadow-sm"
+              >
+                {isSubmitting ? "Habilitando..." : "Habilitar en Sucursal"}
+              </Button>
+            </DisableIfNoPermission>
           </div>
         </form>
       </DialogContent>
