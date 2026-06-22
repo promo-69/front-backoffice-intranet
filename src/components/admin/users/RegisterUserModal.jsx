@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { InputForm } from "@/components/ui/inputForm";
 import { SelectForm } from "@/components/ui/SelectForm";
+import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
 
 import { createUser, getRoles } from "@/services/users.service";
 import { AiFillEye, AiFillEyeInvisible } from "react-icons/ai";
@@ -204,13 +205,15 @@ export default function RegisterUserModal({ open, onClose }) {
             Cancelar
           </Button>
 
-          <Button
-            onClick={handleSubmit}
-            className="bg-brand-primary text-white"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? "Guardando..." : "Registrar Usuario"}
-          </Button>
+          <DisableIfNoPermission permission={"CRUD:CREATE:USERS"} title="No tienes permiso para registrar usuarios">
+            <Button
+              onClick={handleSubmit}
+              className="bg-brand-primary text-white"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Guardando..." : "Registrar Usuario"}
+            </Button>
+          </DisableIfNoPermission>
         </DialogFooter>
       </DialogContent>
     </Dialog>

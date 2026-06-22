@@ -1,4 +1,5 @@
 import { Pencil, Trash2, Film, Clock, Calendar } from "lucide-react";
+import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
 
 export function MoviesTab({ data, onEdit, onDelete }) {
   return (
@@ -64,12 +65,16 @@ export function MoviesTab({ data, onEdit, onDelete }) {
 
                 <td className="py-4 px-6">
                   <div className="flex justify-center gap-2">
-                    <button onClick={() => onEdit("movieForm", movie)} className="p-2 hover:bg-brand-primary/10 text-brand-primary rounded-lg">
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button onClick={() => onDelete("delete", movie)} className="p-2 hover:bg-red-50 text-red-500 rounded-lg">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <DisableIfNoPermission permission={"CRUD:UPDATE:MOVIES"} title="No tienes permiso para editar películas">
+                      <button onClick={() => onEdit("movieForm", movie)} className="p-2 hover:bg-brand-primary/10 text-brand-primary rounded-lg">
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                    </DisableIfNoPermission>
+                    <DisableIfNoPermission permission={"CRUD:DELETE:MOVIES"} title="No tienes permiso para eliminar películas">
+                      <button onClick={() => onDelete("delete", movie)} className="p-2 hover:bg-red-50 text-red-500 rounded-lg">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </DisableIfNoPermission>
                   </div>
                 </td>
               </tr>

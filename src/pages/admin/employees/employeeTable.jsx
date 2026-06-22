@@ -1,4 +1,5 @@
 import { Pencil, Trash2, UserCog } from "lucide-react";
+import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
 
 export default function EmployeeTable({ employees, onEdit, onDelete, isLoading = false }) {
   const skeletonRows = Array(5).fill(0);
@@ -102,18 +103,22 @@ export default function EmployeeTable({ employees, onEdit, onDelete, isLoading =
                     {sucursal}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium flex justify-center gap-3">
-                    <button
-                      onClick={() => onEdit(emp)}
-                      className="p-2 bg-white border border-slate-200 text-brand-primary rounded-lg shadow-sm hover:bg-brand-primary hover:text-white transition-all"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => onDelete(emp)}
-                      className="p-2 bg-white border border-slate-200 text-red-500 rounded-lg shadow-sm hover:bg-red-400 hover:text-white transition-all"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    <DisableIfNoPermission permission={"CRUD:UPDATE:EMPLOYEES"} title="No tienes permiso para editar empleados">
+                      <button
+                        onClick={() => onEdit(emp)}
+                        className="p-2 bg-white border border-slate-200 text-brand-primary rounded-lg shadow-sm hover:bg-brand-primary hover:text-white transition-all"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                    </DisableIfNoPermission>
+                    <DisableIfNoPermission permission={"CRUD:DELETE:EMPLOYEES"} title="No tienes permiso para eliminar empleados">
+                      <button
+                        onClick={() => onDelete(emp)}
+                        className="p-2 bg-white border border-slate-200 text-red-500 rounded-lg shadow-sm hover:bg-red-400 hover:text-white transition-all"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </DisableIfNoPermission>
                   </td>
                 </tr>
               );

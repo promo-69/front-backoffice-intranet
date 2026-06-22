@@ -1,4 +1,5 @@
 import { Pencil, Trash2, Film, Clock, Calendar } from "lucide-react";
+import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
 
 export function MoviesTab({ data, onEdit, onDelete, isLoading = false }) {
   const skeletonRows = Array(5).fill(0);
@@ -139,18 +140,22 @@ export function MoviesTab({ data, onEdit, onDelete, isLoading = false }) {
                 <td className="py-4 px-6">
                   <div className="flex justify-center gap-2">
                     {/* Corrección de parámetros enviados al callback de acción */}
-                    <button 
-                      onClick={() => onEdit(movie)} 
-                      className="p-2 bg-white border border-slate-200 text-brand-primary rounded-lg shadow-sm hover:bg-brand-primary hover:text-white transition-all"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </button>
-                    <button 
-                      onClick={() => onDelete(movie)} 
-                      className="p-2 bg-white border border-slate-200 text-red-500 rounded-lg shadow-sm hover:bg-red-50 hover:text-white transition-all"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    <DisableIfNoPermission permission={"CRUD:UPDATE:MOVIES"} title="No tienes permiso para editar películas">
+                      <button 
+                        onClick={() => onEdit(movie)} 
+                        className="p-2 bg-white border border-slate-200 text-brand-primary rounded-lg shadow-sm hover:bg-brand-primary hover:text-white transition-all"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                    </DisableIfNoPermission>
+                    <DisableIfNoPermission permission={"CRUD:DELETE:MOVIES"} title="No tienes permiso para eliminar películas">
+                      <button 
+                        onClick={() => onDelete(movie)} 
+                        className="p-2 bg-white border border-slate-200 text-red-500 rounded-lg shadow-sm hover:bg-red-50 hover:text-white transition-all"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </DisableIfNoPermission>
                   </div>
                 </td>
               </tr>

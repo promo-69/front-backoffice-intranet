@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { InputForm } from "@/components/ui/inputForm";
+import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
 
 function ErrorMessage({ message }) {
   return message ? (
@@ -138,13 +139,18 @@ export default function CategoryModal({ open, onClose, initialData, onSave }) {
             >
               Cancelar
             </Button>
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="bg-brand-primary hover:bg-brand-secondary text-white rounded-lg px-8 transition-colors"
+            <DisableIfNoPermission
+              permission={isEdit ? "CRUD:UPDATE:CATALOGS" : "CRUD:CREATE:CATALOGS"}
+              title="No tienes permiso para guardar categorías"
             >
-              {isSubmitting ? "Guardando..." : "Guardar"}
-            </Button>
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="bg-brand-primary hover:bg-brand-secondary text-white rounded-lg px-8 transition-colors"
+              >
+                {isSubmitting ? "Guardando..." : "Guardar"}
+              </Button>
+            </DisableIfNoPermission>
           </div>
         </form>
       </DialogContent>

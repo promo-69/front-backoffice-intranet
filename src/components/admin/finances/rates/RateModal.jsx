@@ -8,6 +8,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
 import { InputForm } from "@/components/ui/inputForm";
 import { SelectForm } from "@/components/ui/SelectForm";
 
@@ -138,13 +139,15 @@ export default function RateModal({ open, onClose, currencies = [], onSave }) {
             >
               Cancelar
             </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              className="flex-1 bg-brand-primary text-white font-bold hover:bg-brand-primary/90"
-            >
-              Registrar
-            </Button>
+            <DisableIfNoPermission permission={"CRUD:CREATE:EXCHANGE-RATES"} title="No tienes permiso para registrar tasas">
+              <Button
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                className="flex-1 bg-brand-primary text-white font-bold hover:bg-brand-primary/90"
+              >
+                Registrar
+              </Button>
+            </DisableIfNoPermission>
           </DialogFooter>
         </div>
       </DialogContent>

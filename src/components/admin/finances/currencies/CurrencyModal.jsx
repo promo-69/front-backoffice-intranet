@@ -8,6 +8,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
 import { InputForm } from "@/components/ui/inputForm";
 
 function ErrorMessage({ message }) {
@@ -157,13 +158,15 @@ export default function CurrencyModal({ open, onClose, initialData, onSave }) {
             >
               Cancelar
             </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              className="flex-1 bg-brand-primary text-white font-bold hover:bg-brand-primary/90"
-            >
-              {isEdit ? "Actualizar" : "Registrar"}
-            </Button>
+            <DisableIfNoPermission permission={isEdit ? "CRUD:UPDATE:CURRENCIES" : "CRUD:CREATE:CURRENCIES"} title="No tienes permiso para guardar monedas">
+              <Button
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                className="flex-1 bg-brand-primary text-white font-bold hover:bg-brand-primary/90"
+              >
+                {isEdit ? "Actualizar" : "Registrar"}
+              </Button>
+            </DisableIfNoPermission>
           </DialogFooter>
         </div>
       </DialogContent>

@@ -7,6 +7,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
 import { InputForm } from "@/components/ui/inputForm";
 import { SelectForm } from "@/components/ui/SelectForm";
 import { updateUserEmail, updateUserStatus } from "@/services/users.service";
@@ -76,7 +77,9 @@ export default function EditUserModal({ open, onClose, user }) {
           <Button variant="outline" onClick={() => onClose(false)}>
             Cancelar
           </Button>
-          <Button onClick={handleSubmit}>Guardar Cambios</Button>
+          <DisableIfNoPermission permission={"CRUD:UPDATE:USERS"} title="No tienes permiso para editar usuarios">
+            <Button onClick={handleSubmit}>Guardar Cambios</Button>
+          </DisableIfNoPermission>
         </DialogFooter>
       </DialogContent>
     </Dialog>

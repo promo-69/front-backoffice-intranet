@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { InputForm } from "@/components/ui/inputForm";
 import { Upload, X, Plus, Trash2 } from "lucide-react";
+import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
 
 function ErrorMessage({ message }) {
   return message ? (
@@ -408,13 +409,15 @@ export default function ComboModal({ open, onClose, initialData, products = [], 
           >
             Cancelar
           </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="flex-1 bg-brand-primary text-white font-bold hover:bg-brand-primary/90"
-          >
-            {isEdit ? "Actualizar" : "Registrar"}
-          </Button>
+          <DisableIfNoPermission permission={isEdit ? "CRUD:UPDATE:COMBOS" : "CRUD:CREATE:COMBOS"} title="No tienes permiso para guardar combos">
+            <Button
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="flex-1 bg-brand-primary text-white font-bold hover:bg-brand-primary/90"
+            >
+              {isEdit ? "Actualizar" : "Registrar"}
+            </Button>
+          </DisableIfNoPermission>
         </DialogFooter>
       </DialogContent>
     </Dialog>

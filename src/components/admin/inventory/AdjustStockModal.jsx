@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { InputForm } from "@/components/ui/inputForm";
+import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
 import { ArrowUpRight, ArrowDownLeft, AlertCircle, Sparkles } from "lucide-react";
 
 export default function AdjustStockModal({ open, onClose, item, onSave }) {
@@ -205,19 +206,21 @@ export default function AdjustStockModal({ open, onClose, item, onSave }) {
             >
               Cancelar
             </Button>
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className={`
-                text-white rounded-xl px-6 text-xs font-bold transition-all shadow-sm
-                ${type === "IN"
-                  ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100"
-                  : "bg-red-600 hover:bg-red-700 shadow-red-100"
-                }
-              `}
-            >
-              {isSubmitting ? "Procesando..." : "Confirmar Ajuste"}
-            </Button>
+            <DisableIfNoPermission permission={"CRUD:CREATE:INVENTORY"} title="No tienes permiso para ajustar inventario">
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className={`
+                  text-white rounded-xl px-6 text-xs font-bold transition-all shadow-sm
+                  ${type === "IN"
+                    ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100"
+                    : "bg-red-600 hover:bg-red-700 shadow-red-100"
+                  }
+                `}
+              >
+                {isSubmitting ? "Procesando..." : "Confirmar Ajuste"}
+              </Button>
+            </DisableIfNoPermission>
           </div>
         </form>
       </DialogContent>
