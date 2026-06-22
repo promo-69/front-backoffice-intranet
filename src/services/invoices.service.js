@@ -13,6 +13,10 @@ const p = (params = {}, cinemaId) => {
 export const getInvoices = (params = {}, cinemaId) =>
   api.get(BASE, { params: p(params, cinemaId) }).then((r) => r.data.data);
 
+// Shorthand: solo facturas anuladas/canceladas (usa GET /invoices/voided del backend)
+export const getVoidedInvoices = (params = {}, cinemaId) =>
+  api.get(`${BASE}/voided`, { params: p(params, cinemaId) }).then((r) => r.data.data);
+
 // ── Detalle completo ────────────────────────────────────────────────────────
 
 export const getInvoiceById = (id, cinemaId) =>
