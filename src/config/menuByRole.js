@@ -5,6 +5,7 @@ export const menuByRole = {
     { label: "Empleados", path: "/admin/employees" },
     { label: "Roles", path: "/admin/roles" },
     { label: "Permisos", path: "/admin/permissions" },
+    { label: "Alquiler de Salas", path: "/admin/rentals" },
     { label: "Reportes", path: "/admin/reports" },
   ],
 

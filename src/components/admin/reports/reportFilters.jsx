@@ -3,22 +3,22 @@ import { Button } from "@/components/ui/button";
 import { DatePickerCustom } from "@/components/ui/DatePickerCustom";
 
 const CHANNELS = [
-  { value: "all",      label: "Todos los canales" },
-  { value: "taquilla", label: "Taquilla"           },
-  { value: "web",      label: "Web"                },
-  { value: "app",      label: "App"                },
+  { value: "all", label: "Todos los canales" },
+  { value: "taquilla", label: "Taquilla" },
+  { value: "web", label: "Web" },
+  { value: "app", label: "App" },
 ];
 
 const GROUP_BY = [
-  { value: "day",   label: "Por día"    },
-  { value: "week",  label: "Por semana" },
-  { value: "month", label: "Por mes"    },
+  { value: "day", label: "Por día" },
+  { value: "week", label: "Por semana" },
+  { value: "month", label: "Por mes" },
 ];
 
 const CHART_TYPES = [
-  { value: "line",  icon: LineChart, label: "Línea"  },
-  { value: "bar",   icon: BarChart2, label: "Barras" },
-  { value: "table", icon: Table,     label: "Tabla"  },
+  { value: "line", icon: LineChart, label: "Línea" },
+  { value: "bar", icon: BarChart2, label: "Barras" },
+  { value: "table", icon: Table, label: "Tabla" },
 ];
 
 export function ReportFilters({
@@ -35,9 +35,9 @@ export function ReportFilters({
   onChartTypeChange,
   onViewModeChange,
   onRefresh,
-  loading       = false,
-  showChannel   = true,
-  showGroupBy   = true,
+  loading = false,
+  showChannel = true,
+  showGroupBy = true,
   showChartType = true,
 }) {
   const handleTypeClick = (value) => {
@@ -48,18 +48,9 @@ export function ReportFilters({
 
   return (
     <div className="flex flex-wrap items-end gap-3">
-
       {/* Rango de fechas — DatePickerCustom */}
-      <DatePickerCustom
-        label="Desde"
-        value={from}
-        onChange={onFromChange}
-      />
-      <DatePickerCustom
-        label="Hasta"
-        value={to}
-        onChange={onToChange}
-      />
+      <DatePickerCustom label="Desde" value={from} onChange={onFromChange} />
+      <DatePickerCustom label="Hasta" value={to} onChange={onToChange} />
 
       {/* Canal */}
       {showChannel && (
@@ -73,7 +64,9 @@ export function ReportFilters({
             className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[#231640]"
           >
             {CHANNELS.map((c) => (
-              <option key={c.value} value={c.value}>{c.label}</option>
+              <option key={c.value} value={c.value}>
+                {c.label}
+              </option>
             ))}
           </select>
         </div>
@@ -91,7 +84,9 @@ export function ReportFilters({
             className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[#231640]"
           >
             {GROUP_BY.map((g) => (
-              <option key={g.value} value={g.value}>{g.label}</option>
+              <option key={g.value} value={g.value}>
+                {g.label}
+              </option>
             ))}
           </select>
         </div>

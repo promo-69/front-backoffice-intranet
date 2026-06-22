@@ -24,6 +24,8 @@ import { useLoading } from "../context/LoadingContext";
 import CreateRolePage from "@/pages/admin/personal/createRolePage";
 import EditRolePage from "@/pages/admin/personal/editRolePage";
 import NoAccess from "@/pages/noAccess";
+import RentalRequestsList from "@/pages/rentals/RentalRequestsList";
+import RentalRequestDetail from "@/pages/rentals/RentalRequestDetail";
 
 import ReportsDashboard from "@/pages/admin/reports/reportsDashboard";
 
@@ -139,7 +141,13 @@ function AppRoute() {
         <Route
           path="/admin/finanzas"
           element={
-            <ProtectedRoute permission={ROUTE_PERMISSIONS.FINANCES_READ}>
+            <ProtectedRoute 
+              anyOf={[
+                ROUTE_PERMISSIONS.CURRENCIES_PAGE, 
+                ROUTE_PERMISSIONS.RATES_PAGE, 
+                ROUTE_PERMISSIONS.BANK_ACCOUNTS_PAGE
+              ]}
+            >
               <AdminLayout>
                 <FinancesPage />
               </AdminLayout>

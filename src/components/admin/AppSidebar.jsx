@@ -9,6 +9,7 @@ import {
   TicketIcon,
   ShoppingBag,
   BookOpen,
+  Calendar,
   Landmark,
   Receipt,
 } from "lucide-react";
@@ -76,6 +77,13 @@ const navItems = [
     url: "/admin/catalogo",
     icon: BookOpen,
     permission: "CRUD:READ:CATALOGS",
+  },
+  {
+    id: "rentals",
+    title: "Alquiler de Salas",
+    url: "/admin/rentals",
+    icon: Calendar,
+    permission: "CRUD:READ:RENTALS",
   },
   {
     id: "reports",
