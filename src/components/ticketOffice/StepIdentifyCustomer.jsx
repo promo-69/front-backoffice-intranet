@@ -95,7 +95,7 @@ export default function StepIdentifyCustomer({ onNext }) {
       documentNumber: customer.person?.document_number || normalizedDoc,
       firstName: customer.person?.first_name || form.firstName,
       lastName: customer.person?.last_name || form.lastName,
-      pointsBalance: customer.customer.points_balance ?? 0,
+      pointsBalance: customer.customer?.points_balance ?? 0,
       loyaltyLevel: customer.customer.loyalty?.level_name || "",
     });
   };

@@ -211,10 +211,20 @@ export default function Step4Payment({ movie, showtime, selectedSeats = [], tick
                       )}
                     </div>
 
-                    {isLoyalty && customerInfo && (
-                      <p className="text-xs text-[#3E2186] font-semibold">
-                        Saldo disponible: {customerInfo.pointsBalance} puntos
-                      </p>
+                    {isLoyalty && (
+                      !customerInfo ? (
+                        <p className="text-xs text-red-500 font-semibold">
+                          Debe identificar un cliente para usar puntos de fidelidad
+                        </p>
+                      ) : (customerInfo.pointsBalance ?? 0) <= 0 ? (
+                        <p className="text-xs text-red-500 font-semibold">
+                          El cliente no tiene puntos de fidelidad disponibles
+                        </p>
+                      ) : (
+                        <p className="text-xs text-[#3E2186] font-semibold">
+                          Saldo disponible: {customerInfo.pointsBalance} puntos
+                        </p>
+                      )
                     )}
 
                     {bankAccounts.length > 0 && (
@@ -339,6 +349,7 @@ export default function Step4Payment({ movie, showtime, selectedSeats = [], tick
             if (needsReference && !p.fields?.Referencia) return true;
             const ba = bankAccountsByMethod[p.method] || [];
             if (ba.length > 0 && !p.fields?.Banco) return true;
+            if (p.method === 5 && (!customerInfo || !customerInfo.pointsBalance || customerInfo.pointsBalance <= 0)) return true;
             return false;
           })}
           className="

@@ -348,7 +348,7 @@ export default function SellTickets() {
     try {
       const cinemaId = selectedCinema?.id || 1;
       await ordersService.cancelSession().catch(() => {});
-      await ordersService.createQuote(cinemaId, 1);
+      await ordersService.createQuote(cinemaId, saleData.customer?.customerId);
 
       const seatMapRes = await getSeatMap(showtime.id);
       const apiSeats = seatMapRes?.seats || [];

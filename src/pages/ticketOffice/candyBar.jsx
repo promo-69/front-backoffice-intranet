@@ -32,7 +32,7 @@ export default function CandyBar() {
       await ordersService.cancelSession().catch(() => {});
       const userData = JSON.parse(localStorage.getItem("user") || "{}");
       const cinemaId = userData.cinemaId || 1;
-      await ordersService.createQuote(cinemaId, 1);
+      await ordersService.createQuote(cinemaId, customerData.customerId);
       const state = await ordersService.getSessionState().catch(() => null);
       const usdRate = state?.exchange_rates?.["1"]?.rate;
       if (usdRate) setExchangeRate(Number(usdRate));
@@ -183,7 +183,7 @@ export default function CandyBar() {
 
     try {
       await ordersService.cancelSession().catch(() => {});
-      await ordersService.createQuote(cinemaId, 1);
+      await ordersService.createQuote(cinemaId, customer?.customerId);
       await ordersService.checkout([], concessions);
       const allPayments = payments
         .filter(p => p.method !== 5)
