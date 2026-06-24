@@ -14,6 +14,16 @@ import { useLoading } from "@/context/LoadingContext";
 import { createShowtimesBulk } from "@/services/showtime.service";
 import { toast } from "sonner";
 
+// Conversión rápida sumando las 4 horas del offset (de VET a UTC)
+const convertLocalTimeToUTCString = (timeString) => {
+  if (!timeString) return "";
+  const [hours, minutes] = timeString.split(":").map(Number);
+  
+  // Sumamos 4 horas para llevarlo a UTC (revisando que no se pase de 24)
+  const utcHours = (hours + 4) % 24; 
+  return `${String(utcHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+};
+
 export function ShowtimeModal({ 
   open, 
   onClose, 
@@ -59,6 +69,18 @@ export function ShowtimeModal({
   const watchProjection = useWatch({ control, name: "projection_type", defaultValue: "" });
   const watchLanguage = useWatch({ control, name: "language", defaultValue: "" });
   const watchCurrency = useWatch({ control, name: "currency", defaultValue: "" });
+
+  // Función reutilizable para calcular la hora de fin estimada
+  const getComputedEndTime = (startTime, duration) => {
+    if (!startTime || !duration) return "";
+    const [hours, minutes] = startTime.split(':').map(Number);
+    const date = new Date();
+    date.setHours(hours, minutes, 0);
+    const endDate = new Date(date.getTime() + duration * 60000);
+    const endHours = String(endDate.getHours()).padStart(2, '0');
+    const endMinutes = String(endDate.getMinutes()).padStart(2, '0');
+    return `${endHours}:${endMinutes}`;
+  };
 
   useEffect(() => {
     if (open && cinemaId) {
@@ -122,20 +144,32 @@ export function ShowtimeModal({
     }
   }, [watchContentId, filteredProjections, filteredLanguages, setValue, watchProjection, watchLanguage]);
 
-  // Cálculo hora de fin estimada
+  // Cálculo hora de fin estimada (Modo Simple)
   useEffect(() => {
     if (isEdit && !isDirty) return;
 
     if (watchContentId && watchStartTime && selectedContent?.duration_minutes) {
-      const [hours, minutes] = watchStartTime.split(':').map(Number);
-      const date = new Date();
-      date.setHours(hours, minutes, 0);
-      const endDate = new Date(date.getTime() + selectedContent.duration_minutes * 60000);
-      const endHours = String(endDate.getHours()).padStart(2, '0');
-      const endMinutes = String(endDate.getMinutes()).padStart(2, '0');
-      setValue("end_time_raw", `${endHours}:${endMinutes}`);
+      const endTime = getComputedEndTime(watchStartTime, selectedContent.duration_minutes);
+      setValue("end_time_raw", endTime);
     }
   }, [watchContentId, watchStartTime, selectedContent, setValue, isEdit, isDirty]);
+
+  // Recalcular horas de fin de los slots si cambia la película/duración (Modo Lote)
+  useEffect(() => {
+    if (!isBulk || !selectedContent?.duration_minutes) return;
+
+    setSlots(prev =>
+      prev.map(slot => {
+        if (slot.start_time) {
+          return {
+            ...slot,
+            end_time: getComputedEndTime(slot.start_time, selectedContent.duration_minutes)
+          };
+        }
+        return slot;
+      })
+    );
+  }, [selectedContent?.duration_minutes, isBulk]);
 
   // Cargar formulario
   useEffect(() => {
@@ -198,6 +232,7 @@ export function ShowtimeModal({
 
   const handleFormSubmit = async (data) => {
     let cleanPrice = typeof data.price === "string" ? data.price.replace(",", ".") : data.price;
+    
     // If bulk mode, build bulk payload and call bulk service
     if (isBulk) {
       showLoader();
@@ -213,7 +248,13 @@ export function ShowtimeModal({
           period_start: data.period_start,
           period_end: data.period_end,
           days_of_week: daysSelected,
-          daily_slots: slots.filter(s => s.start_time && s.end_time).map(s => ({ start_time: s.start_time, end_time: s.end_time }))
+          // Se aplica la conversión de desfase UTC-4 antes de despachar al backend
+          daily_slots: slots
+            .filter(s => s.start_time && s.end_time)
+            .map(s => ({ 
+              start_time: convertLocalTimeToUTCString(s.start_time), 
+              end_time: convertLocalTimeToUTCString(s.end_time) 
+            }))
         };
 
         if (data.content_type === "movie") payload.movie = Number(data.content_id);
@@ -321,9 +362,10 @@ export function ShowtimeModal({
           )}
 
           {isBulk && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <InputForm label="Periodo Desde" type="date" error={errors.period_start?.message} {...register("period_start", { required: "Este campo es obligatorio" })} />
               <InputForm label="Periodo Hasta" type="date" error={errors.period_end?.message} {...register("period_end", { required: "Este campo es obligatorio" })} />
+              <InputForm label="Puntos de Lealtad" type="number" placeholder="0" error={errors.earned_loyalty_points?.message} {...register("earned_loyalty_points")} />
             </div>
           )}
 
@@ -353,9 +395,23 @@ export function ShowtimeModal({
                 <div className="space-y-2 mt-2">
                   {slots.map((s, i) => (
                     <div key={i} className="flex gap-2 items-center">
-                      <input type="time" value={s.start_time} onChange={(e) => setSlots(prev => prev.map((it, idx) => idx===i?{...it,start_time:e.target.value}:it))} className="p-2 border rounded w-36" />
+                      <input 
+                        type="time" 
+                        value={s.start_time} 
+                        onChange={(e) => {
+                          const newStart = e.target.value;
+                          const computedEnd = getComputedEndTime(newStart, selectedContent?.duration_minutes) || s.end_time;
+                          setSlots(prev => prev.map((it, idx) => idx === i ? { ...it, start_time: newStart, end_time: computedEnd } : it));
+                        }} 
+                        className="p-2 border rounded w-36" 
+                      />
                       <span>-</span>
-                      <input type="time" value={s.end_time} onChange={(e) => setSlots(prev => prev.map((it, idx) => idx===i?{...it,end_time:e.target.value}:it))} className="p-2 border rounded w-36" />
+                      <input 
+                        type="time" 
+                        value={s.end_time} 
+                        onChange={(e) => setSlots(prev => prev.map((it, idx) => idx === i ? { ...it, end_time: e.target.value } : it))} 
+                        className="p-2 border rounded w-36" 
+                      />
                       <button type="button" onClick={() => setSlots(prev => prev.filter((_,idx)=>idx!==i))} className="text-red-500">Eliminar</button>
                     </div>
                   ))}
