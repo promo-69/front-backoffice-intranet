@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import StepIndicator from "../../components/ticketOffice/StepIndicator";
+import StepIdentifyCustomer from "../../components/ticketOffice/StepIdentifyCustomer";
 import Step1Showtime from "../../components/ticketOffice/Step1Showtime";
 import Step2Seats from "../../components/ticketOffice/Step2Seats";
 import { getCinemas } from "../../services/cinema.service";
 import Step3Confectionery from "../../components/ticketOffice/Step3Confectionery";
 import Step4Payment from "../../components/ticketOffice/Step4Payment";
-import { getBillboard, getSeatsStatus } from "../../services/showtime.service";
-import { getSeatsByRoom } from "../../services/room.service";
+import { getBillboard, getSeatsStatus, getSeatMap } from "../../services/showtime.service";
+import { ArrowLeft } from "lucide-react";
 import { concessionsService } from "../../services/concessions.service";
 import { ordersService } from "../../services/orders.service";
 import socketService from "../../services/socket.service";
@@ -55,10 +56,10 @@ function mapMovie(m) {
   };
 }
 
-function mapShowtime(s, movieId, backendSoldCount = 0) {
+function mapShowtime(s, movieId, backendSoldCount = 0, nonOperationalCount = 0, backendTotalSeats = 0) {
   const dt = new Date(s.booking.start_time);
   const roomLabel = s.booking.room?.name ?? `Sala #${s.booking.room?.id}`;
-  const totalGrid = (s.booking.room?.grid_rows || 12) * (s.booking.room?.grid_columns || 12);
+  const totalSeats = backendTotalSeats || (s.booking.room?.grid_rows || 12) * (s.booking.room?.grid_columns || 12);
   const soldCount = getSoldSeats(s.id).length + backendSoldCount;
   return {
     id: s.id,
@@ -66,33 +67,44 @@ function mapShowtime(s, movieId, backendSoldCount = 0) {
     roomId: s.booking.room?.id,
     movie_id: movieId,
     room: roomLabel,
+    gridRows: s.booking.room?.grid_rows || 8,
+    gridCols: s.booking.room?.grid_columns || 12,
     date: dt.toISOString().split("T")[0],
     time: dt.toLocaleTimeString("es-VE", { hour: "2-digit", minute: "2-digit", hour12: false }),
     price: Number(s.price) || 0,
-    available_seats: Math.max(0, totalGrid - soldCount),
-    total_seats: totalGrid,
+    available_seats: Math.max(0, totalSeats - soldCount - nonOperationalCount),
+    total_seats: totalSeats,
   };
 }
 
 function mapSeat(seat) {
-  const id = `${seat.row_identifier}${seat.column_number}`;
-  const isUnavailable = seat.seat_condition === 3 || seat.seat_condition === 2;
+  if (seat.seat_condition === 3) return null;
+  let status = seat.status;
+  if (status === "locked") status = "sold";
   return {
-    id,
+    id: seat.label,
     dbId: seat.id,
-    row: seat.row_identifier,
-    col: seat.column_number,
-    status: isUnavailable ? "sold" : "available",
+    row: seat.row,
+    col: seat.column,
+    category: seat.category,
+    seatCondition: seat.seat_condition,
+    status,
   };
 }
 
 function mapProduct(p) {
-  const catDesc = p._ProductCategories?.description || "";
+  const catId = p._ProductCategories?.id ?? p.product_category;
+  let category;
+  if (catId === 1) category = "Drinks";
+  else if (catId === 3) category = "Candies";
+  else category = "Popcorn";
   return {
     id: p.id,
     name: p.name,
     price: Number(p.pricing?.final_price ?? p.price) || 0,
-    category: catDesc.includes("Bebida") ? "Drinks" : catDesc.includes("Chocolate") || catDesc.includes("Dulce") ? "Candies" : "Popcorn",
+    priceVes: Number(p.pricing?.base_currency_equivalent?.final_price) || null,
+    stock: p.stock ?? null,
+    category,
     emoji: "🍿",
   };
 }
@@ -102,9 +114,11 @@ function mapCombo(c) {
     id: c.id,
     name: c.name,
     price: Number(c.pricing?.final_price ?? c.price) || 0,
+    priceVes: Number(c.pricing?.base_currency_equivalent?.final_price) || null,
     description: c.description || "",
     emoji: "🎉",
     items: [],
+    _ComboProducts: c._ComboProducts || [],
   };
 }
 
@@ -122,7 +136,6 @@ export default function SellTickets() {
   const concessionLoadedRef = useRef(false);
 
   const loadConcessionData = useCallback(async (cinemaId) => {
-    if (concessionLoadedRef.current) return;
     setProductsLoading(true);
     try {
       const [allProducts, allCombos] = await Promise.all([
@@ -133,8 +146,17 @@ export default function SellTickets() {
           ? concessionsService.getAvailableCombos(cinemaId)
           : concessionsService.getCombos(),
       ]);
-      setProducts((allProducts || []).map(mapProduct));
-      setCombos((allCombos || []).map(mapCombo));
+      const mappedProducts = (allProducts || []).map(mapProduct);
+      const productStockMap = {};
+      for (const p of mappedProducts) productStockMap[p.id] = p.stock ?? 0;
+      function comboHasStock(c) {
+        const parts = c._ComboProducts || [];
+        if (parts.length === 0) return true;
+        return parts.every((cp) => (productStockMap[cp.product] || 0) >= cp.quantity);
+      }
+      const mappedCombos = (allCombos || []).map(mapCombo).map(c => ({ ...c, available: comboHasStock(c) }));
+      setProducts(mappedProducts);
+      setCombos(mappedCombos);
       concessionLoadedRef.current = true;
     } catch (err) {
       console.error("Error loading concession data:", err);
@@ -144,6 +166,7 @@ export default function SellTickets() {
   }, []);
 
   const [saleData, setSaleData] = useState({
+    customer: null,
     cinema: null,
     movie: null,
     showtime: null,
@@ -151,15 +174,18 @@ export default function SellTickets() {
     selectedSeats: [],
     ticketsNeeded: 1,
     totalTickets: 0,
+    totalTicketsVes: 0,
     concessionItems: [],
+    pricingMatrix: [],
     concessionTotal: 0,
+    concessionTotalVes: 0,
   });
   const [sessionExpired, setSessionExpired] = useState(false);
   const [timeLeft, setTimeLeft] = useState(null);
   const [paymentMethods, setPaymentMethods] = useState([]);
+  const [bankAccountsByMethod, setBankAccountsByMethod] = useState({});
   const [vesCurrencyId, setVesCurrencyId] = useState(2);
-  const [loyaltyInfo, setLoyaltyInfo] = useState(null);
-
+  const [exchangeRate, setExchangeRate] = useState(600);
   useEffect(() => {
     let cancelled = false;
     async function load() {
@@ -207,31 +233,46 @@ export default function SellTickets() {
     };
   }, []);
 
-  // Load concession data when entering step 4 (by then a quote/active session exists)
   useEffect(() => {
-    if (step === 4) {
+    if (step === 5) {
       loadConcessionData(selectedCinema?.id);
     }
   }, [step, loadConcessionData, selectedCinema]);
 
   useEffect(() => {
+    if (step !== 6) return;
     async function loadPaymentData() {
       try {
-        const [methods, currencyList, loyalty] = await Promise.all([
+        const [methods, currencyList, options] = await Promise.all([
           paymentsService.getMethods(),
           paymentsService.getCurrencies(),
-          paymentsService.getLoyaltyInfo().catch(() => null),
+          paymentsService.getPaymentOptions().catch(() => []),
         ]);
         setPaymentMethods(methods);
-        setLoyaltyInfo(loyalty);
         const ves = currencyList.find(c => c.code === "VES");
         if (ves) setVesCurrencyId(ves.id);
+        const bankMap = {};
+        for (const opt of options) {
+          if (opt._BankAccounts?.length) {
+            bankMap[opt.id] = opt._BankAccounts.map(ba => ({
+              id: ba.id,
+              bankId: ba.bank,
+              bankName: ba._Banks?.name || "",
+              currency: ba.currency,
+              paymentDetails: (() => {
+                if (Array.isArray(ba.payment_details)) return ba.payment_details;
+                try { return JSON.parse(ba.payment_details); } catch { return []; }
+              })(),
+            }));
+          }
+        }
+        setBankAccountsByMethod(bankMap);
       } catch (err) {
         console.error("Error loading payment data:", err);
       }
     }
     loadPaymentData();
-  }, []);
+  }, [step]);
 
   useEffect(() => {
     if (timeLeft == null || timeLeft <= 0) return;
@@ -259,6 +300,11 @@ export default function SellTickets() {
   const getShowtimesForMovie = (movieId) =>
     allShowtimes.filter((s) => Number(s.movie_id) === Number(movieId));
 
+  const handleCustomerIdentified = (customerData) => {
+    setSaleData((prev) => ({ ...prev, customer: customerData }));
+    setStep(2);
+  };
+
   const handleCinemaSelect = async (cinema) => {
     setSelectedCinema(cinema);
     setSaleData((prev) => ({ ...prev, cinema }));
@@ -271,20 +317,24 @@ export default function SellTickets() {
         allShowtimes.map((st) => getSeatsStatus(st.id))
       );
       const backendSoldMap = {};
+      const backendNonOpMap = {};
+      const backendTotalMap = {};
       statusResults.forEach((res, i) => {
         if (res.status === "fulfilled" && res.value) {
           const stId = allShowtimes[i].id;
           backendSoldMap[stId] = (res.value.sold?.length || 0) + (res.value.locked?.length || 0);
+          backendNonOpMap[stId] = res.value.non_operational_seats || 0;
+          backendTotalMap[stId] = res.value.total_seats || 0;
         }
       });
       console.log("backendSoldMap:", JSON.stringify(backendSoldMap));
       setMovies(rows.map((r) => mapMovie(r.movie)));
       setAllShowtimes(
         rows.flatMap((r) =>
-          (r.showtimes || []).map((st) => mapShowtime(st, r.movie.id, backendSoldMap[st.id] || 0))
+          (r.showtimes || []).map((st) => mapShowtime(st, r.movie.id, backendSoldMap[st.id] || 0, backendNonOpMap[st.id] || 0, backendTotalMap[st.id] || 0))
         )
       );
-      setStep(2);
+      setStep(3);
     } catch (err) {
       console.error("Error loading billboard:", err);
     } finally {
@@ -294,38 +344,35 @@ export default function SellTickets() {
 
   const handleMovieNext = async ({ movie, showtime }) => {
     try {
-      const [seatMapRes, statusRes] = await Promise.all([
-        getSeatsByRoom(showtime.roomId),
-        getSeatsStatus(showtime.id).catch(() => ({ sold: [], locked: [] })),
-      ]);
-      const apiSeats = Array.isArray(seatMapRes?.data) ? seatMapRes.data : (seatMapRes?.data?.rows || []);
+      const cinemaId = selectedCinema?.id || 1;
+      await ordersService.cancelSession().catch(() => {});
+      await ordersService.createQuote(cinemaId, 1);
 
-      const backendSold = new Set([...(statusRes?.sold || []), ...(statusRes?.locked || [])]);
+      const seatMapRes = await getSeatMap(showtime.id);
+      const apiSeats = seatMapRes?.seats || [];
+      const pricingMatrix = seatMapRes?.pricing?.pricing_matrix || [];
 
       const soldIds = getSoldSeats(showtime.id);
       const seatMap = apiSeats.map((s) => {
-        const mapped = mapSeat(s);
-        if (soldIds.includes(mapped.id) || backendSold.has(s.id)) mapped.status = "sold";
-        return mapped;
-      });
+        if (soldIds.includes(s.label)) s.status = "sold";
+        return mapSeat(s);
+      }).filter(Boolean);
 
       setSaleData((prev) => ({
         ...prev,
         movie,
         showtime,
         seatMap,
+        pricingMatrix,
       }));
 
       showtimeIdRef.current = showtime.id;
 
-      const userData = JSON.parse(localStorage.getItem("user") || "{}");
-      const cinemaId = userData.cinemaId || 1;
-      await ordersService.cancelSession().catch(() => {});
-      await ordersService.createQuote(cinemaId, 1);
-
       setSessionExpired(false);
       const state = await ordersService.getSessionState().catch(() => null);
       setTimeLeft(state?.expires_in || 600);
+      const usdRate = state?.exchange_rates?.["1"]?.rate;
+      if (usdRate) setExchangeRate(Number(usdRate));
 
       await socketService.waitForConnection();
       socketService.joinShowtime(showtime.id);
@@ -337,7 +384,7 @@ export default function SellTickets() {
         setTimeLeft(0);
       });
 
-      setStep(3);
+      setStep(4);
     } catch (err) {
       console.error("Error al preparar la sesión de compra:", err);
     }
@@ -348,7 +395,7 @@ export default function SellTickets() {
       socketService.leaveShowtime(showtimeIdRef.current);
       showtimeIdRef.current = null;
     }
-    setStep(2);
+    setStep(3);
   };
 
   const handleSeatsNext = async ({ selectedSeats, ticketsNeeded, totalPrice }) => {
@@ -357,15 +404,16 @@ export default function SellTickets() {
       selectedSeats,
       ticketsNeeded,
       totalTickets: totalPrice,
+      totalTicketsVes: totalPrice * exchangeRate,
     }));
-    setStep(4);
+    setStep(5);
   };
 
   const processOrder = async ({ selectedSeats, showtime, concessionItems, payments }) => {
     const tickets = selectedSeats.map((s) => ({
       seatId: s.dbId,
       booking: showtime.room_booking_id,
-      audienceCategoryId: 1,
+      audienceCategoryId: s.audienceCategoryId || 1,
     }));
     const concessions = concessionItems.map((e) => ({
       line_type: e.item.category === "Combo" ? 2 : 1,
@@ -374,26 +422,49 @@ export default function SellTickets() {
       quantity: e.qty,
     }));
     const { data: checkoutData } = await ordersService.checkout(tickets, concessions);
-    for (const p of payments) {
-      if (p.method === 6) continue;
-      const ref = p.fields?.Referencia || null;
-      const currency = [2, 3, 4, 7].includes(p.method) ? vesCurrencyId : 1;
-      await ordersService.registerPayment(p.method, p.amount, currency, ref);
+    const allPayments = payments
+      .filter(p => p.method !== 5)
+      .map(p => {
+        let bank = p.fields?.Banco;
+        if (!bank && p.fields?._baId) {
+          const baList = bankAccountsByMethod[p.method] || [];
+          const ba = baList.find(b => b.id === Number(p.fields._baId));
+          if (ba) bank = ba.bankId;
+        }
+        return {
+          payment_method: p.method,
+          amount: p.amountVes,
+          currency: vesCurrencyId,
+          reference_number: p.fields?.Referencia || undefined,
+          bank,
+          bypass: [2, 3, 4].includes(p.method) ? true : undefined,
+        };
+      });
+    const ptsPayment = payments.find(p => p.method === 5);
+    if (ptsPayment && ptsPayment.amountVes > 0) {
+      allPayments.push({
+        payment_method: 5,
+        amount: ptsPayment.amountVes,
+        currency: vesCurrencyId,
+      });
     }
-    const ptsPayment = payments.find(p => p.method === 6);
-    if (ptsPayment && ptsPayment.amount > 0) {
-      await ordersService.registerPayment(6, ptsPayment.amount, 1);
-    }
+    console.log("[processOrder] allPayments:", JSON.stringify(allPayments, null, 2));
+    if (allPayments.length > 0) await ordersService.registerPayments(allPayments);
     return checkoutData;
   };
 
   const handleStep3Next = ({ concessionItems, concessionTotal }) => {
+    const concessionTotalVes = concessionItems.reduce((sum, ci) => {
+      const ves = ci.item?.priceVes || (ci.item?.price * exchangeRate);
+      return sum + ves * ci.qty;
+    }, 0);
     setSaleData((prev) => ({
       ...prev,
       concessionItems,
       concessionTotal,
+      concessionTotalVes,
     }));
-    setStep(5);
+    setStep(6);
   };
 
   const handleConfirm = async ({ payments }) => {
@@ -440,7 +511,7 @@ export default function SellTickets() {
         subtotal: e.item.price * e.qty,
       })),
       concession_total: saleData.concessionTotal,
-      payments: payments.map((p) => ({ method: p.method, amount: p.amount })),
+      payments: payments.map((p) => ({ method: p.method, amount: p.amountVes })),
       grand_total: saleData.totalTickets + saleData.concessionTotal,
     });
   };
@@ -451,15 +522,18 @@ export default function SellTickets() {
       showtimeIdRef.current = null;
     }
     ordersService.cancelSession().catch(() => {});
+    concessionLoadedRef.current = false;
     setSelectedCinema(null);
     concessionLoadedRef.current = false;
     setProducts([]);
     setCombos([]);
     setSaleData({
+      customer: null,
       cinema: null,
       movie: null,
       showtime: null,
       seatMap: [],
+      pricingMatrix: [],
       selectedSeats: [],
       ticketsNeeded: 1,
       totalTickets: 0,
@@ -474,20 +548,20 @@ export default function SellTickets() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white text-gray-900 font-montserrat flex items-center justify-center">
-        <p className="text-gray-400 text-lg">Cargando...</p>
+      <div className="min-h-screen bg-white text-slate-800 font-montserrat flex items-center justify-center">
+        <p className="text-slate-600 text-lg">Cargando...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white text-gray-900 font-montserrat pb-16">
+    <div className="min-h-screen bg-white text-slate-800 font-montserrat pb-16">
       <div className="max-w-5xl mx-auto px-4 mt-8">
         <StepIndicator currentStep={step} />
 
         {timeLeft != null && step >= 3 && (
-          <div className={`flex items-center justify-end gap-2 mb-2 text-sm font-bold ${timeLeft <= 60 ? "text-red-500" : "text-gray-500"}`}>
-            <span className={`w-2 h-2 rounded-full ${timeLeft <= 60 ? "bg-red-500 animate-pulse" : "bg-gray-400"}`} />
+          <div className={`flex items-center justify-end gap-2 mb-2 text-sm font-bold ${timeLeft <= 60 ? "text-red-500" : "text-slate-600"}`}>
+            <span className={`w-2 h-2 rounded-full ${timeLeft <= 60 ? "bg-red-500 animate-pulse" : "bg-slate-400"}`} />
             {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, "0")}
           </div>
         )}
@@ -499,10 +573,10 @@ export default function SellTickets() {
                 <span className="text-2xl">⏰</span>
               </div>
               <h2 className="text-xl font-bold text-slate-800 mb-2">Sesión Expirada</h2>
-              <p className="text-gray-500 text-sm mb-6">El tiempo para completar la compra ha terminado. Los asientos han sido liberados.</p>
+              <p className="text-slate-600 text-sm mb-6">El tiempo para completar la compra ha terminado. Los asientos han sido liberados.</p>
               <button
                 onClick={handleNewSale}
-                className="w-full py-3 bg-[#F6AD38] text-[#1d1430] font-bold rounded-xl hover:brightness-110 transition-all"
+                className="w-full py-3 bg-[#3E2186] text-white font-bold rounded-xl hover:brightness-110 transition-all"
               >
                 Nueva Venta
               </button>
@@ -512,6 +586,10 @@ export default function SellTickets() {
 
         <div className="bg-white rounded-3xl border border-gray-200 shadow-2xl p-6 md:p-8">
           {step === 1 && (
+            <StepIdentifyCustomer onNext={handleCustomerIdentified} />
+          )}
+
+          {step === 2 && (
             <div className="p-4">
               <h2 className="text-xl font-bold text-slate-800 mb-6">Seleccionar Sucursal</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -522,74 +600,88 @@ export default function SellTickets() {
                     disabled={!c.available}
                     className={`bg-white border-2 rounded-2xl p-6 text-left transition-all ${
                       c.available
-                        ? "border-gray-200 hover:border-[#F6AD38] hover:shadow-lg cursor-pointer"
+                        ? "border-gray-200 hover:border-[#3E2186] hover:shadow-lg cursor-pointer"
                         : "border-gray-100 opacity-50 cursor-not-allowed"
                     }`}
                   >
                     <h3 className="font-bold text-slate-800 text-lg">{c.name}</h3>
-                    <p className="text-gray-500 text-sm mt-1">{c.address}</p>
+                    <p className="text-slate-600 text-sm mt-1">{c.address}</p>
                     {!c.available && (
-                      <span className="inline-block mt-2 text-xs bg-gray-100 text-gray-400 px-2 py-1 rounded">
+                      <span className="inline-block mt-2 text-xs bg-gray-100 text-slate-500 px-2 py-1 rounded">
                         Sin funciones disponibles
                       </span>
                     )}
                   </button>
                 ))}
               </div>
+              <div className="flex justify-start pt-6">
+                <button
+                  onClick={() => setStep(1)}
+                  className="flex items-center gap-2 px-6 py-3 rounded-xl border border-gray-300 text-slate-700 hover:border-gray-400 hover:text-slate-900 transition-all text-sm"
+                >
+                  <ArrowLeft className="w-4 h-4" /> Volver
+                </button>
+              </div>
             </div>
           )}
 
-          {step === 2 && (
+          {step === 3 && (
             <Step1Showtime
               movies={movies}
               getShowtimes={getShowtimesForMovie}
               onNext={handleMovieNext}
+              onBack={() => setStep(2)}
             />
           )}
 
-          {step === 3 && saleData.showtime && (
+          {step === 4 && saleData.showtime && (
             <Step2Seats
               movie={saleData.movie}
               showtime={saleData.showtime}
               seatMap={saleData.seatMap}
+              pricingMatrix={saleData.pricingMatrix}
               onNext={handleSeatsNext}
               onBack={handleSeatsBack}
             />
           )}
 
-          {step === 4 && (
+          {step === 5 && (
             <Step3Confectionery
               products={products}
               combos={combos}
               loading={productsLoading}
               onNext={handleStep3Next}
-              onBack={() => setStep(3)}
+              onBack={() => setStep(4)}
             />
           )}
 
-          {step === 5 && (
+          {step === 6 && (
             <Step4Payment
               movie={saleData.movie}
               showtime={saleData.showtime}
               selectedSeats={saleData.selectedSeats}
               ticketsNeeded={saleData.ticketsNeeded}
               totalTickets={saleData.totalTickets}
+              totalTicketsVes={saleData.totalTicketsVes}
               concessionItems={saleData.concessionItems}
               concessionTotal={saleData.concessionTotal}
+              concessionTotalVes={saleData.concessionTotalVes}
               onConfirm={handleConfirm}
-              onBack={() => setStep(4)}
+              onBack={() => setStep(5)}
               paymentMethods={paymentMethods}
+              bankAccountsByMethod={bankAccountsByMethod}
               vesCurrencyId={vesCurrencyId}
-              loyaltyInfo={loyaltyInfo}
+              exchangeRate={exchangeRate}
+              customerInfo={saleData.customer}
             />
           )}
         </div>
 
-        {step === 5 && (
+        {step === 6 && (
           <div className="flex justify-center mt-6">
             <button
               onClick={handleNewSale}
-              className="px-8 py-3 border border-[#F6AD38]/40 text-[#F6AD38] rounded-xl text-sm font-bold hover:bg-[#F6AD38]/10 transition-all"
+              className="px-8 py-3 border border-[#3E2186]/40 text-[#3E2186] rounded-xl text-sm font-bold hover:bg-[#3E2186]/10 transition-all"
             >
               + Nueva Venta
             </button>

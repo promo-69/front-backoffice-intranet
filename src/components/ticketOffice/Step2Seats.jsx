@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Info } from "lucide-react";
+import { ArrowLeft, Info, Accessibility, Wrench } from "lucide-react";
 import socketService from "../../services/socket.service";
 
 const SOLD_SEATS_KEY = "cx_sold_seats";
-const ROW_LABELS = ["A", "B", "C", "D", "E", "F", "G", "H", "I"];
 
 function saveSoldSeats(showtimeId, seatIds) {
   try {
@@ -17,12 +16,33 @@ function saveSoldSeats(showtimeId, seatIds) {
   }
 }
 
-export default function Step2Seats({ showtime, movie, seatMap, onNext, onBack }) {
+export default function Step2Seats({ showtime, movie, seatMap, pricingMatrix = [], onNext, onBack }) {
   const [seats, setSeats] = useState(seatMap);
   const [ticketsNeeded, setTicketsNeeded] = useState(1);
 
   const selectedSeats = seats.filter((s) => s.status === "selected");
   const canContinue = selectedSeats.length === ticketsNeeded;
+
+  const audienceCategories = [];
+  const catSeen = new Set();
+  for (const pm of pricingMatrix) {
+    if (!catSeen.has(pm.audience_category.id)) {
+      catSeen.add(pm.audience_category.id);
+      audienceCategories.push(pm.audience_category);
+    }
+  }
+  // Fallback si el backend no devuelve pricing_matrix
+  if (audienceCategories.length === 0) {
+    audienceCategories.push({ id: 1, name: "Adulto" }, { id: 2, name: "Niño" }, { id: 3, name: "Tercera Edad" });
+  }
+
+  function getSeatPrice(seat, audId) {
+    const scId = seat.category?.id || 1;
+    const entry = pricingMatrix.find(pm => pm.seat_category.id === scId && pm.audience_category.id === audId);
+    return entry?.final_price ?? showtime.price;
+  }
+
+  const totalPrice = selectedSeats.reduce((sum, s) => sum + getSeatPrice(s, s.audienceCategoryId || 1), 0);
 
   useEffect(() => {
     const onSeatLockedOther = ({ seatId }) => {
@@ -66,7 +86,7 @@ export default function Step2Seats({ showtime, movie, seatMap, onNext, onBack })
 
   const toggleSeat = (seatId) => {
     const seat = seats.find((s) => s.id === seatId);
-    if (!seat || seat.status === "sold") return;
+    if (!seat || seat.status === "sold" || seat.status === "maintenance") return;
 
     if (seat.status === "selected") {
       socketService.unlockSeat(seat.dbId);
@@ -77,7 +97,7 @@ export default function Step2Seats({ showtime, movie, seatMap, onNext, onBack })
       if (selectedSeats.length >= ticketsNeeded) return;
       socketService.lockSeatWithAck(seat.dbId).then(() => {
         setSeats((prev) =>
-          prev.map((s) => (s.id === seatId ? { ...s, status: "selected" } : s))
+          prev.map((s) => (s.id === seatId ? { ...s, status: "selected", audienceCategoryId: 1 } : s))
         );
       }).catch(() => {
         setSeats((prev) =>
@@ -88,9 +108,10 @@ export default function Step2Seats({ showtime, movie, seatMap, onNext, onBack })
   };
 
   const resetSeats = () => {
-    setSeats((prev) =>
-      prev.map((s) => (s.status === "selected" ? { ...s, status: "available" } : s))
-    );
+    setSeats((prev) => {
+      prev.filter(s => s.status === "selected").forEach(s => socketService.unlockSeat(s.dbId));
+      return prev.map((s) => (s.status === "selected" ? { ...s, status: "available" } : s));
+    });
   };
 
   const handleTicketCountChange = (val) => {
@@ -99,43 +120,55 @@ export default function Step2Seats({ showtime, movie, seatMap, onNext, onBack })
     resetSeats();
   };
 
-  // Agrupa asientos por fila
-  const byRow = ROW_LABELS.reduce((acc, row) => {
-    acc[row] = seats.filter((s) => s.row === row).sort((a, b) => a.col - b.col);
-    return acc;
-  }, {});
+  const gridRows = showtime.gridRows || 8;
+  const gridCols = showtime.gridCols || 12;
 
-  const cols = byRow["A"]?.length || 14;
-  const totalPrice = ticketsNeeded * showtime.price;
+  // Construye grid 2D a partir de la posición (row, col) de cada asiento
+  const seatGrid = [];
+  for (let r = 0; r < gridRows; r++) {
+    seatGrid[r] = [];
+    for (let c = 0; c < gridCols; c++) {
+      seatGrid[r][c] = null;
+    }
+  }
+  seats.forEach((s) => {
+    const ri = s.row.charCodeAt(0) - 65;
+    const ci = s.col - 1;
+    if (ri >= 0 && ri < gridRows && ci >= 0 && ci < gridCols) {
+      seatGrid[ri][ci] = s;
+    }
+  });
+
+  // Precios calculados por getSeatPrice() vía selectedSeats
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-[#F6AD38]">Selección de Asientos</h2>
-          <p className="text-gray-400 text-sm mt-1">
+          <h2 className="text-2xl font-bold text-[#3E2186]">Selección de Asientos</h2>
+          <p className="text-slate-600 text-sm mt-1">
             {movie.title} · {showtime.time} · {showtime.room}
           </p>
         </div>
         <div className="text-right">
-          <p className="text-[#F6AD38] font-bold text-2xl">${totalPrice.toFixed(2)}</p>
-          <p className="text-gray-400 text-xs">{ticketsNeeded} boleto{ticketsNeeded > 1 ? "s" : ""} × ${showtime.price.toFixed(2)}</p>
+          <p className="text-[#3E2186] font-bold text-2xl">${totalPrice.toFixed(2)}</p>
+          <p className="text-slate-600 text-xs">{ticketsNeeded} boleto{ticketsNeeded > 1 ? "s" : ""}</p>
         </div>
       </div>
 
       {/* Cantidad de boletos */}
-      <div className="flex items-center gap-4 bg-white/5 rounded-xl p-4 border border-white/10">
-        <span className="text-sm text-gray-300 font-medium">Cantidad de boletos:</span>
-        <div className="flex items-center gap-3 bg-[#1d1430] rounded-full px-4 py-2 border border-white/20">
+      <div className="flex items-center gap-4 bg-gray-50 rounded-xl p-4 border border-gray-200">
+        <span className="text-sm text-slate-700 font-medium">Cantidad de boletos:</span>
+        <div className="flex items-center gap-3 bg-gray-100 rounded-full px-4 py-2 border border-gray-200">
           <button
             onClick={() => handleTicketCountChange(ticketsNeeded - 1)}
-            className="text-[#F6AD38] font-bold w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform"
+            className="text-[#3E2186] font-bold w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform"
           >−</button>
-          <span className="font-bold w-6 text-center text-white">{ticketsNeeded}</span>
+          <span className="font-bold w-6 text-center text-slate-800">{ticketsNeeded}</span>
           <button
             onClick={() => handleTicketCountChange(ticketsNeeded + 1)}
-            className="text-[#F6AD38] font-bold w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform"
+            className="text-[#3E2186] font-bold w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform"
           >+</button>
         </div>
         <div className="flex items-center gap-1.5 text-xs text-blue-300">
@@ -151,64 +184,142 @@ export default function Step2Seats({ showtime, movie, seatMap, onNext, onBack })
 
       {/* PANTALLA */}
       <div className="flex flex-col items-center">
-        <div className="w-3/4 h-2 bg-gradient-to-b from-[#F6AD38]/60 to-transparent rounded-full mb-1" />
-        <p className="text-[10px] text-[#F6AD38]/60 uppercase tracking-widest mb-6 font-bold">Pantalla</p>
+        <div className="w-3/4 h-2 bg-gradient-to-b from-[#3E2186]/60 to-transparent rounded-full mb-1" />
+        <p className="text-[10px] text-[#3E2186]/60 uppercase tracking-widest mb-6 font-bold">Pantalla</p>
 
         {/* Grid de asientos */}
-        <div className="overflow-x-auto w-full pb-2">
+        <div className="flex justify-center overflow-x-auto w-full pb-4">
           <div className="min-w-max mx-auto">
             {/* Números de columna */}
-            <div className="flex gap-1 ml-8 mb-1">
-              {Array.from({ length: cols }, (_, i) => (
-                <span key={i + 1} className="w-7 text-[9px] text-center text-gray-600 font-mono">
+            <div className="flex justify-center ml-8 mb-2">
+              {Array.from({ length: gridCols }, (_, i) => (
+                <span key={i + 1} className="w-10 text-[10px] text-center text-slate-500 font-mono">
                   {i + 1}
                 </span>
               ))}
             </div>
 
-            {/* Filas */}
-            {ROW_LABELS.map((row) => (
-              <div key={row} className="flex gap-1 items-center mb-1">
-                <span className="w-7 text-[10px] text-[#F6AD38] font-bold text-center">{row}</span>
-                {(byRow[row] || []).map((seat) => {
-                  const colors = {
-                    available: "bg-[#713182]/80 hover:bg-[#913a9e] cursor-pointer hover:scale-110",
-                    selected: "bg-[#F6AD38] cursor-pointer scale-105 shadow-md shadow-[#F6AD38]/40",
-                    sold: "bg-gray-700/60 cursor-not-allowed opacity-50",
-                  };
-                  return (
-                    <button
-                      key={seat.id}
-                      onClick={() => toggleSeat(seat.id)}
-                      title={seat.status === "sold" ? `${seat.id} — Vendido` : seat.id}
-                      className={`w-7 h-7 rounded-sm transition-all duration-150 ${colors[seat.status]}`}
-                    />
-                  );
-                })}
-              </div>
-            ))}
+            <div className="flex flex-col gap-2">
+              {seatGrid.map((row, ri) => (
+                <div key={ri} className="flex items-center gap-2">
+                  <span className="w-7 text-xs text-[#3E2186] font-bold text-center shrink-0">
+                    {String.fromCharCode(65 + ri)}
+                  </span>
+                  <div
+                    className="grid"
+                    style={{ gridTemplateColumns: `repeat(${gridCols}, 40px)`, gap: '0.5rem' }}
+                  >
+                    {row.map((seat, ci) => {
+                      if (!seat) {
+                        return (
+                          <div
+                            key={`e-${ri}-${ci}`}
+                            className="w-10 h-10 bg-white border border-dashed border-slate-300 rounded-t-xl"
+                          />
+                        );
+                      }
+                      const isSelected = seat.status === "selected";
+                      const isSold = seat.status === "sold";
+                      const isMaintenance = seat.status === "maintenance";
+                      const isDisabled = seat.category?.id === 2;
+                      let colorClass, title, icon;
+                      if (isMaintenance) {
+                        colorClass = "bg-orange-500 text-white border-b-4 border-orange-700 cursor-not-allowed";
+                        title = `${seat.id} — En Mantenimiento`;
+                        icon = <Wrench className="w-3 h-3" />;
+                      } else if (isSold) {
+                        colorClass = "bg-gray-700/60 text-gray-400 border-b-4 border-gray-800/60 cursor-not-allowed opacity-60";
+                        title = `${seat.id} — Vendido`;
+                      } else if (isSelected) {
+                        colorClass = "bg-[#F6AD38] text-[#1d1430] border-b-4 border-[#d48f2a] cursor-pointer scale-105 shadow-md shadow-[#F6AD38]/40";
+                        title = `${seat.id} — Seleccionado`;
+                      } else if (isDisabled) {
+                        colorClass = "bg-blue-600 text-white border-b-4 border-blue-800 hover:bg-blue-500 cursor-pointer";
+                        title = `${seat.id} — Discapacitados`;
+                        icon = <Accessibility className="w-3 h-3" />;
+                      } else {
+                        colorClass = "bg-[#713182] text-white border-b-4 border-[#5a2668] hover:bg-[#913a9e] cursor-pointer hover:scale-105";
+                        title = seat.id;
+                      }
+                      return (
+                        <button
+                          key={seat.id}
+                          onClick={() => toggleSeat(seat.id)}
+                          title={title}
+                          className={`w-10 h-10 rounded-t-xl transition-all duration-150 flex flex-col items-center justify-center text-[9px] font-bold ${colorClass}`}
+                        >
+                          <span>{seat.id}</span>
+                          {icon}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
         {/* Leyenda */}
-        <div className="flex gap-6 mt-6 text-[11px] items-center text-gray-400">
-          <div className="flex items-center gap-2"><div className="w-4 h-4 bg-[#F6AD38] rounded-sm" /><span>Seleccionado</span></div>
-          <div className="flex items-center gap-2"><div className="w-4 h-4 bg-[#713182]/80 rounded-sm" /><span>Disponible</span></div>
-          <div className="flex items-center gap-2"><div className="w-4 h-4 bg-gray-700/60 rounded-sm opacity-60" /><span>Vendido</span></div>
+        <div className="flex flex-wrap justify-center gap-6 mt-6 text-xs text-slate-600 font-medium">
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 bg-[#F6AD38] rounded-t-md border-b-2 border-[#d48f2a] flex items-center justify-center text-[10px]">✓</div>
+            <span>Seleccionado</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 bg-[#713182] rounded-t-md border-b-2 border-[#5a2668] flex items-center justify-center text-white text-[10px]">◻</div>
+            <span>Disponible</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 bg-blue-600 rounded-t-md border-b-2 border-blue-800 flex items-center justify-center text-white"><Accessibility className="w-3 h-3" /></div>
+            <span>Discapacitados</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 bg-orange-500 rounded-t-md border-b-2 border-orange-700 flex items-center justify-center text-white"><Wrench className="w-3 h-3" /></div>
+            <span>Mantenimiento</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 bg-gray-700/60 rounded-t-md border-b-2 border-gray-800/60 opacity-60" />
+            <span>Vendido</span>
+          </div>
         </div>
       </div>
 
       {/* Asientos seleccionados */}
       {selectedSeats.length > 0 && (
-        <div className="bg-white/5 rounded-xl p-3 border border-[#F6AD38]/20">
-          <p className="text-xs text-gray-400 mb-1">Asientos seleccionados:</p>
-          <div className="flex gap-2 flex-wrap">
-            {selectedSeats.map((s) => (
-              <span key={s.id} className="bg-[#F6AD38] text-[#1d1430] px-2.5 py-1 rounded-lg font-bold text-xs">
-                {s.id}
-              </span>
-            ))}
-          </div>
+        <div className="bg-gray-50 rounded-xl p-4 border border-[#3E2186]/20 space-y-3">
+          <p className="text-xs text-slate-600 font-semibold">Asientos seleccionados:</p>
+          {selectedSeats.map((s) => {
+            const seatPrice = getSeatPrice(s, s.audienceCategoryId || 1);
+            return (
+              <div key={s.id} className="flex items-center gap-3 flex-wrap">
+                <span className="bg-[#F6AD38] text-[#1d1430] px-2.5 py-1 rounded-lg font-bold text-xs">
+                  {s.id}
+                </span>
+                {audienceCategories.length > 0 ? (
+                  <select
+                    value={s.audienceCategoryId || 1}
+                    onChange={(e) => {
+                      const audId = Number(e.target.value);
+                      setSeats((prev) =>
+                        prev.map((seat) =>
+                          seat.id === s.id ? { ...seat, audienceCategoryId: audId } : seat
+                        )
+                      );
+                    }}
+                    className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white text-slate-700 focus:outline-none focus:border-[#3E2186]"
+                  >
+                    {audienceCategories.map((ac) => (
+                      <option key={ac.id} value={ac.id}>{ac.name}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="text-xs text-slate-500">Adulto</span>
+                )}
+                <span className="text-xs text-[#3E2186] font-bold">${seatPrice.toFixed(2)}</span>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -216,19 +327,26 @@ export default function Step2Seats({ showtime, movie, seatMap, onNext, onBack })
       <div className="flex justify-between pt-2">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 px-6 py-3 rounded-xl border border-white/20 text-gray-300 hover:border-white/40 hover:text-black transition-all text-sm"
+          className="flex items-center gap-2 px-6 py-3 rounded-xl border border-gray-200 text-slate-700 hover:border-gray-400 hover:text-slate-900 transition-all text-sm"
         >
           <ArrowLeft className="w-4 h-4" /> Volver
         </button>
 
         <button
-          onClick={() => onNext({ selectedSeats, ticketsNeeded, totalPrice })}
+          onClick={() => onNext({
+            selectedSeats: selectedSeats.map(s => ({
+              ...s,
+              audienceCategoryId: s.audienceCategoryId || 1,
+            })),
+            ticketsNeeded,
+            totalPrice,
+          })}
           disabled={!canContinue}
           className="
-            px-8 py-3 bg-[#F6AD38] text-[#1d1430] font-bold rounded-xl text-sm uppercase tracking-widest
+            px-8 py-3 bg-[#3E2186] text-white font-bold rounded-xl text-sm uppercase tracking-widest
             disabled:opacity-30 disabled:cursor-not-allowed
             hover:brightness-110 active:scale-95 transition-all
-            shadow-lg shadow-[#F6AD38]/30
+            shadow-lg shadow-[#3E2186]/30
           "
         >
           Continuar → Confitería

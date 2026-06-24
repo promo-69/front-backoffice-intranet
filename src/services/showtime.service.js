@@ -92,6 +92,12 @@ export const getBillboard = async (cinemaId) => {
   return { rows };
 };
 
+// Mapa completo de asientos con categorías, condición y estado
+export const getSeatMap = async (showtimeId) => {
+  const response = await api.get(`/showtimes/${showtimeId}/seat-map`);
+  return response.data?.data || response.data;
+};
+
 // Estado de asientos (vendidos + bloqueados) de una función
 export const getSeatsStatus = async (showtimeId) => {
   const response = await api.get(`/showtimes/${showtimeId}/seats-status`);

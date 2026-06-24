@@ -159,6 +159,32 @@ function AppRoute() {
         />
 
         {/* ============================
+            RUTAS ALQUILER DE SALAS
+        ============================ */}
+
+        <Route
+          path="/admin/rentals"
+          element={
+            <ProtectedRoute permission={ROUTE_PERMISSIONS.RENTALS_READ}>
+              <AdminLayout>
+                <RentalRequestsList />
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/rentals/:id"
+          element={
+            <ProtectedRoute permission={ROUTE_PERMISSIONS.RENTALS_READ}>
+              <AdminLayout>
+                <RentalRequestDetail />
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ============================
             RUTAS CAJERO (PERMISOS REALES)
         ============================ */}
 
