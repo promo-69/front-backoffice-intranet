@@ -1,5 +1,6 @@
 import { Navigate } from "react-router-dom";
 import { usePermission } from "@/hooks/usePermission";
+import { useAuth } from "@/context/AuthContext"
 
 export default function ProtectedRoute({
   permission = null, // un permiso único
@@ -9,6 +10,17 @@ export default function ProtectedRoute({
   children,
 }) {
   const { role, isSuperAdmin, can, canAll, canAny, hasRole } = usePermission();
+
+  const { loading } = useAuth(); 
+
+  if (loading) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-[#231640]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-gold"></div>
+      </div>
+    );
+  }
+
 
   // 1. Si no hay usuario logueado → redirigir
   if (!role) return <Navigate to="/login" replace />;
@@ -42,7 +54,7 @@ export default function ProtectedRoute({
     return accessDeniedRedirect;
   }
 
-  // 6. Validación por permisos (OR)
+  // 5. Validación por permisos (OR)
   if (anyOf && !canAny(anyOf)) {
     console.log("[ProtectedRoute] denied by anyOf (OR)", { role, anyOf });
     return accessDeniedRedirect;
