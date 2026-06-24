@@ -35,84 +35,72 @@ import { cn } from "@/lib/utils";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
 
-// Menú base con permisos REALES
 const navItems = [
   {
     id: "dashboard",
     title: "Dashboard",
     url: "/admin/dashboard",
     icon: LayoutDashboard,
-    permission: "CRUD:READ:ROOMS",
   },
   {
     id: "cinemas",
     title: "Sucursales",
     url: "/admin/sucursales",
     icon: MapPin,
-    permission: "CRUD:READ:CINEMAS",
   },
   {
     id: "personal",
     title: "Personal",
     url: "/admin/personal",
     icon: Users,
-    permission: "CRUD:READ:EMPLOYEES",
   },
   {
     id: "billboard",
     title: "Cartelera",
     url: "/admin/billboard",
     icon: Film,
-    permission: "CRUD:READ:ROOM-EVENTS",
   },
   {
     id: "inventory",
     title: "Inventario",
     url: "/admin/inventario",
     icon: Package,
-    permission: "CRUD:READ:PRODUCTS",
   },
   {
     id: "catalog",
     title: "Maestros",
     url: "/admin/catalogo",
     icon: BookOpen,
-    permission: "CRUD:READ:CATALOGS",
   },
   {
     id: "loyalty",
     title: "Fidelización",
     url: "/admin/loyalty",
     icon: Sparkles,
-    permission: "CRUD:READ:CATALOGS",
   },
   {
     id: "rentals",
     title: "Alquiler de Salas",
     url: "/admin/rentals",
     icon: Calendar,
-    permission: "CRUD:READ:RENTALS",
   },
   {
     id: "reports",
     title: "Reportes",
     url: "/admin/reports",
     icon: BarChart3,
-    permission: "CRUD:READ:REPORTS",
   },
   {
     id: "invoices",
     title: "Facturas",
     url: "/admin/invoices",
     icon: Receipt,
-    permission: "CRUD:READ:INVOICES",
   },
   {
     id: "finances",
     title: "Finanzas",
     url: "/admin/finanzas",
     icon: Landmark,
-    permission: "CRUD:READ:CURRENCIES",
   },
 
   // Cajero
@@ -121,21 +109,18 @@ const navItems = [
     title: "Dashboard Cajero",
     url: "/ticketOffice/dashboard",
     icon: LayoutDashboard,
-    permission: "CRUD:READ:PRODUCTS",
   },
   {
     id: "sell_tickets",
     title: "Venta de Boletos",
     url: "/ticketOffice/sell",
     icon: TicketIcon,
-    permission: "CRUD:READ:CINEMAS-ROOM-EVENTS",
   },
   {
     id: "candy_bar",
     title: "Caramelería",
     url: "/ticketOffice/candy",
     icon: ShoppingBag,
-    permission: "CRUD:READ:COMBOS",
   },
 ];
 
