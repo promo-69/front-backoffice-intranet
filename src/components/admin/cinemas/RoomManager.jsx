@@ -66,7 +66,7 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
       const cols = parseInt(room.grid_columns) || 12;
 
       const savedSeatsResponse = await getSeatsByRoom(room.id);
-      const seatsArray = savedSeatsResponse?.data?.rows || [];
+      const seatsArray = savedSeatsResponse?.data || [];
 
       const newLayout = Array.from({ length: rows }, () =>
         Array.from({ length: cols }, () => ({

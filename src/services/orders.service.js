@@ -24,10 +24,17 @@ export const ordersService = {
     return response.data;
   },
 
-  registerPayment: async (paymentMethod, amount, currency = 1, reference = null) => {
+  registerPayment: async (paymentMethod, amount, currency = 1, reference = null, bank = null, bypass = false) => {
     const payload = { payment_method: paymentMethod, amount, currency };
     if (reference) payload.reference_number = reference;
+    if (bank) payload.bank = bank;
+    if (bypass) payload.bypass = true;
     const response = await api.post('/orders/payments', payload);
+    return response.data;
+  },
+
+  registerPayments: async (paymentsArray) => {
+    const response = await api.post('/orders/payments', paymentsArray);
     return response.data;
   },
 };

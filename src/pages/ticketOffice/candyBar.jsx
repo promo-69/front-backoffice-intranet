@@ -1,17 +1,20 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { AiOutlinePlus, AiOutlineMinus, AiOutlineDelete, AiOutlineShopping } from "react-icons/ai";
-import { ArrowLeft, CheckCircle, Smartphone, CreditCard, Banknote, ShoppingBag } from "lucide-react";
+import { ArrowLeft, ShoppingBag } from "lucide-react";
 import PopcornImg from "../../assets/images/candy/popcorn.png";
 import SodaImg from "../../assets/images/candy/soda.png";
 import ComboImg from "../../assets/images/candy/combo.png";
 import { concessionsService } from "../../services/concessions.service";
 import { ordersService } from "../../services/orders.service";
 import { paymentsService } from "../../services/payments.service";
+import StepIdentifyCustomer from "../../components/ticketOffice/StepIdentifyCustomer";
+import Step4Payment from "../../components/ticketOffice/Step4Payment";
 
 const CATEGORIES = ["Todos", "Popcorn", "Drinks", "Combos", "Candies"];
 
 export default function CandyBar() {
   const [step, setStep] = useState(1);
+  const [customer, setCustomer] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState("Todos");
   const [cart, setCart] = useState([]);
   const [apiProducts, setApiProducts] = useState([]);
@@ -19,52 +22,69 @@ export default function CandyBar() {
   const [loading, setLoading] = useState(true);
 
   // Payment states
-  const [payments, setPayments] = useState([]);
-  const [confirmed, setConfirmed] = useState(false);
   const [paymentMethods, setPaymentMethods] = useState([]);
-  const [currencies, setCurrencies] = useState([]);
-  const [loyaltyInfo, setLoyaltyInfo] = useState(null);
+  const [bankAccountsByMethod, setBankAccountsByMethod] = useState({});
   const [vesCurrencyId, setVesCurrencyId] = useState(2);
 
-  const handleGoToPayment = () => {
-    setPayments([{ method: paymentMethods[0]?.id || 1, amount: total, fields: {} }]);
+  const handleCustomerIdentified = async (customerData) => {
+    setCustomer(customerData);
+    try {
+      await ordersService.cancelSession().catch(() => {});
+      const userData = JSON.parse(localStorage.getItem("user") || "{}");
+      const cinemaId = userData.cinemaId || 1;
+      await ordersService.createQuote(cinemaId, 1);
+      const state = await ordersService.getSessionState().catch(() => null);
+      const usdRate = state?.exchange_rates?.["1"]?.rate;
+      if (usdRate) setExchangeRate(Number(usdRate));
+    } catch (err) {
+      console.warn("Error creating quote:", err);
+    }
+    const userData2 = JSON.parse(localStorage.getItem("user") || "{}");
+    const cId = userData2.cinemaId || 1;
+    const [products, combos] = await Promise.all([
+      concessionsService.getAvailableProducts(cId),
+      concessionsService.getAvailableCombos(cId),
+    ]);
+    setApiProducts(products || []);
+    setApiCombos(combos || []);
+    setLoading(false);
     setStep(2);
   };
 
-  useEffect(() => {
-    let cancelled = false;
-    async function loadData() {
-      try {
-        const [products, combos] = await Promise.all([
-          concessionsService.getProducts(),
-          concessionsService.getCombos(),
-        ]);
-        if (cancelled) return;
-        setApiProducts(products || []);
-        setApiCombos(combos || []);
-      } catch (err) {
-        console.error("Error loading concession data:", err);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-    loadData();
-    return () => { cancelled = true; };
-  }, []);
+  const handleGoToPayment = () => {
+    setStep(3);
+  };
+
+  const [exchangeRate, setExchangeRate] = useState(600);
+  const [concessionTotalVes, setConcessionTotalVes] = useState(0);
 
   useEffect(() => {
     async function loadPaymentData() {
       try {
-        const [methods, currencyList, loyalty] = await Promise.all([
+        const [methods, currencyList, options] = await Promise.all([
           paymentsService.getMethods(),
           paymentsService.getCurrencies(),
-          paymentsService.getLoyaltyInfo().catch(() => null),
+          paymentsService.getPaymentOptions().catch(() => []),
         ]);
         setPaymentMethods(methods);
-        setCurrencies(currencyList);
-        setLoyaltyInfo(loyalty);
         const ves = currencyList.find(c => c.code === "VES");
         if (ves) setVesCurrencyId(ves.id);
+        const bankMap = {};
+        for (const opt of options) {
+          if (opt._BankAccounts?.length) {
+            bankMap[opt.id] = opt._BankAccounts.map(ba => ({
+              id: ba.id,
+              bankId: ba.bank,
+              bankName: ba._Banks?.name || "",
+              currency: ba.currency,
+              paymentDetails: (() => {
+                if (Array.isArray(ba.payment_details)) return ba.payment_details;
+                try { return JSON.parse(ba.payment_details); } catch { return []; }
+              })(),
+            }));
+          }
+        }
+        setBankAccountsByMethod(bankMap);
       } catch (err) {
         console.error("Error loading payment data:", err);
       }
@@ -72,18 +92,41 @@ export default function CandyBar() {
     loadPaymentData();
   }, []);
 
+  const productStockMap = {};
+  for (const p of apiProducts) {
+    productStockMap[p.id] = p.stock ?? 0;
+  }
+
+  function comboHasStock(c) {
+    const parts = c._ComboProducts || [];
+    if (parts.length === 0) return true;
+    return parts.every((cp) => (productStockMap[cp.product] || 0) >= cp.quantity);
+  }
+
   const allItems = [
-    ...apiProducts.map(p => ({
-      id: `prod_${p.id}`,
-      name: p.name,
-      price: Number(p.pricing?.final_price ?? p.price) || 0,
-      category: p._ProductCategories?.description?.includes("Bebida") || p._ProductCategories?.description?.includes("Drink") ? "Drinks" : "Popcorn",
-      image: p._ProductCategories?.description?.includes("Bebida") || p._ProductCategories?.description?.includes("Drink") ? SodaImg : PopcornImg,
-    })),
+    ...apiProducts.map(p => {
+      const catId = p._ProductCategories?.id ?? p.product_category;
+      let category;
+      if (catId === 1) category = "Drinks";
+      else if (catId === 3) category = "Candies";
+      else category = "Popcorn";
+      return {
+        id: `prod_${p.id}`,
+        name: p.name,
+        price: Number(p.pricing?.final_price ?? p.price) || 0,
+        priceVes: Number(p.pricing?.base_currency_equivalent?.final_price) || null,
+        stock: p.stock ?? null,
+        category,
+        image: catId === 1 ? SodaImg : PopcornImg,
+      };
+    }),
     ...apiCombos.map(c => ({
       id: `combo_${c.id}`,
       name: c.name,
       price: Number(c.pricing?.final_price ?? c.price) || 0,
+      priceVes: Number(c.pricing?.base_currency_equivalent?.final_price) || null,
+      stock: null,
+      available: comboHasStock(c),
       category: "Combos",
       image: ComboImg,
     })),
@@ -121,7 +164,7 @@ export default function CandyBar() {
 
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-  const handleConfirm = async () => {
+  const handleConfirm = async ({ payments }) => {
     const userData = JSON.parse(localStorage.getItem("user") || "{}");
     const cinemaId = userData.cinemaId || 1;
 
@@ -140,255 +183,79 @@ export default function CandyBar() {
       await ordersService.cancelSession().catch(() => {});
       await ordersService.createQuote(cinemaId, 1);
       await ordersService.checkout([], concessions);
-      const ptsPayment = payments.find(p => p.method === 6);
+      const allPayments = payments
+        .filter(p => p.method !== 5)
+        .map(p => ({
+          payment_method: p.method,
+          amount: p.amount,
+          currency: [2, 3, 4].includes(p.method) ? vesCurrencyId : p.method === 1 ? (p.fields?.currency || 1) : 1,
+          reference_number: p.fields?.Referencia || undefined,
+          bank: p.fields?.Banco || undefined,
+          bypass: [2, 3, 4].includes(p.method) ? true : undefined,
+        }));
+      const ptsPayment = payments.find(p => p.method === 5);
       if (ptsPayment && ptsPayment.amount > 0) {
-        await ordersService.registerPayment(6, ptsPayment.amount, 1);
+        allPayments.push({
+          payment_method: 5,
+          amount: ptsPayment.amount,
+          currency: 1,
+        });
       }
-      for (const p of payments) {
-        if (p.method === 6) continue;
-        const ref = p.fields?.Referencia || null;
-        const currency = [2, 3, 4, 7].includes(p.method) ? vesCurrencyId : 1;
-        await ordersService.registerPayment(p.method, p.amount, currency, ref);
-      }
+      if (allPayments.length > 0) await ordersService.registerPayments(allPayments);
     } catch (err) {
       console.warn("Backend order failed, saving locally:", err);
     }
-    setConfirmed(true);
   };
 
   const handleNewSale = () => {
+    setCustomer(null);
     setCart([]);
     setStep(1);
-    setConfirmed(false);
-    setPayments([]);
   };
 
   // ----------------------------------------------------
-  // STEP 2: PAYMENT SCREEN & SUCCESS
+  // STEP 1: CLIENTE
   // ----------------------------------------------------
-  if (step === 2) {
-    const paidByUser = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
-    const isBalanced = Math.abs(paidByUser - total) < 0.01;
-
-    if (confirmed) {
-      return (
-        <div className="flex flex-col items-center justify-center py-20 font-montserrat animate-in fade-in zoom-in-95 bg-white min-h-[calc(100vh-100px)] rounded-3xl shadow-sm border border-gray-100">
-          <div className="relative mb-6">
-            <div className="absolute inset-0 bg-brand-gold/20 rounded-full scale-150 animate-ping" />
-            <div className="relative w-24 h-24 rounded-full bg-brand-gold flex items-center justify-center shadow-xl shadow-brand-gold/30">
-              <CheckCircle className="w-12 h-12 text-white" strokeWidth={2.5} />
-            </div>
-          </div>
-          <h2 className="text-3xl font-bold text-slate-800 mb-2 uppercase tracking-widest">¡Venta Exitosa!</h2>
-          <p className="text-gray-500 text-center max-w-sm">
-            Los productos han sido registrados correctamente. Entrega el pedido al cliente.
-          </p>
-          <div className="mt-8 bg-gray-50 border border-gray-200 rounded-2xl p-6 text-center w-full max-w-sm">
-            <h3 className="font-bold text-slate-700 mb-4 border-b border-gray-200 pb-2">Resumen</h3>
-            {cart.map(item => (
-              <div key={item.id} className="flex justify-between text-sm text-gray-600 mb-1">
-                <span>{item.name} ×{item.quantity}</span>
-                <span>${(item.price * item.quantity).toFixed(2)}</span>
-              </div>
-            ))}
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <p className="text-3xl font-black text-brand-gold">${total.toFixed(2)}</p>
-              <div className="mt-2 space-y-1">
-                {payments.map((p, i) => {
-                  const m = paymentMethods.find((pm) => pm.id === p.method);
-                  return (
-                    <p key={i} className="text-xs text-gray-400">
-                      {m?.description}: ${(Number(p.amount) || 0).toFixed(2)}
-                    </p>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-          
-          <button 
-            onClick={handleNewSale}
-            className="mt-8 px-8 py-3 bg-white border-2 border-brand-gold text-brand-gold rounded-xl font-bold hover:bg-brand-gold/5 transition-all shadow-sm"
-          >
-            + Nueva Venta
-          </button>
-        </div>
-      );
-    }
-
-    const addPayment = () => {
-      const usedMethods = payments.map((p) => p.method);
-      const nextMethod = paymentMethods.find((m) => !usedMethods.includes(m.id)) || paymentMethods[0];
-      setPayments([...payments, { method: nextMethod.id, amount: 0, fields: {} }]);
-    };
-
-    const updatePayment = (index, patch) => {
-      setPayments((prev) => prev.map((p, i) => (i === index ? { ...p, ...patch } : p)));
-    };
-
-    const removePayment = (index) => {
-      setPayments((prev) => prev.filter((_, i) => i !== index));
-    };
-
-    const isUsdMethod = (methodId) => [1, 5].includes(methodId);
-    const isVesMethod = (methodId) => [2, 3, 4, 7].includes(methodId);
-
+  if (step === 1) {
     return (
-      <div className="font-montserrat text-slate-800 bg-white rounded-3xl p-6 lg:p-10 shadow-sm border border-gray-100 min-h-[calc(100vh-100px)] animate-in fade-in slide-in-from-bottom-4">
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-black text-slate-800">Procesar Pago</h2>
-            <p className="text-gray-500 text-sm mt-1">Confirma los productos de confitería y los métodos de pago</p>
-          </div>
-          <div className="hidden sm:flex bg-gray-100 px-4 py-2 rounded-lg font-bold text-gray-500 gap-2 items-center">
-            <span className="w-6 h-6 rounded-full bg-brand-gold text-white flex items-center justify-center text-xs">2</span>
-            Pago de Confitería
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-          {/* Resumen de compra */}
-          <div className="bg-gray-50 border border-gray-200 rounded-3xl p-6 space-y-6">
-            <h3 className="font-bold text-slate-700 flex items-center gap-2 uppercase tracking-wider">
-              <ShoppingBag className="w-5 h-5 text-brand-gold" /> Resumen de Productos
-            </h3>
-            
-            <div className="space-y-3">
-              {cart.map((item) => (
-                <div key={item.id} className="flex items-center gap-4 bg-white p-3 rounded-xl border border-gray-100">
-                  <img src={item.image} className="w-12 h-12 object-cover rounded-lg" alt="" />
-                  <div className="flex-1">
-                    <p className="font-bold text-sm text-slate-700">{item.name}</p>
-                    <p className="text-xs text-gray-400">Cant: {item.quantity}</p>
-                  </div>
-                  <span className="font-bold text-brand-gold">${(item.price * item.quantity).toFixed(2)}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex justify-between items-center text-xl font-black pt-4 border-t-2 border-gray-200">
-              <span className="text-slate-800 flex items-center gap-2">Total a Pagar</span>
-              <span className="text-brand-gold text-2xl">${total.toFixed(2)}</span>
-            </div>
-          </div>
-
-          {/* Métodos de pago */}
-          <div className="space-y-6">
-            <h3 className="font-bold text-slate-700 uppercase tracking-wider">Métodos de Pago</h3>
-            
-            <div className="space-y-4">
-              {payments.map((p, index) => {
-                const methodDef = paymentMethods.find((m) => m.id === p.method);
-                const isLoyalty = p.method === 6;
-                const hasReference = [4, 5, 7].includes(p.method);
-                const showOnlyAmount = [1, 2, 3].includes(p.method);
-                const amountLabel = isLoyalty
-                  ? "Puntos a usar"
-                  : isUsdMethod(p.method)
-                    ? "Monto ($)"
-                    : "Monto (Bs.)";
-                return (
-                  <div key={index} className="bg-gray-50 border border-gray-200 rounded-2xl p-4 space-y-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <select
-                        value={p.method}
-                        onChange={(e) => updatePayment(index, { method: Number(e.target.value), fields: {} })}
-                        className="flex-1 bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 focus:outline-none focus:border-brand-gold"
-                      >
-                        {paymentMethods.map((m) => (
-                          <option key={m.id} value={m.id} disabled={m.id !== p.method && payments.some((pp) => pp.method === m.id)}>
-                            {m.description}
-                          </option>
-                        ))}
-                      </select>
-                      {payments.length > 1 && (
-                        <button onClick={() => removePayment(index)} className="text-red-400 hover:text-red-500 p-1">
-                          <AiOutlineDelete size={18} />
-                        </button>
-                      )}
-                    </div>
-
-                    {isLoyalty && loyaltyInfo && (
-                      <p className="text-xs text-brand-gold font-semibold">
-                        Saldo disponible: {loyaltyInfo.points_balance} puntos
-                      </p>
-                    )}
-
-                    <div className="relative">
-                      <label className="absolute top-2 left-4 text-[10px] font-bold text-brand-gold uppercase tracking-wider bg-gray-50 px-1">{amountLabel}</label>
-                      <input
-                        type="number"
-                        step={isLoyalty ? "1" : "0.01"}
-                        min="0"
-                        max={isLoyalty ? (loyaltyInfo?.points_balance || Infinity) : undefined}
-                        value={p.amount}
-                        onChange={(e) => updatePayment(index, { amount: parseFloat(e.target.value) || 0 })}
-                        className="w-full bg-white border border-gray-200 rounded-xl px-4 pt-6 pb-3 text-sm text-slate-800 focus:outline-none focus:border-brand-gold"
-                      />
-                    </div>
-
-                    {hasReference && (
-                      <div className="relative">
-                        <label className="absolute top-2 left-4 text-[10px] font-bold text-brand-gold uppercase tracking-wider bg-gray-50 px-1">Referencia</label>
-                        <input
-                          type="text"
-                          placeholder="Ingresar referencia"
-                          value={p.fields?.Referencia || ""}
-                          onChange={(e) => updatePayment(index, { fields: { ...p.fields, Referencia: e.target.value } })}
-                          className="w-full bg-white border border-gray-200 rounded-xl px-4 pt-6 pb-3 text-sm text-slate-800 placeholder:text-gray-300 focus:outline-none focus:border-brand-gold"
-                        />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {payments.length < paymentMethods.length && (
-              <button
-                onClick={addPayment}
-                className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-2xl text-gray-500 hover:border-brand-gold hover:text-brand-gold transition-all font-bold text-sm"
-              >
-                <AiOutlinePlus /> Agregar otro método de pago
-              </button>
-            )}
-
-            {!isBalanced && (
-              <p className="text-sm text-red-500 font-medium text-center">
-                Los montos no cubren el total. Restan ${(total - paidByUser).toFixed(2)}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Botones */}
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-8 mt-8 border-t border-gray-100">
-          <button
-            onClick={() => setStep(1)}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-4 rounded-xl border-2 border-gray-200 text-gray-500 hover:bg-gray-50 transition-all font-bold"
-          >
-            <ArrowLeft className="w-5 h-5" /> Volver a Productos
-          </button>
-
-          <button
-            onClick={handleConfirm}
-            disabled={!isBalanced || payments.some((p) => !p.amount || p.amount <= 0)}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-10 py-4 bg-brand-gold text-white font-black rounded-xl text-sm uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-brand-gold/30 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            Confirmar Pagos · ${total.toFixed(2)}
-          </button>
-        </div>
+      <div className="bg-white rounded-3xl border border-gray-200 shadow-2xl p-6 md:p-8 max-w-2xl mx-auto">
+        <StepIdentifyCustomer onNext={handleCustomerIdentified} />
       </div>
     );
   }
 
   // ----------------------------------------------------
-  // STEP 1: PRODUCTS SCREEN
+  // STEP 3: PAYMENT
+  // ----------------------------------------------------
+  if (step === 3) {
+    const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const cartTotalVes = cart.reduce((sum, item) => {
+      const ves = item.priceVes || (item.price * exchangeRate);
+      return sum + ves * item.quantity;
+    }, 0);
+    return (
+      <Step4Payment
+        concessionItems={cart}
+        concessionTotal={cartTotal}
+        concessionTotalVes={cartTotalVes}
+        onConfirm={handleConfirm}
+        onBack={handleNewSale}
+        onNewSale={handleNewSale}
+        paymentMethods={paymentMethods}
+        bankAccountsByMethod={bankAccountsByMethod}
+        vesCurrencyId={vesCurrencyId}
+        customerInfo={customer}
+      />
+    );
+  }
+
+  // ----------------------------------------------------
+  // STEP 2: PRODUCTS SCREEN
   // ----------------------------------------------------
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20 font-montserrat">
-        <p className="text-gray-400 text-lg">Cargando productos...</p>
+        <p className="text-slate-700 text-lg">Cargando productos...</p>
       </div>
     );
   }
@@ -407,8 +274,8 @@ export default function CandyBar() {
               onClick={() => setSelectedCategory(cat)}
               className={`px-5 py-2 rounded-t-lg transition-all whitespace-nowrap font-medium ${
                 selectedCategory === cat 
-                  ? "bg-brand-gold/10 text-brand-gold border-b-2 border-brand-gold" 
-                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                  ? "bg-brand-primary/10 text-brand-primary border-b-2 border-brand-primary" 
+                  : "text-slate-700 hover:text-slate-900 hover:bg-gray-50"
               }`}
             >
               {cat}
@@ -439,12 +306,27 @@ export default function CandyBar() {
               <div className="p-4 flex flex-col flex-1 space-y-3">
                 <div className="flex justify-between items-start">
                   <h3 className="font-bold text-slate-700 leading-tight">{product.name}</h3>
-                  <span className="text-brand-gold font-bold">${product.price.toFixed(2)}</span>
+                  <div className="text-right">
+                    <span className="text-brand-primary font-bold block">${product.price.toFixed(2)}</span>
+                    {product.priceVes != null && (
+                      <span className="text-slate-600 text-[11px]">Bs. {product.priceVes.toFixed(2)}</span>
+                    )}
+                  </div>
                 </div>
+                {product.stock != null && product.stock <= 0 && (
+                  <p className="text-red-400 text-[10px] font-semibold">Sin stock</p>
+                )}
+                {product.available === false && (
+                  <p className="text-red-400 text-[10px] font-semibold">No disponible</p>
+                )}
+                {product.stock != null && product.stock > 0 && product.stock <= 5 && (
+                  <p className="text-amber-500 text-[10px] font-semibold">Stock: {product.stock}</p>
+                )}
                 
                 <button 
                   onClick={() => addToCart(product)}
-                  className="mt-auto w-full bg-slate-50 hover:bg-brand-gold hover:text-white border border-gray-100 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all font-semibold text-sm"
+                  disabled={(product.stock != null && product.stock <= 0) || product.available === false}
+                  className="mt-auto w-full bg-slate-50 hover:bg-brand-primary hover:text-white border border-gray-100 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <AiOutlinePlus /> Agregar
                 </button>
@@ -458,12 +340,12 @@ export default function CandyBar() {
       <div className="w-full lg:w-[350px] shrink-0">
         <div className="bg-white border border-gray-200 rounded-3xl p-5 flex flex-col h-[calc(100vh-220px)] sticky top-6 shadow-sm">
           <div className="flex items-center gap-3 mb-5 pb-5 border-b border-gray-50">
-            <div className="p-2.5 bg-brand-gold/10 rounded-xl text-brand-gold text-xl">
+            <div className="p-2.5 bg-brand-primary/10 rounded-xl text-brand-primary text-xl">
               <AiOutlineShopping />
             </div>
             <div>
               <h2 className="font-bold text-slate-700">Resumen de Venta</h2>
-              <p className="text-gray-400 text-xs">{cart.length} productos seleccionados</p>
+              <p className="text-slate-600 text-xs">{cart.length} productos seleccionados</p>
             </div>
           </div>
 
@@ -480,7 +362,7 @@ export default function CandyBar() {
                   <img src={item.image} className="w-12 h-12 rounded-lg object-cover bg-white" alt="" />
                   <div className="flex-1 min-w-0">
                     <h4 className="font-bold text-xs text-slate-700 truncate">{item.name}</h4>
-                    <p className="text-brand-gold font-bold text-xs">${(item.price * item.quantity).toFixed(2)}</p>
+                    <p className="text-brand-primary font-bold text-xs">${(item.price * item.quantity).toFixed(2)}</p>
                     
                     <div className="flex items-center gap-2 mt-2">
                       <button 
@@ -514,13 +396,20 @@ export default function CandyBar() {
           <div className="mt-5 pt-5 border-t border-gray-100 space-y-3">
             <div className="flex justify-between items-center text-xl font-bold text-slate-800 pt-2">
               <span>Total</span>
-              <span className="text-brand-gold">${total.toFixed(2)}</span>
+              <span className="text-brand-primary">${total.toFixed(2)}</span>
             </div>
             
+            <button
+              onClick={() => setStep(1)}
+              className="w-full bg-white border border-gray-200 text-slate-700 font-bold py-3 rounded-xl text-sm hover:bg-gray-50 transition-all"
+            >
+              ← Cambiar Cliente
+            </button>
+
             <button 
               onClick={handleGoToPayment}
               disabled={cart.length === 0}
-              className="w-full bg-brand-gold disabled:bg-gray-200 disabled:text-gray-400 text-white font-bold py-3.5 rounded-xl text-sm shadow-md hover:shadow-lg transition-all mt-2 active:scale-95"
+              className="w-full bg-brand-primary disabled:bg-gray-200 disabled:text-slate-500 text-white font-bold py-3.5 rounded-xl text-sm shadow-md hover:shadow-lg transition-all mt-2 active:scale-95"
             >
               PROCESAR PAGO
             </button>
