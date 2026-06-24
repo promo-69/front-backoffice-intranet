@@ -1,55 +1,6 @@
-/*
 import axios from "axios";
 
-const api = axios.create({
-  baseURL: "https://backend-jog6.onrender.com/api/v1/test",
-  withCredentials: true, // Configuración global para peticiones normales
-});
-
-// Interceptor de Respuestas
-api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
-
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      if (error.response.data?.code === "TOKEN_EXPIRED") {
-        originalRequest._retry = true;
-
-        try {
-          // Usamos una instancia limpia de AXIOS para evitar que herede interceptores,
-          // pero le pasamos explícitamente withCredentials para obligar el envío de cookies.
-          await axios.post(
-            "https://backend-jog6.onrender.com/api/v1/test/auth/refresh",
-            {}, // Body vacío
-            { withCredentials: true } // ¡CRUCIAL! Obliga al navegador a buscar la cookie RT
-          );
-
-          // Si la petición original llevaba archivos, limpiamos el header para el reintento
-          if (originalRequest.data instanceof FormData) {
-            delete originalRequest.headers["Content-Type"];
-          }
-
-          // Reintentamos la petición original
-          return api(originalRequest);
-        } catch (refreshError) {
-          console.error("La renovación de token falló por completo:", refreshError);
-          // Si el refresh falla, limpiamos el estado y mandamos al login
-          localStorage.removeItem("user");
-          window.location.href = "/login";
-          return Promise.reject(refreshError);
-        }
-      }
-    }
-    return Promise.reject(error);
-  }
-);
-
-export default api;
-*/
-import axios from "axios";
-
-const baseURL = import.meta.env.VITE_API_URL || "http://127.0.0.1:4000/api/v1";
+const baseURL = import.meta.env.VITE_API_URL;
 
 const api = axios.create({
   baseURL,

@@ -9,6 +9,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
 import { Upload, X } from "lucide-react";
 import { InputForm } from "@/components/ui/inputForm"; 
 import { SelectForm } from "@/components/ui/SelectForm";
@@ -496,9 +497,11 @@ const onSubmit = async (data) => {
 
             <DialogFooter className="pt-6 border-t flex gap-2 justify-end">
               <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-              <Button type="submit" className="bg-brand-primary text-white font-bold px-6">
-                {isEdit ? "Guardar Cambios" : "Registrar Evento"}
-              </Button>
+              <DisableIfNoPermission permission={isEdit ? "CRUD:UPDATE:SPECIAL_EVENTS" : "CRUD:CREATE:SPECIAL_EVENTS"} title="No tienes permiso para guardar eventos">
+                <Button type="submit" className="bg-brand-primary text-white font-bold px-6">
+                  {isEdit ? "Guardar Cambios" : "Registrar Evento"}
+                </Button>
+              </DisableIfNoPermission>
             </DialogFooter>
           </div>
         </form>

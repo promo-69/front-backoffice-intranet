@@ -15,9 +15,7 @@ export default function AdminLayout({ children }) {
   return (
     <TooltipProvider>
       <SidebarProvider>
-        <AdminLayoutContent location={location}>
-          {children}
-        </AdminLayoutContent>
+        <AdminLayoutContent location={location}>{children}</AdminLayoutContent>
       </SidebarProvider>
     </TooltipProvider>
   );
@@ -35,6 +33,7 @@ function AdminLayoutContent({ location, children }) {
       "/admin/transacciones": "Registro de Transacciones",
       "/admin/inventario": "Control de Inventario",
       "/admin/reports": "Reportes",
+      "/admin/invoices": "Facturas",
       "/admin/catalogo": "Gestión de Maestros",
       "/ticketOffice/sell": "Boletos",
       "/ticketOffice/candy": "Carameleria",

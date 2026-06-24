@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import SuccessModal from "@/components/ui/SuccessModal";
 
 import { getAllPermissions } from "@/services/permissions.service";
 import { createRole, updateRolePermissions } from "@/services/roles.service";
@@ -13,6 +14,7 @@ export default function CreateRolePage() {
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState("visual");
+  const [isSuccessOpen, setIsSuccessOpen] = useState(false);
 
   const [roleData, setRoleData] = useState({
     code: "",
@@ -28,22 +30,26 @@ export default function CreateRolePage() {
   // ============================
   useEffect(() => {
     async function load() {
-      const allPermissions = await getAllPermissions(); 
+      try {
+        const allPermissions = await getAllPermissions();
 
-      const grouped = {};
-      allPermissions.forEach((perm) => {
-        const resource = perm._Resources.code;
-        const action = perm._Actions.code;
+        const grouped = {};
+        allPermissions.forEach((perm) => {
+          const resource = perm._Resources?.code || "OTROS";
+          const action = perm._Actions?.code || "VER";
 
-        if (!grouped[resource]) grouped[resource] = [];
+          if (!grouped[resource]) grouped[resource] = [];
 
-        grouped[resource].push({
-          id: perm.id,
-          action,
+          grouped[resource].push({
+            id: perm.id,
+            action,
+          });
         });
-      });
 
-      setPermissionsByResource(grouped);
+        setPermissionsByResource(grouped);
+      } catch (error) {
+        console.error("Error cargando los permisos iniciales:", error);
+      }
     }
 
     load();
@@ -64,14 +70,36 @@ export default function CreateRolePage() {
   // 3. Crear rol + asignar permisos
   // ============================
   const handleSave = async () => {
-    // 1. Crear el rol
-    const newRole = await createRole(roleData);
+    try {
+      if (!roleData.code.trim()) {
+        alert("Por favor, introduce el código identificador del rol.");
+        return;
+      }
 
-    // 2. Asignar permisos
-    await updateRolePermissions(newRole.id, Array.from(selectedPermissions));
+      // 1. Crear el rol
+      const newRole = await createRole({
+        ...roleData,
+        code: roleData.code.toUpperCase().trim(), 
+      });
 
-    // 3. Volver a Roles
-    navigate("/admin/personal");
+    
+      if (newRole && newRole.id) {
+        await updateRolePermissions(
+          newRole.id,
+          Array.from(selectedPermissions),
+        );
+      }
+
+      setIsSuccessOpen(true);
+
+      setTimeout(() => {
+        setIsSuccessOpen(false);
+        navigate("/admin/personal");
+      }, 2000);
+    } catch (error) {
+      console.error("Error al procesar la creación del rol:", error);
+      alert("Hubo un error guardando el rol. Por favor intente de nuevo.");
+    }
   };
 
   return (
@@ -193,6 +221,12 @@ export default function CreateRolePage() {
           Crear Rol
         </button>
       </div>
+      {/* MODAL DE CONFIRMACIÓN */}
+      <SuccessModal
+        isOpen={isSuccessOpen}
+        onClose={() => navigate("/admin/personal")}
+        message="¡Rol creado y permisos asignados con éxito!"
+      />
     </div>
   );
 }

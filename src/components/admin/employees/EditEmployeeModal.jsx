@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { SelectForm } from "@/components/ui/SelectForm";
 import { InputForm } from "@/components/ui/inputForm";
+import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
 
 import { changeEmployeePosition } from "@/services/employees.service";
 import { getCinemas } from "@/services/cinema.service";
@@ -127,12 +128,14 @@ export default function EditEmployeeModal({ open, onClose, employee }) {
             Cancelar
           </Button>
 
-          <Button
-            onClick={handleSubmit}
-            className="bg-brand-primary text-white"
-          >
-            Guardar Cambios
-          </Button>
+          <DisableIfNoPermission permission={"CRUD:UPDATE:EMPLOYEES"} title="No tienes permiso para actualizar empleados">
+            <Button
+              onClick={handleSubmit}
+              className="bg-brand-primary text-white"
+            >
+              Guardar Cambios
+            </Button>
+          </DisableIfNoPermission>
         </DialogFooter>
       </DialogContent>
     </Dialog>

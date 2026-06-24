@@ -7,6 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
 import { createCatalogRecord, updateCatalogRecord } from "../../../services/catalog.service";
 import { useLoading } from "../../../context/LoadingContext";
 
@@ -171,13 +172,15 @@ const CatalogModal = ({ open, onClose, initialData, selectedCatalog, metadata })
             >
               Cancelar
             </Button>
-            <Button
-              type="submit"
-              className="bg-brand-gold hover:bg-brand-gold/90 text-white rounded-xl px-8"
-              disabled={isSubmitting}
-            >
-              {initialData ? "Guardar Cambios" : "Crear Maestro"}
-            </Button>
+            <DisableIfNoPermission permission={initialData ? "CRUD:UPDATE:CATALOGS" : "CRUD:CREATE:CATALOGS"} title="No tienes permiso para guardar catálogos">
+              <Button
+                type="submit"
+                className="bg-brand-gold hover:bg-brand-gold/90 text-white rounded-xl px-8"
+                disabled={isSubmitting}
+              >
+                {initialData ? "Guardar Cambios" : "Crear Maestro"}
+              </Button>
+            </DisableIfNoPermission>
           </div>
         </form>
       </DialogContent>

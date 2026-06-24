@@ -10,12 +10,11 @@ import SuccessModal from "@/components/ui/SuccessModal";
 import { getEmployees, deleteEmployee } from "@/services/employees.service";
 
 export default function Employees({ search }) {
-  // ESTADO LOCAL DE CARGA
   const [loading, setLoading] = useState(true);
   const [employees, setEmployees] = useState([]);
 
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
-  const [isEditOpen, setIsEditOpen] = useState(false);
+  //const [isEditOpen, setIsEditOpen] = useState(null);
   const [employeeToEdit, setEmployeeToEdit] = useState(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
@@ -51,6 +50,15 @@ export default function Employees({ search }) {
     setIsSuccessOpen(true);
   };
 
+  const refreshEditEmployees = () => {
+    fetchEmployees();
+    setSuccessTitle("Empleado Actualizado");
+    setSuccessMessage(
+      "Los datos del empleado han sido modificados correctamente.",
+    );
+    setIsSuccessOpen(true);
+  };
+
   const filteredEmployees = employees.filter((e) => {
     const fullName =
       `${e.people?.first_name || ""} ${e.people?.last_name || ""}`.toLowerCase();
@@ -65,8 +73,8 @@ export default function Employees({ search }) {
 
   const handleEditClick = (employee) => {
     setEmployeeToEdit(employee);
-    setIsEditOpen(true);
-  };
+    setIsRegisterOpen(true);
+  }
 
   const handleDeleteClick = (employee) => {
     setItemToDelete(employee);
@@ -99,22 +107,40 @@ export default function Employees({ search }) {
         employees={paginatedEmployees}
         onEdit={handleEditClick}
         onDelete={handleDeleteClick}
-        isLoading={loading} 
+        isLoading={loading}
       />
 
       {/* PAGINACIÓN (solo si no estamos cargando) */}
       {!loading && (
         <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6 rounded-b-xl shadow-sm">
-           <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-             <p className="text-sm text-gray-700">
-               Mostrando {(currentPage - 1) * itemsPerPage + 1} a {Math.min(currentPage * itemsPerPage, filteredEmployees.length)} de {filteredEmployees.length} resultados
-             </p>
-             <nav className="inline-flex -space-x-px rounded-md shadow-sm">
-               <button onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))} disabled={currentPage === 1} className="px-3 py-2 border border-gray-300 bg-white text-gray-500 rounded-l-md disabled:opacity-50">◀</button>
-               <div className="px-4 py-2 text-sm font-semibold text-brand-primary border border-gray-300 bg-white">Página {currentPage} de {totalPages || 1}</div>
-               <button onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages || totalPages === 0} className="px-3 py-2 border border-gray-300 bg-white text-gray-500 rounded-r-md disabled:opacity-50">▶</button>
-             </nav>
-           </div>
+          <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+            <p className="text-sm text-gray-700">
+              Mostrando {(currentPage - 1) * itemsPerPage + 1} a{" "}
+              {Math.min(currentPage * itemsPerPage, filteredEmployees.length)}{" "}
+              de {filteredEmployees.length} resultados
+            </p>
+            <nav className="inline-flex -space-x-px rounded-md shadow-sm">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-2 border border-gray-300 bg-white text-gray-500 rounded-l-md disabled:opacity-50"
+              >
+                ◀
+              </button>
+              <div className="px-4 py-2 text-sm font-semibold text-brand-primary border border-gray-300 bg-white">
+                Página {currentPage} de {totalPages || 1}
+              </div>
+              <button
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(p + 1, totalPages))
+                }
+                disabled={currentPage === totalPages || totalPages === 0}
+                className="px-3 py-2 border border-gray-300 bg-white text-gray-500 rounded-r-md disabled:opacity-50"
+              >
+                ▶
+              </button>
+            </nav>
+          </div>
         </div>
       )}
 
@@ -133,21 +159,22 @@ export default function Employees({ search }) {
         message={successMessage}
       />
 
+      {/* 🌟 Modal Único Adaptado */}
       <RegisterEmployeeModal
         open={isRegisterOpen}
+        initialData={employeeToEdit} // Recibe el objeto para editar (o null si es nuevo)
         onClose={(shouldRefresh) => {
           setIsRegisterOpen(false);
-          if (shouldRefresh) refreshEmployees();
+          setEmployeeToEdit(null); 
+          if (shouldRefresh) {
+            if (employeeToEdit) {
+              refreshEditEmployees();
+            } else {
+              refreshEmployees();
+            }
+          }
+          setEmployeeToEdit(null);
         }}
-      />
-
-      <EditEmployeeModal
-        open={isEditOpen}
-        onClose={(shouldRefresh) => {
-          setIsEditOpen(false);
-          if (shouldRefresh) fetchEmployees();
-        }}
-        employee={employeeToEdit}
       />
     </div>
   );

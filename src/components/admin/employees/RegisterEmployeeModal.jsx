@@ -10,28 +10,44 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { InputForm } from "@/components/ui/inputForm";
+import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
 import { SelectForm } from "@/components/ui/SelectForm";
 
-import { createEmployee } from "@/services/employees.service";
+import { createEmployee, changeEmployeePosition } from "@/services/employees.service";
 import { getCinemas } from "@/services/cinema.service";
+import { getRoles } from "@/services/roles.service";
 import { AiFillEye, AiFillEyeInvisible } from "react-icons/ai";
+import { useLoading } from "@/context/LoadingContext";
+
+function ErrorMsg({ message }) {
+  return message ? (
+    <p className="text-[10px] text-red-500 mt-1 ml-1 font-medium italic">
+      {message}
+    </p>
+  ) : null;
+}
 
 
-export default function RegisterEmployeeModal({ open, onClose }) {
+const emptyEmployeeForm = {
+  documentNumber: "",
+  firstName: "",
+  lastName: "",
+  jobPosition: "",
+  cinema: "",
+  startDate: "",
+  salaryBase: "",
+  email: "",
+  password: "",
+  role: "",
+};
+
+export default function RegisterEmployeeModal({ open, onClose, initialData }) {
+  const isEdit = !!initialData;
   const [cinemas, setCinemas] = useState([]);
+  const [roles, setRoles] = useState([]);
+  const { showLoader, hideLoader } = useLoading();
 
-  const [employeeData, setEmployeeData] = useState({
-    documentNumber: "",
-    firstName: "",
-    lastName: "",
-    jobPosition: "",
-    cinema: "",
-    startDate: "",
-    salaryBase: "",
-    email: "",
-    password: "",
-    role:"",
-  });
+  const [employeeData, setEmployeeData] = useState(emptyEmployeeForm);
 
   const [showPassword, setShowPassword] = useState(false);
 
@@ -41,7 +57,7 @@ export default function RegisterEmployeeModal({ open, onClose }) {
   const loadCinemas = async () => {
     try {
       const data = await getCinemas();
-      setCinemas(data.data);
+      setCinemas(data.data || []);
     } catch (error) {
       console.error("Error cargando sucursales:", error);
     }
@@ -52,28 +68,54 @@ export default function RegisterEmployeeModal({ open, onClose }) {
     if (open) loadCinemas();
   }, [open]);
 
-  // ⭐ Reset al cerrar
+  //cargar roles
   useEffect(() => {
-    if (!open) {
-      setEmployeeData({
-        documentNumber: "",
-        firstName: "",
-        lastName: "",
-        jobPosition: "",
-        cinema: "",
-        startDate: "",
-        salaryBase: "",
-        email: "",
-        password: "",
-        role:"",
-      });
-      setErrors({});
-      setIsSubmitting(false);
+    async function loadRolesData() {
+      try {
+        const data = await getRoles();
+        setRoles(data || []);
+      } catch (err) {
+        console.error(
+          "Error al cargar los roles en el modal de empleados:",
+          err,
+        );
+        setRoles([]); 
+      }
     }
-  }, [open]);
+
+    loadRolesData();
+  }, []);
+
+  useEffect(() => {
+    if (open) {
+      if (initialData) {
+        // Mapeamos los datos basándonos en tu función normalizeEmployee
+        setEmployeeData({
+          documentNumber: initialData.people?.document_number || "",
+          firstName: initialData.people?.first_name || "",
+          lastName: initialData.people?.last_name || "",
+          jobPosition: initialData.job_position || "",
+          cinema: initialData.cinema || "",
+          startDate: initialData.start_date
+            ? initialData.start_date.split("T")[0]
+            : "",
+          salaryBase: initialData.salary_base || "",
+          email: initialData._User?.email || "",
+          password: "", // La contraseña no se precarga por seguridad
+          role: initialData._User?._Roles?.code === "ADMINISTRADOR" ? "1" : "2", // Ajusta según tu mapeo de roles
+        });
+      } else {
+        setEmployeeData(emptyEmployeeForm);
+      }
+      setErrors({});
+    }
+  }, [open, initialData]);
 
   // ⭐ Validaciones
   const validateField = (name, value) => {
+    // Si estamos editando, la contraseña puede ir vacía
+    if (isEdit && name === "password" && !value) return "";
+
     if (!value || value.toString().trim() === "")
       return "Este campo es obligatorio.";
 
@@ -90,7 +132,7 @@ export default function RegisterEmployeeModal({ open, onClose }) {
       if (!emailRegex.test(value)) return "Correo inválido.";
     }
 
-    if (name === "password" && value.length < 8)
+    if (!isEdit && name === "password" && value.length < 8)
       return "La contraseña debe tener al menos 8 caracteres.";
 
     return "";
@@ -99,7 +141,7 @@ export default function RegisterEmployeeModal({ open, onClose }) {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setEmployeeData((prev) => ({ ...prev, [name]: value }));
-    setErrors((prev) => ({ ...prev, [name]: validateField(name, value) }));
+    setErrors((prev) => ({ ...prev, [name]: null, general: null }));
   };
 
   const validateAll = () => {
@@ -112,63 +154,76 @@ export default function RegisterEmployeeModal({ open, onClose }) {
     return Object.keys(newErrors).length === 0;
   };
 
-  // ⭐ SUBMIT
   const handleSubmit = async () => {
     if (!validateAll()) return;
 
+    setIsSubmitting(true);
+    showLoader();
+
     try {
-      setIsSubmitting(true);
+      if (isEdit) {
+        // 🌟 Payload específico para cambiar de posición (PATCH /employees/:id/position)
+        const patchPayload = {
+          jobPosition: Number(employeeData.jobPosition),
+          cinema: Number(employeeData.cinema),
+          salaryBase: Number(employeeData.salaryBase),
+          startDate: employeeData.startDate,
+        };
 
-      const payload = {
-        documentNumber: employeeData.documentNumber,
-        firstName: employeeData.firstName.trim(),
-        lastName: employeeData.lastName.trim(),
-        employeeCode: `${employeeData.firstName[0] || "X"}${
-          employeeData.lastName[0] || "X"
-        }-${Math.floor(Math.random() * 9000 + 1000)}`,
-        jobPosition: Number(employeeData.jobPosition),
-        cinema: Number(employeeData.cinema),
-        startDate: employeeData.startDate,
-        salaryBase: Number(employeeData.salaryBase),
-        email: employeeData.email.trim(),
-        password: employeeData.password,
-        role: Number(employeeData.role),
-      };
+        await changeEmployeePosition(initialData.id, patchPayload);
+      } else {
+        // Payload de creación
+        const postPayload = {
+          documentNumber: employeeData.documentNumber,
+          firstName: employeeData.firstName.trim(),
+          lastName: employeeData.lastName.trim(),
+          employeeCode: `${employeeData.firstName[0] || "X"}${
+            employeeData.lastName[0] || "X"
+          }-${Math.floor(Math.random() * 9000 + 1000)}`,
+          jobPosition: Number(employeeData.jobPosition),
+          cinema: Number(employeeData.cinema),
+          startDate: employeeData.startDate,
+          salaryBase: Number(employeeData.salaryBase),
+          email: employeeData.email.trim(),
+          password: employeeData.password,
+          role: Number(employeeData.role),
+        };
 
-      await createEmployee(payload);
+        await createEmployee(postPayload);
+      }
 
-      // Cerrar modal y avisar al padre que refresque y muestre mensaje
-    onClose(true);
-      
+      onClose(true); // Cierra informando al padre para detonar el SuccessModal
     } catch (error) {
-      console.error("Error registrando empleado:", error);
+      console.error("Error procesando empleado:", error);
+      const status = error.response?.status;
+      if (status === 409) {
+        setErrors((prev) => ({
+          ...prev,
+          email: "Este correo o documento ya existe.",
+        }));
+      } else {
+        setErrors((prev) => ({
+          ...prev,
+          general: "Error al guardar los datos. Intente de nuevo.",
+        }));
+      }
+    } finally {
+      hideLoader();
       setIsSubmitting(false);
     }
   };
 
-  const ErrorMsg = ({ message }) =>
-    message ? (
-      <p className="text-[10px] text-red-500 mt-1 ml-1 font-medium">
-        {message}
-      </p>
-    ) : null;
-
   return (
-    <Dialog open={open} onOpenChange={() => onClose(false)}>
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose(false)}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto bg-white rounded-cineflix p-6 shadow-2xl border-none">
-        <button
-          onClick={() => onClose(false)}
-          className="absolute top-3 right-3 text-gray-400 hover:text-brand-primary transition"
-        >
-          ✕
-        </button>
-
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-brand-primary font-montserrat">
-            Registrar Empleado
+          <DialogTitle className="text-xl font-bold text-brand-primary">
+            {isEdit ? "Editar Cargo de Empleado" : "Registrar Empleado"}
           </DialogTitle>
-          <DialogDescription className="text-xs text-muted-foreground">
-            Ingrese los datos del empleado.
+          <DialogDescription className="text-xs text-slate-500">
+            {isEdit
+              ? "Modifique la asignación de sucursal, cargo o salario del empleado."
+              : "Ingrese los datos de identidad y credenciales para el nuevo miembro."}
           </DialogDescription>
         </DialogHeader>
 
@@ -181,6 +236,7 @@ export default function RegisterEmployeeModal({ open, onClose }) {
             value={employeeData.documentNumber}
             onChange={handleChange}
             placeholder="Ej: 123456789"
+            disabled={isEdit}
           />
           <ErrorMsg message={errors.documentNumber} />
 
@@ -193,6 +249,7 @@ export default function RegisterEmployeeModal({ open, onClose }) {
                 value={employeeData.firstName}
                 onChange={handleChange}
                 placeholder="Ej: Maria"
+                disabled={isEdit}
               />
               <ErrorMsg message={errors.firstName} />
             </div>
@@ -204,6 +261,7 @@ export default function RegisterEmployeeModal({ open, onClose }) {
                 value={employeeData.lastName}
                 onChange={handleChange}
                 placeholder="Ej: Pérez"
+                disabled={isEdit}
               />
               <ErrorMsg message={errors.lastName} />
             </div>
@@ -266,68 +324,86 @@ export default function RegisterEmployeeModal({ open, onClose }) {
           />
           <ErrorMsg message={errors.salaryBase} />
 
-          {/* EMAIL */}
-          <div>
-            <InputForm
-              label="Correo electrónico"
-              name="email"
-              value={employeeData.email}
-              onChange={handleChange}
-              placeholder="Ej: usuario@cineflix.com"
-            />
-            <ErrorMsg message={errors.email} />
-          </div>
+          {/* OCULTAR / DESHABILITAR SECCIONES DE AUTENTICACIÓN SI ES EDICIÓN */}
+          {!isEdit && (
+            <>
+              <div>
+                <InputForm
+                  label="Correo electrónico"
+                  name="email"
+                  value={employeeData.email}
+                  onChange={handleChange}
+                  placeholder="Ej: usuario@cineflix.com"
+                />
+                <ErrorMsg message={errors.email} />
+              </div>
 
-          {/* PASSWORD */}
-          <div className="relative">
-            <InputForm
-              label="Contraseña"
-              name="password"
-              type={showPassword ? "text" : "password"}
-              value={employeeData.password}
-              onChange={handleChange}
-              placeholder="Mínimo 8 caracteres"
-            />
+              <div className="relative">
+                <InputForm
+                  label="Contraseña"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  value={employeeData.password}
+                  onChange={handleChange}
+                  placeholder="Mínimo 8 caracteres"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-9 -translate-y-1/2 text-gray-600 text-xl opacity-80 hover:opacity-100"
+                >
+                  {showPassword ? <AiFillEyeInvisible /> : <AiFillEye />}
+                </button>
+                <ErrorMsg message={errors.password} />
+              </div>
 
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-9 -translate-y-1/2 text-gray-600 text-xl opacity-80 hover:opacity-100"
-            >
-              {showPassword ? <AiFillEyeInvisible /> : <AiFillEye />}
-            </button>
+              <div>
+                <SelectForm
+                  label="Rol del Sistema"
+                  name="role"
+                  value={employeeData.role}
+                  onChange={handleChange}
+                >
+                  <option value="">Seleccione un rol...</option>
+                  {roles.map((role) => (
+                    <option key={role.id} value={role.id}>
+                      {role.name} ({role.code})
+                    </option>
+                  ))}
+                </SelectForm>
+                <ErrorMsg message={errors.role} />
+              </div>
+            </>
+          )}
 
-            <ErrorMsg message={errors.password} />
-          </div>
-          <div>
-            <SelectForm
-              label="Rol del Sistema"
-              name="role"
-              value={employeeData.role}
-              onChange={handleChange}
-            >
-              <option value="">Seleccione un rol...</option>
-              <option value="2">GENERAL_MANAGER</option>
-              <option value="3">CINEMA_MANAGER</option>
-              <option value="4">CASHIER</option>
-              <option value="5">USHER</option>
-            </SelectForm>
-            <ErrorMsg message={errors.role} />
-          </div>
+          {errors.general && (
+            <p className="text-red-500 text-xs text-center font-bold mt-2">
+              {errors.general}
+            </p>
+          )}
         </div>
 
-        <DialogFooter className="mt-6 flex justify-end gap-3">
-          <Button variant="outline" onClick={() => onClose(false)}>
+        <DialogFooter className="mt-8 flex gap-3">
+          <Button
+            variant="outline"
+            onClick={() => onClose(false)}
+            className="flex-1"
+          >
             Cancelar
           </Button>
-
-          <Button
-            onClick={handleSubmit}
-            className="bg-brand-primary text-white"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? "Guardando..." : "Registrar Empleado"}
-          </Button>
+          <DisableIfNoPermission permission={isEdit ? "CRUD:UPDATE:EMPLOYEES" : "CRUD:CREATE:EMPLOYEES"} title="No tienes permiso para guardar empleados">
+            <Button
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="flex-1 bg-brand-primary text-white font-bold hover:bg-brand-primary/90"
+            >
+              {isSubmitting
+                ? "Guardando..."
+                : isEdit
+                  ? "Actualizar Cargo"
+                  : "Registrar Empleado"}
+            </Button>
+          </DisableIfNoPermission>
         </DialogFooter>
       </DialogContent>
     </Dialog>
