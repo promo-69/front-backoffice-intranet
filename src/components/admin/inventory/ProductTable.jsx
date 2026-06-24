@@ -1,4 +1,5 @@
 import { Pencil, Trash2, DollarSign, Tag, Award, Image } from "lucide-react";
+import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
 
 const ProductTable = ({ data, onEdit, onDelete, categories = [], currencies = [] }) => {
   const safeData = Array.isArray(data) ? data : [];
@@ -97,25 +98,29 @@ const ProductTable = ({ data, onEdit, onDelete, categories = [], currencies = []
 
                 <td className="py-4 px-4">
                   <div className="flex justify-center gap-3">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onEdit(item);
-                      }}
-                      className="text-brand-primary hover:scale-110 transition-transform"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
+                    <DisableIfNoPermission permission={"CRUD:UPDATE:PRODUCTS"} title="No tienes permiso para editar productos">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEdit(item);
+                        }}
+                        className="text-brand-primary hover:scale-110 transition-transform"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                    </DisableIfNoPermission>
 
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDelete(item.id);
-                      }}
-                      className="text-red-500 hover:scale-110 transition-transform"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <DisableIfNoPermission permission={"CRUD:DELETE:PRODUCTS"} title="No tienes permiso para eliminar productos">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDelete(item.id);
+                        }}
+                        className="text-red-500 hover:scale-110 transition-transform"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </DisableIfNoPermission>
                   </div>
                 </td>
               </tr>

@@ -10,6 +10,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { InputForm } from "@/components/ui/inputForm";
+import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
 import { SelectForm } from "@/components/ui/SelectForm";
 
 import { createEmployee, changeEmployeePosition } from "@/services/employees.service";
@@ -390,17 +391,19 @@ export default function RegisterEmployeeModal({ open, onClose, initialData }) {
           >
             Cancelar
           </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="flex-1 bg-brand-primary text-white font-bold hover:bg-brand-primary/90"
-          >
-            {isSubmitting
-              ? "Guardando..."
-              : isEdit
-                ? "Actualizar Cargo"
-                : "Registrar Empleado"}
-          </Button>
+          <DisableIfNoPermission permission={isEdit ? "CRUD:UPDATE:EMPLOYEES" : "CRUD:CREATE:EMPLOYEES"} title="No tienes permiso para guardar empleados">
+            <Button
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="flex-1 bg-brand-primary text-white font-bold hover:bg-brand-primary/90"
+            >
+              {isSubmitting
+                ? "Guardando..."
+                : isEdit
+                  ? "Actualizar Cargo"
+                  : "Registrar Empleado"}
+            </Button>
+          </DisableIfNoPermission>
         </DialogFooter>
       </DialogContent>
     </Dialog>

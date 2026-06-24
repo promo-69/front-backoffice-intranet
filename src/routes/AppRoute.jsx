@@ -30,6 +30,8 @@ import RentalRequestDetail from "@/pages/rentals/RentalRequestDetail";
 import ReportsDashboard from "@/pages/admin/reports/reportsDashboard";
 import LoyaltyDashboard from "@/pages/admin/loyalty/LoyaltyDashboard";
 
+import InvoicesPage from "@/pages/admin/invoices/InvoicesPage";
+
 import { ROUTE_PERMISSIONS } from "@/lib/route-permissions";
 
 import PublicRoute from "./PublicRoute";
@@ -140,7 +142,13 @@ function AppRoute() {
         <Route
           path="/admin/finanzas"
           element={
-            <ProtectedRoute permission={ROUTE_PERMISSIONS.FINANCES_READ}>
+            <ProtectedRoute 
+              anyOf={[
+                ROUTE_PERMISSIONS.CURRENCIES_PAGE, 
+                ROUTE_PERMISSIONS.RATES_PAGE, 
+                ROUTE_PERMISSIONS.BANK_ACCOUNTS_PAGE
+              ]}
+            >
               <AdminLayout>
                 <FinancesPage />
               </AdminLayout>
@@ -165,6 +173,17 @@ function AppRoute() {
             <ProtectedRoute permission={ROUTE_PERMISSIONS.CATALOG_READ}>
               <AdminLayout>
                 <LoyaltyDashboard />
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/invoices"
+          element={
+            <ProtectedRoute permission={ROUTE_PERMISSIONS.INVOICES_READ}>
+              <AdminLayout>
+                <InvoicesPage />
               </AdminLayout>
             </ProtectedRoute>
           }

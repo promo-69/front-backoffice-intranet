@@ -1,4 +1,5 @@
 import { Pencil, Trash2, UserCog } from "lucide-react";
+import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
 
 export default function UsersTable({
   users,
@@ -60,24 +61,30 @@ export default function UsersTable({
                   {u._Roles?.code || "SIN ROL"}
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap text-center flex justify-center gap-3">
-                  <button 
+                  <DisableIfNoPermission permission={"CRUD:UPDATE:USERS"} title="No tienes permiso para editar usuarios">
+                    <button 
                       onClick={() => onEdit(u)}
                       className="p-2 bg-white border border-slate-350 text-brand-primary rounded-lg shadow-sm hover:bg-brand-primary hover:text-white transition-all"
                     >
                       <Pencil className="w-3.5 h-3.5" />
-                  </button>
-                  <button 
-                    onClick={() => onEditEmployee(u)}
-                    className="p-2 bg-white border border-slate-350 text-brand-gold rounded-lg shadow-sm hover:bg-brand-gold hover:text-white transition-all"
+                    </button>
+                  </DisableIfNoPermission>
+                  <DisableIfNoPermission permission={"CRUD:UPDATE:EMPLOYEES"} title="No tienes permiso para editar empleados">
+                    <button 
+                      onClick={() => onEditEmployee(u)}
+                      className="p-2 bg-white border border-slate-350 text-brand-gold rounded-lg shadow-sm hover:bg-brand-gold hover:text-white transition-all"
                     >
-                    <UserCog className="w-3.5 h-3.5" />
-                  </button>
-                  <button 
-                    onClick={() => onDelete(u)}
-                    className="p-2 bg-white border border-slate-350 text-red-500 rounded-lg shadow-sm hover:bg-red-400 hover:text-white transition-all"
+                      <UserCog className="w-3.5 h-3.5" />
+                    </button>
+                  </DisableIfNoPermission>
+                  <DisableIfNoPermission permission={"CRUD:DELETE:USERS"} title="No tienes permiso para eliminar usuarios">
+                    <button 
+                      onClick={() => onDelete(u)}
+                      className="p-2 bg-white border border-slate-350 text-red-500 rounded-lg shadow-sm hover:bg-red-400 hover:text-white transition-all"
                     >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </DisableIfNoPermission>
                 </td>
               </tr>
             ))}

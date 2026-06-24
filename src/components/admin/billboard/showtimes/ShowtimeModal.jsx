@@ -3,6 +3,7 @@ import { useForm, useWatch, Controller} from "react-hook-form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
 import { InputForm } from "@/components/ui/inputForm"; 
 import { SelectForm } from "@/components/ui/SelectForm";
 import { getMovies } from "@/services/movie.service";
@@ -429,7 +430,9 @@ export function ShowtimeModal({
 
           <DialogFooter className="mt-6 flex justify-end gap-3 pt-4 border-t">
             <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-            <Button type="submit" className="bg-brand-primary text-white font-bold px-6">{isEdit ? "Guardar Cambios" : "Registrar Función"}</Button>
+            <DisableIfNoPermission permission={isEdit ? "CRUD:UPDATE:SHOWTIMES" : "CRUD:CREATE:SHOWTIMES"} title="No tienes permiso para guardar funciones">
+              <Button type="submit" className="bg-brand-primary text-white font-bold px-6">{isEdit ? "Guardar Cambios" : "Registrar Función"}</Button>
+            </DisableIfNoPermission>
           </DialogFooter>
         </form>
       </DialogContent>

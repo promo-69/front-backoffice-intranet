@@ -1,4 +1,5 @@
 import { Pencil, Trash2, Film, Clock, Calendar } from "lucide-react";
+import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
 
 const CLASSIFICATION_FALLBACK = { 1: "A (Todo Público)", 2: "B (+12)", 3: "C (+15)", 4: "D (+18)" };
 
@@ -124,20 +125,24 @@ export function EventsTab({ data = [], onEdit, onDelete, isLoading }) {
                   {/* 7. ACCIONES */}
                   <td className="py-3 px-4 align-middle">
                     <div className="flex justify-center gap-2">
-                      <button 
-                        onClick={() => onEdit(event)} 
-                        className="p-2 bg-white border border-slate-200 text-brand-primary rounded-lg shadow-sm hover:bg-brand-primary hover:text-white transition-all"
-                        title="Editar evento"
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
-                      </button>
-                      <button 
-                        onClick={() => onDelete(event)} 
-                        className="p-2 bg-white border border-slate-200 text-red-500 rounded-lg shadow-sm hover:bg-red-50 hover:text-red-600 transition-all"
-                        title="Eliminar evento"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      <DisableIfNoPermission permission={"CRUD:UPDATE:SPECIAL_EVENTS"} title="No tienes permiso para editar eventos">
+                        <button 
+                          onClick={() => onEdit(event)} 
+                          className="p-2 bg-white border border-slate-200 text-brand-primary rounded-lg shadow-sm hover:bg-brand-primary hover:text-white transition-all"
+                          title="Editar evento"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                      </DisableIfNoPermission>
+                      <DisableIfNoPermission permission={"CRUD:DELETE:SPECIAL_EVENTS"} title="No tienes permiso para eliminar eventos">
+                        <button 
+                          onClick={() => onDelete(event)} 
+                          className="p-2 bg-white border border-slate-200 text-red-500 rounded-lg shadow-sm hover:bg-red-50 hover:text-red-600 transition-all"
+                          title="Eliminar evento"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </DisableIfNoPermission>
                     </div>
                   </td>   
                 </tr>

@@ -9,6 +9,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
 import { Upload, X } from "lucide-react";
 import { InputForm } from "@/components/ui/inputForm"; 
 import { SelectForm } from "@/components/ui/SelectForm";
@@ -448,9 +449,11 @@ export default function MovieModal({
 
             <DialogFooter className="pt-6 border-t flex gap-2 justify-end">
               <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-              <Button type="submit" className="bg-brand-primary text-white font-bold px-6">
-                {isEdit ? "Guardar Cambios" : "Registrar Película"}
-              </Button>
+              <DisableIfNoPermission permission={isEdit ? "CRUD:UPDATE:MOVIES" : "CRUD:CREATE:MOVIES"} title="No tienes permiso para guardar películas">
+                <Button type="submit" className="bg-brand-primary text-white font-bold px-6">
+                  {isEdit ? "Guardar Cambios" : "Registrar Película"}
+                </Button>
+              </DisableIfNoPermission>
             </DialogFooter>
           </div>
         </form>

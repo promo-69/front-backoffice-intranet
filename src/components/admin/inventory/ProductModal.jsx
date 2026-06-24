@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { InputForm } from "@/components/ui/inputForm";
 import { Upload, X } from "lucide-react";
+import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
 
 function ErrorMessage({ message }) {
   return message ? (
@@ -390,13 +391,15 @@ export default function ProductModal({ open, onClose, initialData, categories = 
           >
             Cancelar
           </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="flex-1 bg-brand-primary text-white font-bold hover:bg-brand-primary/90"
-          >
-            {isEdit ? "Actualizar" : "Registrar"}
-          </Button>
+          <DisableIfNoPermission permission={isEdit ? "CRUD:UPDATE:PRODUCTS" : "CRUD:CREATE:PRODUCTS"} title="No tienes permiso para guardar productos">
+            <Button
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="flex-1 bg-brand-primary text-white font-bold hover:bg-brand-primary/90"
+            >
+              {isEdit ? "Actualizar" : "Registrar"}
+            </Button>
+          </DisableIfNoPermission>
         </DialogFooter>
       </DialogContent>
     </Dialog>

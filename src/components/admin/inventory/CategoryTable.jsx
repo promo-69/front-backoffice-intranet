@@ -1,4 +1,5 @@
 import { Pencil, Trash2, Tag } from "lucide-react";
+import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
 
 export default function CategoryTable({ data, onEdit, onDelete }) {
   if (!data || data.length === 0) {
@@ -33,20 +34,24 @@ export default function CategoryTable({ data, onEdit, onDelete }) {
                 </td>
                 <td className="py-4 px-6">
                   <div className="flex justify-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={() => onEdit(item)}
-                      className="p-1 text-brand-primary hover:bg-brand-primary/10 rounded transition-colors"
-                      title="Editar"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => onDelete(item.id)}
-                      className="p-1 text-red-500 hover:bg-red-50 rounded transition-colors"
-                      title="Eliminar"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <DisableIfNoPermission permission={"CRUD:UPDATE:CATALOGS"} title="No tienes permiso para editar categorías">
+                      <button
+                        onClick={() => onEdit(item)}
+                        className="p-1 text-brand-primary hover:bg-brand-primary/10 rounded transition-colors"
+                        title="Editar"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                    </DisableIfNoPermission>
+                    <DisableIfNoPermission permission={"CRUD:DELETE:CATALOGS"} title="No tienes permiso para eliminar categorías">
+                      <button
+                        onClick={() => onDelete(item.id)}
+                        className="p-1 text-red-500 hover:bg-red-50 rounded transition-colors"
+                        title="Eliminar"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </DisableIfNoPermission>
                   </div>
                 </td>
               </tr>

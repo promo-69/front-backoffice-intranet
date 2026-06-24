@@ -1,5 +1,6 @@
 import React from "react";
 import { Pencil, Trash2, Tag, Award, Image, Info } from "lucide-react";
+import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
 
 const ComboTable = ({ data = [], onEdit, onDelete, cinemas = [], currencies = [] }) => {
   const safeData = Array.isArray(data) ? data : [];
@@ -108,25 +109,29 @@ const ComboTable = ({ data = [], onEdit, onDelete, cinemas = [], currencies = []
                 {/* Acciones */}
                 <td className="py-4 px-4">
                   <div className="flex justify-center gap-3">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onEdit(item);
-                      }}
-                      className="text-brand-primary hover:scale-110 transition-transform"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
+                    <DisableIfNoPermission permission={"CRUD:UPDATE:COMBOS"} title="No tienes permiso para editar combos">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEdit(item);
+                        }}
+                        className="text-brand-primary hover:scale-110 transition-transform"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                    </DisableIfNoPermission>
 
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDelete(item.id);
-                      }}
-                      className="text-red-500 hover:scale-110 transition-transform"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <DisableIfNoPermission permission={"CRUD:DELETE:COMBOS"} title="No tienes permiso para eliminar combos">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDelete(item.id);
+                        }}
+                        className="text-red-500 hover:scale-110 transition-transform"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </DisableIfNoPermission>
                   </div>
                 </td>
               </tr>

@@ -12,6 +12,7 @@ import {
   Calendar,
   Landmark,
   Sparkles,
+  Receipt,
 } from "lucide-react";
 
 import {
@@ -97,7 +98,14 @@ const navItems = [
     title: "Reportes",
     url: "/admin/reports",
     icon: BarChart3,
-    permission: "CRUD:READ:REPORTS", 
+    permission: "CRUD:READ:REPORTS",
+  },
+  {
+    id: "invoices",
+    title: "Facturas",
+    url: "/admin/invoices",
+    icon: Receipt,
+    permission: "CRUD:READ:INVOICES",
   },
   {
     id: "finances",
