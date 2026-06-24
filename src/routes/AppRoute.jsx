@@ -28,6 +28,7 @@ import RentalRequestsList from "@/pages/rentals/RentalRequestsList";
 import RentalRequestDetail from "@/pages/rentals/RentalRequestDetail";
 
 import ReportsDashboard from "@/pages/admin/reports/reportsDashboard";
+import LoyaltyDashboard from "@/pages/admin/loyalty/LoyaltyDashboard";
 
 import InvoicesPage from "@/pages/admin/invoices/InvoicesPage";
 
@@ -167,11 +168,48 @@ function AppRoute() {
         />
 
         <Route
+          path="/admin/loyalty"
+          element={
+            <ProtectedRoute permission={ROUTE_PERMISSIONS.CATALOG_READ}>
+              <AdminLayout>
+                <LoyaltyDashboard />
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
           path="/admin/invoices"
           element={
             <ProtectedRoute permission={ROUTE_PERMISSIONS.INVOICES_READ}>
               <AdminLayout>
                 <InvoicesPage />
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ============================
+            RUTAS ALQUILER DE SALAS
+        ============================ */}
+
+        <Route
+          path="/admin/rentals"
+          element={
+            <ProtectedRoute permission={ROUTE_PERMISSIONS.RENTALS_READ}>
+              <AdminLayout>
+                <RentalRequestsList />
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/rentals/:id"
+          element={
+            <ProtectedRoute permission={ROUTE_PERMISSIONS.RENTALS_READ}>
+              <AdminLayout>
+                <RentalRequestDetail />
               </AdminLayout>
             </ProtectedRoute>
           }

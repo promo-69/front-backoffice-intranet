@@ -14,6 +14,14 @@ export const paymentsService = {
     const data = await getCatalogByName('currencies');
     return data || [];
   },
+  getBanks: async () => {
+    const data = await getCatalogByName('banks');
+    return data || [];
+  },
+  getPaymentOptions: async () => {
+    const response = await api.get('/payments/options');
+    return response.data?.data ?? response.data ?? [];
+  },
   getBankAccounts: async (params = { page: 1, limit: 10 }) => {
     const response = await api.get('/payments/bank-accounts', { params });
     return response.data;

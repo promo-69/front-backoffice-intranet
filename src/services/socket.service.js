@@ -13,7 +13,7 @@ class SocketService {
 
     this.socket = io(WS_URL, {
       withCredentials: true,
-      transports: ["websocket", "polling"],
+      transports: ["polling", "websocket"],
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 2000,

@@ -19,8 +19,10 @@ export default function Step3Confectionery({ products, combos, loading, onNext, 
       originalId: p.id,
       name: p.name,
       price: p.price,
-      category: p.category || "Popcorn", // Default category
-      image: p.category?.toLowerCase().includes("bebida") || p.category?.toLowerCase().includes("drink") ? SodaImg : PopcornImg,
+      priceVes: p.priceVes,
+      stock: p.stock ?? null,
+      category: p.category || "Popcorn",
+      image: p.category === "Drinks" ? SodaImg : PopcornImg,
       type: 'product',
       originalItem: p
     })),
@@ -29,6 +31,9 @@ export default function Step3Confectionery({ products, combos, loading, onNext, 
       originalId: c.id,
       name: c.name,
       price: c.price,
+      priceVes: c.priceVes,
+      stock: c.stock ?? null,
+      available: c.available,
       category: "Combos",
       image: ComboImg,
       type: 'combo',
@@ -39,7 +44,7 @@ export default function Step3Confectionery({ products, combos, loading, onNext, 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <p className="text-gray-400 text-lg">Cargando productos...</p>
+        <p className="text-slate-700 text-lg">Cargando productos...</p>
       </div>
     );
   }
@@ -75,13 +80,18 @@ export default function Step3Confectionery({ products, combos, loading, onNext, 
   };
 
   const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+  const totalVes = cart.reduce((sum, item) => {
+    const ves = item.priceVes || (item.price * 600);
+    return sum + ves * item.qty;
+  }, 0);
 
   const handleNext = (skip = false) => {
     // Parent expects: array of { item: originalItem, qty, type }
     const formattedCart = skip ? [] : cart.map(c => ({
       item: c.originalItem,
       qty: c.qty,
-      type: c.type
+      type: c.type,
+      _key: c.id,
     }));
 
     onNext({ concessionItems: formattedCart, concessionTotal: skip ? 0 : total });
@@ -99,8 +109,8 @@ export default function Step3Confectionery({ products, combos, loading, onNext, 
               key={cat}
               onClick={() => setSelectedCategory(cat)}
               className={`px-5 py-2 rounded-t-lg transition-all whitespace-nowrap font-medium ${selectedCategory === cat
-                ? "bg-brand-gold/10 text-brand-gold border-b-2 border-brand-gold"
-                : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                ? "bg-brand-primary/10 text-brand-primary border-b-2 border-brand-primary"
+                : "text-slate-700 hover:text-slate-900 hover:bg-gray-50"
                 }`}
             >
               {cat}
@@ -131,14 +141,29 @@ export default function Step3Confectionery({ products, combos, loading, onNext, 
               <div className="p-4 flex flex-col flex-1 space-y-3">
                 <div className="flex justify-between items-start">
                   <h3 className="font-bold text-slate-700 leading-tight">{product.name}</h3>
-                  <span className="text-brand-gold font-bold">
-                    {product.price > 0 ? `$${product.price.toFixed(2)}` : "—"}
-                  </span>
+                  <div className="text-right">
+                    <span className="text-brand-primary font-bold block">
+                      {product.price > 0 ? `$${product.price.toFixed(2)}` : "—"}
+                    </span>
+                    {product.priceVes != null && product.price > 0 && (
+                      <span className="text-slate-600 text-[11px]">Bs. {product.priceVes.toFixed(2)}</span>
+                    )}
+                  </div>
                 </div>
+                {product.stock != null && product.stock <= 0 && (
+                  <p className="text-red-400 text-[10px] font-semibold">Sin stock</p>
+                )}
+                {product.available === false && (
+                  <p className="text-red-400 text-[10px] font-semibold">No disponible</p>
+                )}
+                {product.stock != null && product.stock > 0 && product.stock <= 5 && (
+                  <p className="text-amber-500 text-[10px] font-semibold">Stock: {product.stock}</p>
+                )}
 
                 <button
                   onClick={() => addToCart(product)}
-                  className="mt-auto w-full bg-slate-50 hover:bg-brand-gold hover:text-white border border-gray-100 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all font-semibold text-sm"
+                  disabled={(product.stock != null && product.stock <= 0) || product.available === false}
+                  className="mt-auto w-full bg-slate-50 hover:bg-brand-primary hover:text-white border border-gray-100 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <AiOutlinePlus /> Agregar
                 </button>
@@ -152,12 +177,12 @@ export default function Step3Confectionery({ products, combos, loading, onNext, 
       <div className="w-full lg:w-[350px] shrink-0">
         <div className="bg-white border border-gray-200 rounded-3xl p-5 flex flex-col h-[calc(100vh-220px)] sticky top-6 shadow-sm">
           <div className="flex items-center gap-3 mb-5 pb-5 border-b border-gray-50">
-            <div className="p-2.5 bg-brand-gold/10 rounded-xl text-brand-gold text-xl">
+            <div className="p-2.5 bg-brand-primary/10 rounded-xl text-brand-primary text-xl">
               <AiOutlineShopping />
             </div>
             <div>
               <h2 className="font-bold text-slate-700">Resumen de Venta</h2>
-              <p className="text-gray-400 text-xs">{cart.reduce((sum, item) => sum + item.qty, 0)} productos seleccionados</p>
+              <p className="text-slate-600 text-xs">{cart.reduce((sum, item) => sum + item.qty, 0)} productos seleccionados</p>
             </div>
           </div>
 
@@ -174,9 +199,12 @@ export default function Step3Confectionery({ products, combos, loading, onNext, 
                   <img src={item.image} className="w-12 h-12 rounded-lg object-cover bg-white" alt="" />
                   <div className="flex-1 min-w-0">
                     <h4 className="font-bold text-xs text-slate-700 truncate">{item.name}</h4>
-                    <p className="text-brand-gold font-bold text-xs">
+                    <p className="text-brand-primary font-bold text-xs">
                       {item.price > 0 ? `$${(item.price * item.qty).toFixed(2)}` : "—"}
                     </p>
+                    {item.priceVes != null && item.price > 0 && (
+                      <p className="text-slate-600 text-[10px]">Bs. {(item.priceVes * item.qty).toFixed(2)}</p>
+                    )}
 
                     <div className="flex items-center gap-2 mt-2">
                       <button
@@ -208,25 +236,31 @@ export default function Step3Confectionery({ products, combos, loading, onNext, 
 
           {/* Footer / Total */}
           <div className="mt-5 pt-5 border-t border-gray-100 space-y-3">
-            <div className="flex justify-between items-center text-xs text-gray-500">
+            <div className="flex justify-between items-center text-xs text-slate-700">
               <span>Subtotal confitería</span>
-              <span className="font-medium text-slate-700">${total.toFixed(2)}</span>
+              <div className="text-right">
+                <span className="font-medium text-slate-700 block">${total.toFixed(2)}</span>
+                {totalVes > 0 && <span className="text-slate-600 text-[10px]">Bs. {totalVes.toFixed(2)}</span>}
+              </div>
             </div>
             <div className="flex justify-between items-center text-xl font-bold text-slate-800 pt-2">
               <span>Total</span>
-              <span className="text-brand-gold">${total.toFixed(2)}</span>
+              <div className="text-right">
+                <span className="text-brand-primary block">${total.toFixed(2)}</span>
+                {totalVes > 0 && <span className="text-slate-600 text-xs font-normal">Bs. {totalVes.toFixed(2)}</span>}
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3 mt-4">
               <button
                 onClick={onBack}
-                className="flex items-center justify-center gap-2 py-3.5 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 transition-all text-sm font-semibold"
+                className="flex items-center justify-center gap-2 py-3.5 rounded-xl border border-gray-200 text-slate-700 hover:bg-gray-50 transition-all text-sm font-semibold"
               >
                 <ArrowLeft className="w-4 h-4" /> Volver
               </button>
               <button
                 onClick={() => handleNext(true)}
-                className="flex items-center justify-center gap-2 py-3.5 rounded-xl border bg-brand-gold text-white text-sm font-semibold"
+                className="flex items-center justify-center gap-2 py-3.5 rounded-xl border bg-[#F6AD38] text-[#1d1430] text-sm font-semibold"
               >
                 <SkipForward className="w-4 h-4" /> Omitir
               </button>
@@ -235,7 +269,7 @@ export default function Step3Confectionery({ products, combos, loading, onNext, 
             <button
               onClick={() => handleNext(false)}
               disabled={cart.length === 0}
-              className="w-full bg-brand-gold disabled:bg-gray-200 disabled:text-gray-400 text-white font-bold py-3.5 rounded-xl text-sm shadow-md hover:shadow-lg transition-all active:scale-95 flex justify-center items-center gap-2"
+              className="w-full bg-brand-primary disabled:bg-gray-200 disabled:text-slate-500 text-white font-bold py-3.5 rounded-xl text-sm shadow-md hover:shadow-lg transition-all active:scale-95 flex justify-center items-center gap-2"
             >
               CONTINUAR → PAGO
             </button>
