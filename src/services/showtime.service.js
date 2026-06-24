@@ -7,11 +7,45 @@ export const getShowtimes = async (page = 1, limit = 10) => {
 };
 
 // Listas las funciones por sucursal - Mary
-export const getShowtimesByCinema = async ({ cinemaId }) => {
-  const response = await api.get(`/showtimes/admin/cinemas/${cinemaId}/showtimes`);
+export const getShowtimesByCinema = async ({ 
+  cinemaId, 
+  page = 1, 
+  limit = 10, 
+  filterType, 
+  startDate, 
+  endDate 
+}) => {
+  const response = await api.get(`/showtimes/admin/cinemas/${cinemaId}/showtimes`, {
+    params: {
+      page: page,
+      size: limit,
+      filterType,
+      startDate,
+      endDate
+    }
+  });
+  
+  const isDirectArray = Array.isArray(response.data);
+  let dataList = isDirectArray ? response.data : (response.data?.data || []);
+  const metaData = isDirectArray ? {} : (response.data?.metadata || {});
+
+  const totalItems = metaData.total || dataList.length;
+  const totalPages = metaData.total_pages || Math.max(1, Math.ceil(totalItems / limit));
+
+  if (isDirectArray && dataList.length > limit) {
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    dataList = dataList.slice(startIndex, endIndex);
+  }
+
   return {
-    data: response.data?.data || [], 
-    metadata: response.data?.metadata || {}
+    data: dataList,
+    metadata: {
+      total: totalItems,
+      per_page: metaData.per_page || limit,
+      current_page: page,
+      total_pages: totalPages
+    }
   };
 };
 
