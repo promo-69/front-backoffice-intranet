@@ -16,28 +16,36 @@ export default function ProtectedRoute({
   // 2. SUPER_ADMIN siempre puede todo
   if (isSuperAdmin) return children;
 
+  // Objeto de configuración común para cuando se deniega el acceso
+  const accessDeniedRedirect = (
+    <Navigate to="/login" state={{ unauthorized: true }} replace />
+  );
+
   // 3. Validación por rol
   if (allowedRoles && !hasRole(allowedRoles)) {
     console.log("[ProtectedRoute] denied by role", { role, allowedRoles });
-    return <Navigate to="/no-access" replace />;
+    return accessDeniedRedirect;
   }
 
   // 4. Validación por permiso único
   if (permission && !can(permission)) {
     console.log("[ProtectedRoute] denied by permission", { role, permission });
-    return <Navigate to="/no-access" replace />;
+    return accessDeniedRedirect;
   }
 
   // 5. Validación por permisos (AND)
   if (permissions && !canAll(permissions)) {
-    console.log("[ProtectedRoute] denied by permissions (AND)", { role, permissions });
-    return <Navigate to="/no-access" replace />;
+    console.log("[ProtectedRoute] denied by permissions (AND)", {
+      role,
+      permissions,
+    });
+    return accessDeniedRedirect;
   }
 
   // 6. Validación por permisos (OR)
   if (anyOf && !canAny(anyOf)) {
     console.log("[ProtectedRoute] denied by anyOf (OR)", { role, anyOf });
-    return <Navigate to="/no-access" replace />;
+    return accessDeniedRedirect;
   }
 
   // 7. Si pasa todas las validaciones → acceso permitido
