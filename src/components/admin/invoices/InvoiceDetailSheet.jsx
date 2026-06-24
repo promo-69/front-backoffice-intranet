@@ -32,7 +32,10 @@ export function InvoiceDetailSheet({ invoiceId, cinemaId, open, onOpenChange, on
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+      <SheetContent
+        className="w-full sm:max-w-md overflow-y-auto bg-white"
+        overlayClassName="bg-black/60"
+      >
         <SheetHeader>
           <SheetTitle className="font-montserrat">
             {loading ? "Cargando..." : `Factura ${invoice?.invoice_number ?? ""}`}
@@ -126,12 +129,31 @@ export function InvoiceDetailSheet({ invoiceId, cinemaId, open, onOpenChange, on
                   <CreditCard className="w-3.5 h-3.5" />
                   <span className="text-xs uppercase tracking-wider font-medium">Método de pago</span>
                 </div>
-                {invoice.payments.map((pay) => (
-                  <div key={pay.id} className="flex justify-between text-sm">
-                    <span className="text-foreground">{pay.method?.description}</span>
-                    <span className="font-medium text-foreground">{Money(pay.amount, symbol)}</span>
-                  </div>
-                ))}
+                {invoice.payments.map((pay) => {
+                  // Si el pago fue en otra moneda (p. ej. CinePuntos), mostramos
+                  // la cantidad en esa moneda (puntos) y su equivalente en Bs.
+                  const paidInOther = pay.paid_in_other_currency && pay.original_amount != null;
+                  const otherSymbol = pay.original_currency?.symbol ?? "Pts";
+                  return (
+                    <div key={pay.id} className="flex justify-between text-sm">
+                      <span className="text-foreground">{pay.method?.description}</span>
+                      {paidInOther ? (
+                        <span className="text-right">
+                          <span className="font-medium text-foreground block">
+                            {Math.round(Number(pay.original_amount)).toLocaleString("es-VE")} {otherSymbol}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {Money(pay.amount_base_currency, symbol)}
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="font-medium text-foreground">
+                          {Money(pay.amount_base_currency, symbol)}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
 
