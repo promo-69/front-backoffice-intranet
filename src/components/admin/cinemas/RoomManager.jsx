@@ -33,10 +33,11 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
     name: "",
     rows: "10",
     cols: "8",
+    currentCapacity: "0",
     projectionType: "1",
   });
-
-  const theoreticalCapacity = (parseInt(formData.rows) || 0) * (parseInt(formData.cols) || 0);
+  
+  const theoreticalCapacity = formData.currentCapacity;
 
   const fetchRooms = async () => {
     if (!branch?.id) return;
@@ -88,11 +89,12 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
           };
         }
       });
-
+      
       setFormData({
         name: room.name || "",
         rows: String(rows),
         cols: String(cols),
+        currentCapacity: parseInt(room.current_capacity),
         projectionType: String(room.projection_types?.[0]?.id || "1"),
       });
       
@@ -110,7 +112,7 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
   const resetForm = () => {
     setExternalIsAdding(false);
     setEditingRoomId(null);
-    setFormData({ name: "", rows: "8", cols: "12", projectionType: "1" });
+    setFormData({ name: "", rows: "8", cols: "12", currentCapacity: "0", projectionType: "1" });
     setRoomLayout([]);
     setOriginalSeatsSnapshot([]);
   };
@@ -288,7 +290,7 @@ export default function RoomManager({ branch, externalIsAdding, setExternalIsAdd
                   <div>
                     <h4 className="font-bold text-brand-primary font-montserrat text-sm">{room.name}</h4>
                     <p className="text-[10px] text-slate-400 uppercase font-bold mt-1">
-                      ID: {room.id} | Capacidad: {room.total_capacity || (room.grid_rows * room.grid_columns) || 0}
+                      ID: {room.id} | Capacidad: {room.current_capacity || (room.grid_rows * room.grid_columns) || 0}
                     </p>
                   </div>
                   <div className="flex gap-2">
