@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useModal } from "@/hooks/useModal";
 import { useLoading } from "@/context/LoadingContext"; 
 import { Building2 } from "lucide-react";
 import { toast } from "sonner";
@@ -18,7 +17,6 @@ export default function Showtimes({ catalogs, cinemaId, search, modal, openModal
   const [showtimes, setShowtimes] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Estados de control para la segmentación cronológica basada en query parameters
   const [filterType, setFilterType] = useState("future"); 
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -33,132 +31,88 @@ export default function Showtimes({ catalogs, cinemaId, search, modal, openModal
   });
 
   const fetchShowtimes = async () => {
-    if (!cinemaId) return; 
+    if (!cinemaId) return;
+
     setIsLoading(true);
 
-try {
-      let onlyFutureParam = undefined;
-      if (filterType === "future") onlyFutureParam = true;
-      if (filterType === "all") onlyFutureParam = false;
-
-      const responseData = await getShowtimesByCinema({
-        cinemaId: cinemaId,
+    try {
+      const response = await getShowtimesByCinema({
+        cinemaId,
         page: currentPage,
         limit: metadata.per_page,
-        onlyFuture: onlyFutureParam,
-        startDate: filterType === "all" && startDate ? startDate : undefined,
-        endDate: filterType === "all" && endDate ? endDate : undefined
+        filterType,
+        startDate,
+        endDate
       });
 
-      let rows = [];
-      let backendMeta = null;
+      console.log("SHOWTIMES RESPONSE:", response);
 
-      if (responseData?.data && Array.isArray(responseData.data.data)) {
-        rows = responseData.data.data;
-        backendMeta = responseData.data.metadata;
-      } 
-      else if (responseData && Array.isArray(responseData.data)) {
-        rows = responseData.data;
-        backendMeta = responseData.metadata;
-      }
-      else if (Array.isArray(responseData)) {
-        rows = responseData;
-      }
+      const showtimesData = Array.isArray(response?.data) ? response.data : [];
+      const backendMeta = response?.metadata || {};
 
-      setShowtimes(rows);
-      
-      if (backendMeta) {
-        setMetadata({
-          total: backendMeta.total,
-          per_page: backendMeta.per_page,
-          current_page: backendMeta.current_page,
-          total_pages: backendMeta.total_pages,
-          next_page: backendMeta.next_page,
-          prev_page: backendMeta.prev_page
-        });
-      } else {
-        // Fallback de cálculo manual si no viene metadata del backend
-        const total = rows.length;
-        const per_page = metadata.per_page;
-        const total_pages = Math.max(1, Math.ceil(total / per_page));
-        setMetadata({
-          total,
-          per_page,
-          current_page: currentPage,
-          total_pages,
-          next_page: currentPage < total_pages ? currentPage + 1 : null,
-          prev_page: currentPage > 1 ? currentPage - 1 : null
-        });
-      }
+      setShowtimes(showtimesData);
 
+      setMetadata({
+        total: backendMeta.total || showtimesData.length,
+        per_page: backendMeta.per_page || 10,
+        current_page: backendMeta.current_page || currentPage,
+        total_pages:
+          backendMeta.total_pages ||
+          Math.max(1, Math.ceil(showtimesData.length / 10)),
+        next_page: backendMeta.next_page || null,
+        prev_page: backendMeta.prev_page || null
+      });
     } catch (error) {
       console.error("Error en fetchShowtimes:", error);
-      
-      if (error.response && error.response.status === 404) {
-        // Si es 404, asumimos que simplemente no hay funciones aún. 
-        setShowtimes([]); 
-      } else {
-        toast.error("Error al sincronizar el cuadrante de funciones");
-        setShowtimes([]);
-      }
+
+      setShowtimes([]);
 
       setMetadata({
         total: 0,
-        per_page: metadata.per_page,
+        per_page: 10,
         current_page: 1,
         total_pages: 1,
         next_page: null,
         prev_page: null
       });
+
+      toast.error(
+        error?.response?.data?.message ||
+        "Error al cargar las funciones"
+      );
     } finally {
       setIsLoading(false);
     }
-  };
-  // Efecto secundario: Monitorea mutaciones en los filtros cronológicos y paginación para re-ejecutar queries
+  }; 
+
+  // Retorna a la página inicial ante variaciones en filtros estructurales o búsquedas primero
+  useEffect(() => {
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    } else if (cinemaId) {
+      fetchShowtimes();
+    }
+  }, [cinemaId, search, filterType]);
+
+  // Monitorea mutaciones operativas (Se ejecuta de forma segura reduciendo loops redundantes)
   useEffect(() => {
     if (cinemaId) {
       fetchShowtimes();
     }
-  }, [currentPage, cinemaId, filterType, startDate, endDate]);
+  }, [currentPage, startDate, endDate]);
 
-  // Efecto de reseteo: Retorna a la página inicial ante variaciones en filtros estructurales o búsquedas
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [cinemaId, search, filterType]);
-
-const filteredShowtimes = Array.isArray(showtimes)
-    ? showtimes.filter((s) => {
-        const searchLower = search.toLowerCase();
-        
-        // Extraer títulos previniendo valores nulos
-        const movieTitle = s.movie?.title?.toLowerCase() || "";
-        const eventTitle = s.special_event?.title?.toLowerCase() || s.specialEvent?.title?.toLowerCase() || "";
-        const roomName = s.room?.name?.toLowerCase() || "";
-
-        return (
-          movieTitle.includes(searchLower) ||
-          eventTitle.includes(searchLower) ||
-          roomName.includes(searchLower)
-        );
-      })
-    : [];
-
-  const handlePageChange = (newPage) => {
-    if (newPage >= 1 && newPage <= metadata.total_pages) {
-      setCurrentPage(newPage);
-    }
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
   };
 
-  // Handlers para la apertura de modales basados en polimorfismo de useModal
   const handleEditClick = (showtime) => openModal("form", showtime, "showtime");
   const handleDeleteClick = (showtime) => openModal("delete", showtime, "showtime");
-
 
   const handleFormClose = (shouldRefresh, customMessage) => {
     closeModal();
     if (shouldRefresh === true) {
       setCurrentPage(1);
-      fetchShowtimes(1); 
+      fetchShowtimes(); 
       openModal("success", {
         title: "Programación Actualizada",
         message: customMessage || "La función ha sido configurada exitosamente.",
@@ -166,7 +120,6 @@ const filteredShowtimes = Array.isArray(showtimes)
       }, "showtime");
     }
   };
-
 
   const handleSave = async (responseData) => {
     showLoader();
@@ -187,14 +140,13 @@ const filteredShowtimes = Array.isArray(showtimes)
     }
   };
 
-
   const handleConfirmDelete = async () => {
     if (!modal.data?.id) return;
     showLoader();
     try {
       await deleteShowtime(modal.data.id);
       closeModal();
-      await fetchShowtimes(currentPage); 
+      await fetchShowtimes(); 
       openModal("success", {
         title: "Función Cancelada",
         message: "La función programada ha sido cancelada correctamente.",
@@ -209,13 +161,11 @@ const filteredShowtimes = Array.isArray(showtimes)
     }
   };
 
-  // Banderas booleanas de control semántico para evitar colisiones entre modales de distintas entidades
   const isShowtimeContext = modal.context === "showtime" || modal.type === "showtimeModal";
   const isFormOpen = modal.isOpen && (modal.type === "showtimeModal" || modal.type === "form") && isShowtimeContext;
   const isDeleteOpen = modal.isOpen && modal.type === "delete" && isShowtimeContext;
   const isSuccessOpen = modal.isOpen && modal.type === "success" && isShowtimeContext;
 
- 
   if (!cinemaId) {
     return (
       <div className="text-center py-20 border border-dashed border-gray-200 bg-slate-50/50 rounded-cineflix p-6 animate-fade-in font-montserrat">
@@ -245,7 +195,6 @@ const filteredShowtimes = Array.isArray(showtimes)
             <option value="all">Ver todo el historial</option>
           </SelectForm>
 
-          {/* Renderizado condicional basado en cortocircuito lóbico AND para el modo por rango */}
           {filterType === "all" && (
             <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto animate-in fade-in slide-in-from-left-2 duration-200">
               
@@ -279,7 +228,7 @@ const filteredShowtimes = Array.isArray(showtimes)
       </div>
 
       <ShowtimesTab 
-        data={filteredShowtimes} 
+        data={showtimes} 
         isLoading={loading} 
         onEdit={handleEditClick} 
         onDelete={handleDeleteClick} 
@@ -294,14 +243,14 @@ const filteredShowtimes = Array.isArray(showtimes)
       )}
 
       <ShowtimeModal 
-      open={isFormOpen} 
-      onClose={handleFormClose} 
-      onSave={handleSave}
-      cinemaId={cinemaId}
-      projectionTypes={catalogs.projectionTypes}
-      languagesList={catalogs.languages} 
-      currenciesList={catalogs.currencies} 
-      initialData={modal.data} 
+        open={isFormOpen} 
+        onClose={handleFormClose} 
+        onSave={handleSave}
+        cinemaId={cinemaId}
+        projectionTypes={catalogs.projectionTypes}
+        languagesList={catalogs.languages} 
+        currenciesList={catalogs.currencies} 
+        initialData={modal.data} 
       />
 
       <DeleteConfirmModal 
@@ -317,11 +266,11 @@ const filteredShowtimes = Array.isArray(showtimes)
       />
       
       <SuccessModal 
-      isOpen={isSuccessOpen} 
-      onClose={closeModal} 
-      title={modal.data?.title}
-      message={modal.data?.message} 
-      onConfirm={modal.data?.onConfirm} 
+        isOpen={isSuccessOpen} 
+        onClose={closeModal} 
+        title={modal.data?.title}
+        message={modal.data?.message} 
+        onConfirm={modal.data?.onConfirm} 
       />
     </div>
   );

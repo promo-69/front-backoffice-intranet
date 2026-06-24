@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
-import { Upload, X } from "lucide-react";
+import { Upload, X, Loader2 } from "lucide-react";
 import { InputForm } from "@/components/ui/inputForm"; 
 import { SelectForm } from "@/components/ui/SelectForm";
 import { TextAreaCustom } from "@/components/ui/TextAreaCustom";
@@ -36,7 +36,8 @@ export default function MovieModal({
   const [posterPreview, setPosterPreview] = useState(null);
   const [bannerPreview, setBannerPreview] = useState(null);
 
-  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm({
+  // 1. Extraemos isSubmitting del formState
+  const { register, handleSubmit, reset, watch, setValue, formState: { errors, isSubmitting } } = useForm({
     defaultValues: {
       lifecycleState: "",
       ageClassification: "",
@@ -53,19 +54,13 @@ export default function MovieModal({
 
   useEffect(() => {
     if (open && initialData) {
-      // Helper para normalizar los valores que vienen del backend
       const getNormalizedId = (list, fieldData) => {
         if (!fieldData) return "";
-        
-        // Si es un ID directo (número o string numérico)
         if (typeof fieldData === "number") return fieldData;
         if (typeof fieldData === "string" && !isNaN(fieldData) && fieldData.trim() !== "") return Number(fieldData);
         
-        // Si es un objeto (como el caso de age_classification en el ejemplo del usuario)
         if (typeof fieldData === "object") {
           if (fieldData.id) return fieldData.id;
-          
-          // Búsqueda por descripción en el catálogo cargado (Salvavidas)
           if (fieldData.description && list?.length > 0) {
             const found = list.find(item => 
               item.description?.toLowerCase() === fieldData.description?.toLowerCase() || 
@@ -110,81 +105,65 @@ export default function MovieModal({
       setBannerPreview(null);
       setPosterPreview(null);
     }
-  }, [
-    initialData, 
-    open, 
-    reset, 
-    genresList, 
-    ageClassificationsList, 
-    lifecycleStatesList, 
-    languagesList, 
-    projectionTypesList
-  ]);
+  }, [initialData, open, reset, genresList, ageClassificationsList, lifecycleStatesList, languagesList, projectionTypesList]);
 
-  // Manejador de cambio para el Póster
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) setPosterPreview(URL.createObjectURL(file));
   };
 
-  // Función para remover el Póster de la vista y del formulario
   const handleRemovePoster = (e) => {
-    e.stopPropagation(); // Evita que se abra el selector de archivos al hacer click en la X
+    e.stopPropagation(); 
     setPosterPreview(null);
-    setValue("poster", null); // Limpia el valor en React Hook Form
-    if (fileInputRef.current) fileInputRef.current.value = ""; // Limpia el input nativo
+    setValue("poster", null); 
+    if (fileInputRef.current) fileInputRef.current.value = ""; 
   };
 
-  // Función para remover el Banner de la vista y del formulario
   const handleRemoveBanner = (e) => {
-    e.stopPropagation(); // Evita que se abra el selector de archivos al hacer click en la X
+    e.stopPropagation(); 
     setBannerPreview(null);
-    setValue("banner", null); // Limpia el valor en React Hook Form
-    if (bannerInputRef.current) bannerInputRef.current.value = ""; // Limpia el input nativo
+    setValue("banner", null); 
+    if (bannerInputRef.current) bannerInputRef.current.value = ""; 
   };
 
   const onSubmit = async (data) => {
-    try{
+    try {
       const formData = new FormData();
-  
-    formData.append('title', data.title);
-    formData.append('durationMinutes', Number(data.durationMinutes)); 
-    formData.append('ageClassification', Number(data.ageClassification));
-    formData.append('lifecycleState', Number(data.lifecycleState));
-    formData.append('synopsis', data.synopsis);
-    formData.append('releaseDate', data.releaseDate);
-    formData.append('trailerUrl', data.trailerUrl || "");
+      formData.append('title', data.title);
+      formData.append('durationMinutes', Number(data.durationMinutes)); 
+      formData.append('ageClassification', Number(data.ageClassification));
+      formData.append('lifecycleState', Number(data.lifecycleState));
+      formData.append('synopsis', data.synopsis);
+      formData.append('releaseDate', data.releaseDate);
+      formData.append('trailerUrl', data.trailerUrl || "");
 
-    if (data.genres && data.genres.length > 0) {
-      const genresArrayOfNumbers = data.genres.map(Number);
-      formData.append('genres', JSON.stringify(genresArrayOfNumbers));
-    }
+      if (data.genres && data.genres.length > 0) {
+        formData.append('genres', JSON.stringify(data.genres.map(Number)));
+      }
 
-    formData.append('languages', JSON.stringify(data.languages.map(Number)));
-    formData.append('projectionTypes', JSON.stringify(data.projectionTypes.map(Number)));
+      formData.append('languages', JSON.stringify(data.languages.map(Number)));
+      formData.append('projectionTypes', JSON.stringify(data.projectionTypes.map(Number)));
 
-    // Solo adjuntar si es un archivo real (File), ignorar si se quedó como string URL o null
-    if (data.poster && data.poster instanceof FileList && data.poster[0]) {
-      formData.append('poster', data.poster[0]);
-    } else if (data.poster === null) {
-      formData.append('poster', ''); // Enviar vacío si el usuario lo removió intencionalmente
-    }
-  
-    if (data.banner && data.banner instanceof FileList && data.banner[0]) {
-      formData.append('banner', data.banner[0]);
-    } else if (data.banner === null) {
-      formData.append('banner', ''); 
-    }
-    if (isEdit) {
+      if (data.poster && data.poster instanceof FileList && data.poster[0]) {
+        formData.append('poster', data.poster[0]);
+      } else if (data.poster === null) {
+        formData.append('poster', ''); 
+      }
+    
+      if (data.banner && data.banner instanceof FileList && data.banner[0]) {
+        formData.append('banner', data.banner[0]);
+      } else if (data.banner === null) {
+        formData.append('banner', ''); 
+      }
+
+      if (isEdit) {
         await updateMovie(initialData.id, formData);
         onSuccess(`"${data.title}" ha sido actualizada correctamente.`);
       } else {
         await createMovie(formData);
         onSuccess(`"${data.title}" se ha registrado exitosamente en la cartelera.`);
       }
-
-    }
-    catch (error) {
+    } catch (error) {
       console.error("Error guardando película:", error);
       toast.error("Error al procesar la operación en el servidor");
     }
@@ -223,9 +202,17 @@ export default function MovieModal({
   });
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    // 2. Deshabilitamos cerrar el modal con click afuera mientras se procesa la petición
+    <Dialog open={open} onOpenChange={isSubmitting ? null : onClose}>
       <DialogContent className="max-w-4xl bg-white rounded-cineflix p-8 shadow-2xl overflow-y-auto max-h-[90vh] font-montserrat">
-        <button type="button" onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-brand-primary z-10">
+        
+        {/* 3. Deshabilitamos el botón de cerrar de la esquina superior */}
+        <button 
+          type="button" 
+          onClick={onClose} 
+          disabled={isSubmitting}
+          className="absolute top-4 right-4 text-gray-400 hover:text-brand-primary z-10 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
           <X className="h-5 w-5" />
         </button>
 
@@ -238,26 +225,27 @@ export default function MovieModal({
           </DialogDescription>
         </DialogHeader>
 
+        {/* 4. Opción UX avanzada (opcional): se puede deshabilitar interacciones completas del form con un fieldset */}
         <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-12 space-y-4 mt-6 gap-6">
           
           {/* SECCIÓN PORTADA / PÓSTER */}
           <div className="md:col-span-4">
             <label className="text-[10px] font-bold uppercase text-brand-primary">Póster Oficial</label>
             <div 
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => !isSubmitting && fileInputRef.current?.click()}
               className={`relative aspect-[2/3] w-full rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer overflow-hidden transition-all ${
                 errors.poster ? 'border-red-500 bg-red-50' : posterPreview ? 'border-brand-primary' : 'border-gray-200 bg-gray-50'
-              }`}
+              } ${isSubmitting ? 'opacity-60 cursor-not-allowed' : ''}`}
             >
               {posterPreview ? (
                 <div className="relative h-full w-full group">
                   <img src={posterPreview} alt="Preview" className="h-full w-full object-cover" />
                   
-                  {/* Botón Flotante 'X' para remover el Póster */}
                   <button
                     type="button"
                     onClick={handleRemovePoster}
-                    className="absolute top-3 right-3 p-1.5 bg-red-600 text-white rounded-full shadow-md hover:bg-red-700 transition-all z-20 opacity-90 sm:opacity-0 sm:group-hover:opacity-100"
+                    disabled={isSubmitting}
+                    className="absolute top-3 right-3 p-1.5 bg-red-600 text-white rounded-full shadow-md hover:bg-red-700 transition-all z-20 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 disabled:hidden"
                     title="Remover imagen"
                   >
                     <X className="h-4 w-4" strokeWidth={3} />
@@ -283,6 +271,7 @@ export default function MovieModal({
             <input 
               type="file" 
               className="hidden" 
+              disabled={isSubmitting}
               accept="image/jpeg,image/png,image/webp"
               name={posterRegister.name}
               onChange={posterRegister.onChange}
@@ -298,6 +287,7 @@ export default function MovieModal({
           <div className="md:col-span-8 space-y-4">
             <InputForm
               label="Título"
+              disabled={isSubmitting}
               {...register("title", { required: "Este campo es obligatorio" })}
               error={errors.title?.message}
             />
@@ -305,6 +295,7 @@ export default function MovieModal({
             <div className="grid grid-cols-2 gap-4">
               <SelectForm 
                 label="Clasificación" 
+                disabled={isSubmitting}
                 {...register("ageClassification", { required: "Este campo es obligatorio", valueAsNumber: true })}
                 error={errors.ageClassification?.message}
               >
@@ -319,37 +310,39 @@ export default function MovieModal({
               <InputForm 
                 label="Estreno" 
                 type="date" 
+                disabled={isSubmitting}
                 {...register("releaseDate", { required: "Este campo es obligatorio"})}
                 error={errors.releaseDate?.message}
               />
             </div>
 
-              <ChipsSelectorForm
+            <ChipsSelectorForm
               label="Idiomas"
               options={languagesList}
               selectedValues={selectedLanguages}
+              disabled={isSubmitting}
               registerProps={register("languages", { 
                 validate: (value) => value.length > 0 || "Este campo es obligatorio" 
               })}
               error={errors.languages?.message}
-              />
+            />
               
-          
-              <ChipsSelectorForm
+            <ChipsSelectorForm
               label="Proyecciones"
               options={projectionTypesList}
               selectedValues={selectedProjectionTypes}
+              disabled={isSubmitting}
               registerProps={register("projectionTypes", { 
                 validate: (value) => value.length > 0 || "Este campo es obligatorio" 
               })}
               error={errors.projectionTypes?.message}
-              />
-            
+            />
 
             <ChipsSelectorForm
               label="Géneros"
               options={genresList}
               selectedValues={selectedGenres}
+              disabled={isSubmitting}
               registerProps={register("genres", { 
                 validate: (value) => value.length > 0 || "Este campo es obligatorio" 
               })}
@@ -359,6 +352,7 @@ export default function MovieModal({
             <div className="grid grid-cols-2 gap-4">
               <InputForm 
                 label="Duración (min)" 
+                disabled={isSubmitting}
                 onKeyDown={(e) => {
                   if (["-", "e", "E", ".", ","].includes(e.key)) e.preventDefault();
                 }}
@@ -372,6 +366,7 @@ export default function MovieModal({
 
               <SelectForm 
                 label="Estado en Ciclo" 
+                disabled={isSubmitting}
                 {...register("lifecycleState", { required: "Este campo es obligatorio", valueAsNumber: true })}
                 error={errors.lifecycleState?.message}
               >
@@ -387,30 +382,31 @@ export default function MovieModal({
             <TextAreaCustom 
               label="Sinopsis"
               rows={3}
+              disabled={isSubmitting}
               {...register("synopsis", { required: "Este campo es obligatorio" })}
               error={errors.synopsis?.message}
             />
             
-            <InputForm label="URL Trailer" {...register("trailerUrl")} placeholder="https://youtube.com/..." />
+            <InputForm label="URL Trailer" disabled={isSubmitting} {...register("trailerUrl")} placeholder="https://youtube.com/..." />
 
             {/* SECCIÓN BANNER */}
             <div className="md:col-span-12 space-y-2 text-left">
               <Label className="text-[12px] font-bold uppercase text-brand-primary">Banner de Fondo</Label>
               <div 
-                onClick={() => bannerInputRef.current?.click()}
+                onClick={() => !isSubmitting && bannerInputRef.current?.click()}
                 className={`relative aspect-[16/5] w-full rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer overflow-hidden transition-all ${
                   errors.banner ? 'border-red-500 bg-red-50' : bannerPreview ? 'border-brand-primary' : 'border-gray-200 bg-gray-50'
-                }`}
+                } ${isSubmitting ? 'opacity-60 cursor-not-allowed' : ''}`}
               >
                 {bannerPreview ? (
                   <div className="relative h-full w-full group">
                     <img src={bannerPreview} alt="Banner Preview" className="h-full w-full object-cover" />
                     
-                    {/* Botón Flotante 'X' para remover el Banner */}
                     <button
                       type="button"
                       onClick={handleRemoveBanner}
-                      className="absolute top-3 right-3 p-1.5 bg-red-600 text-white rounded-full shadow-md hover:bg-red-700 transition-all z-20 opacity-90 sm:opacity-0 sm:group-hover:opacity-100"
+                      disabled={isSubmitting}
+                      className="absolute top-3 right-3 p-1.5 bg-red-600 text-white rounded-full shadow-md hover:bg-red-700 transition-all z-20 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 disabled:hidden"
                       title="Remover banner"
                     >
                       <X className="h-4 w-4" strokeWidth={3} />
@@ -436,6 +432,7 @@ export default function MovieModal({
               <input 
                 type="file" 
                 className="hidden" 
+                disabled={isSubmitting}
                 accept="image/jpeg,image/png,image/webp"
                 name={bannerRegister.name}
                 onChange={bannerRegister.onChange}
@@ -447,11 +444,36 @@ export default function MovieModal({
               />
             </div>
 
+            {/* MODIFICACIÓN EN EL DIALOG FOOTER */}
             <DialogFooter className="pt-6 border-t flex gap-2 justify-end">
-              <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-              <DisableIfNoPermission permission={isEdit ? "CRUD:UPDATE:MOVIES" : "CRUD:CREATE:MOVIES"} title="No tienes permiso para guardar películas">
-                <Button type="submit" className="bg-brand-primary text-white font-bold px-6">
-                  {isEdit ? "Guardar Cambios" : "Registrar Película"}
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={onClose}
+                disabled={isSubmitting} // Deshabilitar si se está enviando
+              >
+                Cancelar
+              </Button>
+              <DisableIfNoPermission 
+                permission={isEdit ? "CRUD:UPDATE:MOVIES" : "CRUD:CREATE:MOVIES"} 
+                title="No tienes permiso para guardar películas"
+              >
+                {/* 5. Loader reactivo en el botón de submit */}
+                <Button 
+                  type="submit" 
+                  className="bg-brand-primary text-white font-bold px-6 flex items-center gap-2"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Procesando...
+                    </>
+                  ) : isEdit ? (
+                    "Guardar Cambios"
+                  ) : (
+                    "Registrar Película"
+                  )}
                 </Button>
               </DisableIfNoPermission>
             </DialogFooter>
