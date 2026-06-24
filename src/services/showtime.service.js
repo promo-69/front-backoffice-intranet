@@ -1,45 +1,47 @@
 import api from "../api/axios";
 
-export const getShowtimes = async (page = 1, limit = 10) => {
-  const res = await api.get(`/showtimes?page=${page}&limit=${limit}`);
-  return res.data;
-};
+// Listas las funciones por sucursal - Mary
+export const getShowtimesByCinema = async ({ 
+  cinemaId, 
+  page = 1, 
+  limit = 10, 
+  filterType, 
+  startDate, 
+  endDate 
+}) => {
+  const response = await api.get(`/showtimes/admin/cinemas/${cinemaId}/showtimes`, {
+    params: {
+      page: page,
+      size: limit,
+      filterType,
+      startDate,
+      endDate
+    }
+  });
+   
+  const isDirectArray = Array.isArray(response.data);
+  let dataList = isDirectArray ? response.data : (response.data?.data || []);
+  const metaData = isDirectArray ? {} : (response.data?.metadata || {});
 
-export const getShowtimesByCinema = async ({ cinemaId, page = 1, limit = 10, startDate, endDate, onlyFuture = true }) => {
-  // Construimos los query params dinámicamente
-  const params = { page, limit, onlyFuture };
-  if (startDate) params.startDate = startDate;
-  if (endDate) params.endDate = endDate;
+  const totalItems = metaData.total || dataList.length;
+  const totalPages = metaData.total_pages || Math.max(1, Math.ceil(totalItems / limit));
 
-  // Petición al endpoint
-  const res = await api.get(`/showtimes/admin/cinemas/${cinemaId}/showtimes`, { params });
-
-  // El backend puede devolver varias formas:
-  // 1) { data: [ ... ], metadata: { total, ... } }
-  // 2) { data: { rows: [...], count: N } }
-  // 3) directamente { rows: [...], count: N }
-  const body = res.data?.data ?? res.data;
-
-  let rows = [];
-  let count = 0;
-  let metadata = res.data?.metadata ?? (body?.metadata ?? {});
-
-  if (Array.isArray(body)) {
-    rows = body;
-    count = metadata?.total ?? body.length;
-  } else {
-    rows = body?.rows ?? [];
-    count = body?.count ?? metadata?.total ?? 0;
-    metadata = body?.metadata ?? metadata;
+  if (isDirectArray && dataList.length > limit) {
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    dataList = dataList.slice(startIndex, endIndex);
   }
 
   return {
-    showtimes: rows,
-    total: count,
-    metadata
+    data: dataList,
+    metadata: {
+      total: totalItems,
+      per_page: metaData.per_page || limit,
+      current_page: page,
+      total_pages: totalPages
+    }
   };
 };
-
 
 export const getShowtimeById = async (id) => {
   const res = await api.get(`/showtimes/${id}`);
@@ -104,4 +106,10 @@ export const getSeatsStatus = async (showtimeId) => {
   const data = response.data?.data || response.data;
   console.log(`[seats-status ${showtimeId}]`, data);
   return data;
+};
+
+
+export const getShowtimes = async (page = 1, limit = 10) => {
+  const res = await api.get(`/showtimes?page=${page}&limit=${limit}`);
+  return res.data;
 };
