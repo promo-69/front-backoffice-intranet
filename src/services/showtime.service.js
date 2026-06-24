@@ -1,81 +1,56 @@
 import api from "../api/axios";
 
+// 
 export const getShowtimes = async (page = 1, limit = 10) => {
   const res = await api.get(`/showtimes?page=${page}&limit=${limit}`);
   return res.data;
 };
 
-export const getShowtimesByCinema = async ({ cinemaId, page = 1, limit = 10, startDate, endDate, onlyFuture = true }) => {
-  // Construimos los query params dinámicamente
-  const params = { page, limit, onlyFuture };
-  if (startDate) params.startDate = startDate;
-  if (endDate) params.endDate = endDate;
-
-  // Petición al endpoint
-  const res = await api.get(`/showtimes/admin/cinemas/${cinemaId}/showtimes`, { params });
-
-  // El backend puede devolver varias formas:
-  // 1) { data: [ ... ], metadata: { total, ... } }
-  // 2) { data: { rows: [...], count: N } }
-  // 3) directamente { rows: [...], count: N }
-  const body = res.data?.data ?? res.data;
-
-  let rows = [];
-  let count = 0;
-  let metadata = res.data?.metadata ?? (body?.metadata ?? {});
-
-  if (Array.isArray(body)) {
-    rows = body;
-    count = metadata?.total ?? body.length;
-  } else {
-    rows = body?.rows ?? [];
-    count = body?.count ?? metadata?.total ?? 0;
-    metadata = body?.metadata ?? metadata;
-  }
-
+// Listas las funciones por sucursal - Mary
+export const getShowtimesByCinema = async ({ cinemaId }) => {
+  const response = await api.get(`/showtimes/admin/cinemas/${cinemaId}/showtimes`);
   return {
-    showtimes: rows,
-    total: count,
-    metadata
+    data: response.data?.data || [], 
+    metadata: response.data?.metadata || {}
   };
 };
 
 
 export const getShowtimeById = async (id) => {
-  const res = await api.get(`/showtimes/${id}`);
-  return res.data.data;
+  const response = await api.get(`/showtimes/${id}`);
+  return response.data.data;
 };
 
 export const createShowtime = async (payload) => {
-  const res = await api.post("/showtimes", payload);
-  return res.data;
+  const response = await api.post("/showtimes", payload);
+  return response.data;
 };
 
 export const createByCinema = async (cinemaId, payload) => {
-  const res = await api.post(`/cinemas/${cinemaId}/showtimes`, payload);
-  return res.data;
+  const response = await api.post(`/cinemas/${cinemaId}/showtimes`, payload);
+  return response.data;
 };
 
 export const updateShowtime = async (id, payload) => {
-  const res = await api.patch(`/showtimes/${id}`, payload);
-  return res.data;
+  const response = await api.patch(`/showtimes/${id}`, payload);
+  return response.data;
 };
 
 export const deleteShowtime = async (id) => {
-  const res = await api.delete(`/showtimes/${id}`);
-  return res.data;
+  const response = await api.delete(`/showtimes/${id}`);
+  return response.data;
 };
 
 // Bulk creation endpoint
 export const createShowtimesBulk = async (payload) => {
-  const res = await api.post(`/showtimes/bulk`, payload);
-  return res.data;
+  const response = await api.post(`/showtimes/bulk`, payload);
+  return response.data;
 };
 
 // Creacion de una funcion de Evento - Mary
 export const createShowtimesByEvent = async (cinemaId, payload) => {
-    const res = await api.post(`/cinemas/${cinemaId}/showtimes`, payload);
-    return res.data;
+    const response = await api.post(`/cinemas/${cinemaId}/showtimes`, payload);
+    return response.data;
 };
 
 // Obtener Eventos completos - Mary
@@ -96,6 +71,5 @@ export const getBillboard = async (cinemaId) => {
 export const getSeatsStatus = async (showtimeId) => {
   const response = await api.get(`/showtimes/${showtimeId}/seats-status`);
   const data = response.data?.data || response.data;
-  console.log(`[seats-status ${showtimeId}]`, data);
   return data;
 };
