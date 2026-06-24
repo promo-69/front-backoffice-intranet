@@ -32,7 +32,10 @@ export function InvoiceDetailSheet({ invoiceId, cinemaId, open, onOpenChange, on
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+      <SheetContent
+        className="w-full sm:max-w-md overflow-y-auto bg-white"
+        overlayClassName="bg-black/60"
+      >
         <SheetHeader>
           <SheetTitle className="font-montserrat">
             {loading ? "Cargando..." : `Factura ${invoice?.invoice_number ?? ""}`}
