@@ -1,11 +1,5 @@
 import api from "../api/axios";
 
-// 
-export const getShowtimes = async (page = 1, limit = 10) => {
-  const res = await api.get(`/showtimes?page=${page}&limit=${limit}`);
-  return res.data;
-};
-
 // Listas las funciones por sucursal - Mary
 export const getShowtimesByCinema = async ({ 
   cinemaId, 
@@ -24,7 +18,7 @@ export const getShowtimesByCinema = async ({
       endDate
     }
   });
-  
+   
   const isDirectArray = Array.isArray(response.data);
   let dataList = isDirectArray ? response.data : (response.data?.data || []);
   const metaData = isDirectArray ? {} : (response.data?.metadata || {});
@@ -112,4 +106,10 @@ export const getSeatsStatus = async (showtimeId) => {
   const data = response.data?.data || response.data;
   console.log(`[seats-status ${showtimeId}]`, data);
   return data;
+};
+
+
+export const getShowtimes = async (page = 1, limit = 10) => {
+  const res = await api.get(`/showtimes?page=${page}&limit=${limit}`);
+  return res.data;
 };

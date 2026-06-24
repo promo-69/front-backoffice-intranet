@@ -321,9 +321,10 @@ export function ShowtimeModal({
           )}
 
           {isBulk && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <InputForm label="Periodo Desde" type="date" error={errors.period_start?.message} {...register("period_start", { required: "Este campo es obligatorio" })} />
               <InputForm label="Periodo Hasta" type="date" error={errors.period_end?.message} {...register("period_end", { required: "Este campo es obligatorio" })} />
+              <InputForm label="Puntos de Lealtad" type="number" placeholder="0" error={errors.earned_loyalty_points?.message} {...register("earned_loyalty_points")} />
             </div>
           )}
 
