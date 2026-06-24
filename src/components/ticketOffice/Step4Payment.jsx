@@ -332,7 +332,15 @@ export default function Step4Payment({ movie, showtime, selectedSeats = [], tick
 
         <button
           onClick={handleConfirm}
-          disabled={!isBalanced || payments.some((p) => { const ba = bankAccountsByMethod[p.method] || []; const needsBank = ba.length > 0 || [2, 3, 4].includes(p.method); return !p.amountVes || p.amountVes <= 0 || (needsBank && (!p.fields?.Banco || !p.fields?.Referencia)); })}
+          disabled={!isBalanced || payments.some((p) => {
+            if (!p.amountVes || p.amountVes <= 0) return true;
+            const methodDef = paymentMethods.find((m) => m.id === p.method);
+            const needsReference = methodDef?.requires_reference ?? [2, 3, 4].includes(p.method);
+            if (needsReference && !p.fields?.Referencia) return true;
+            const ba = bankAccountsByMethod[p.method] || [];
+            if (ba.length > 0 && !p.fields?.Banco) return true;
+            return false;
+          })}
           className="
             px-10 py-4 bg-[#3E2186] text-white font-black rounded-xl text-base uppercase tracking-widest
             hover:brightness-110 active:scale-95 transition-all

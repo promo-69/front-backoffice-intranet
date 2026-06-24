@@ -10,7 +10,7 @@ import { paymentsService } from "../../services/payments.service";
 import StepIdentifyCustomer from "../../components/ticketOffice/StepIdentifyCustomer";
 import Step4Payment from "../../components/ticketOffice/Step4Payment";
 
-const CATEGORIES = ["Todos", "Popcorn", "Drinks", "Combos", "Candies"];
+const CATEGORIES = ["Todos", "Palomitas", "Bebidas", "Combos", "Dulces", "Promociones"];
 
 export default function CandyBar() {
   const [step, setStep] = useState(1);
@@ -108,7 +108,9 @@ export default function CandyBar() {
       const catId = p._ProductCategories?.id ?? p.product_category;
       let category;
       if (catId === 1) category = "Drinks";
+      else if (catId === 2) category = "Popcorn";
       else if (catId === 3) category = "Candies";
+      else if (catId === 4) category = "Promociones";
       else category = "Popcorn";
       return {
         id: `prod_${p.id}`,
