@@ -23,11 +23,11 @@ import { useLoading } from "../context/LoadingContext";
 
 import CreateRolePage from "@/pages/admin/personal/createRolePage";
 import EditRolePage from "@/pages/admin/personal/editRolePage";
-import NoAccess from "@/pages/noAccess";
 import RentalRequestsList from "@/pages/rentals/RentalRequestsList";
 import RentalRequestDetail from "@/pages/rentals/RentalRequestDetail";
 
 import ReportsDashboard from "@/pages/admin/reports/reportsDashboard";
+import LoyaltyDashboard from "@/pages/admin/loyalty/LoyaltyDashboard";
 
 import InvoicesPage from "@/pages/admin/invoices/InvoicesPage";
 
@@ -63,8 +63,6 @@ function AppRoute() {
             </PublicRoute>
           }
         />
-
-        <Route path="/no-access" element={<NoAccess />} />
 
         {/* ============================
             RUTAS ADMIN (PERMISOS REALES)
@@ -161,6 +159,17 @@ function AppRoute() {
             <ProtectedRoute permission={ROUTE_PERMISSIONS.REPORTS_READ}>
               <AdminLayout>
                 <ReportsDashboard />
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/loyalty"
+          element={
+            <ProtectedRoute permission={ROUTE_PERMISSIONS.CATALOG_READ}>
+              <AdminLayout>
+                <LoyaltyDashboard />
               </AdminLayout>
             </ProtectedRoute>
           }

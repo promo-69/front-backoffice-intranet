@@ -1,7 +1,15 @@
 import { Pencil, Trash2, Clock, Calendar } from "lucide-react";
 import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
 
-export function ShowtimesTab({ data, onEdit, onDelete, isLoading = false }) {
+export function ShowtimesTab({
+  data,
+  onEdit,
+  onDelete,
+  isLoading = false
+}) {
+
+  console.log("TAB DATA:", data);
+  console.log("TAB LOADING:", isLoading);
   
   const formatTime = (dateStr) => {
     if (!dateStr) return "N/A";
@@ -12,7 +20,6 @@ export function ShowtimesTab({ data, onEdit, onDelete, isLoading = false }) {
     if (!isoStr) return "N/A";
     return new Date(isoStr).toLocaleDateString();
   };
-  
   
   const skeletonRows = Array(5).fill(0);
 
@@ -46,10 +53,9 @@ export function ShowtimesTab({ data, onEdit, onDelete, isLoading = false }) {
             ))}
 
           {/* ESTADO VACÍO */}
-          {!isLoading && 
-          data.length === 0 && (
+          {!isLoading && data.length === 0 && (
             <tr>
-              <td colSpan="7" className="text-center py-6 text-gray-500 font-montserrat">
+              <td colSpan="7" className="text-center py-10 text-slate-400 font-montserrat text-xs bg-slate-50/30">
                 No hay funciones ni eventos planificados para los filtros seleccionados.
               </td>
             </tr>
@@ -57,9 +63,10 @@ export function ShowtimesTab({ data, onEdit, onDelete, isLoading = false }) {
           
           {!isLoading &&
           data.map((st) => {
-            const displayTitle = st.movie?.title || st.event?.title || st.event?.name || st.title || st.name || `Elemento #${st.id}`;
+            // Unificación semántica de campos de títulos
+            const displayTitle = st.movie?.title || st.special_event?.title || st.specialEvent?.title || st.event?.title || st.title || `Función #${st.id}`;
             
-            const displayDuration = st.movie?.duration_minutes || st.event?.duration_minutes || st.event?.durationMinutes || st.duration_minutes || st.durationMinutes;
+            const displayDuration = st.movie?.duration_minutes || st.special_event?.duration_minutes || st.event?.duration_minutes || st.duration_minutes;
             
             const roomName = st.room?.name || "N/A";
             const projectionDesc = st.projection_type?.description || "Digital";
@@ -73,10 +80,10 @@ export function ShowtimesTab({ data, onEdit, onDelete, isLoading = false }) {
                 {/* COLUMNA PELÍCULA / EVENTO */}
                 <td className="py-4 px-4 font-medium text-slate-700">
                   <div className="flex flex-col">
-                    <span className="font-bold uppercase tracking-tight text-[11px]">
+                    <span className="font-bold uppercase tracking-tight text-[11px] text-slate-800">
                       {displayTitle}
                     </span>
-                    <span className="text-[9px] text-slate-400 mt-0.5">
+                    <span className="text-[9px] text-slate-400 mt-0.5 font-semibold">
                       {displayDuration ? `${displayDuration} min` : "Duración no esp."}
                     </span>
                   </div>
@@ -86,13 +93,13 @@ export function ShowtimesTab({ data, onEdit, onDelete, isLoading = false }) {
                 <td className="py-4 px-4 text-slate-500">
                   <div className="font-bold text-slate-700">{roomName}</div>
                   <div className="text-[10px] text-brand-primary font-bold uppercase tracking-wider mt-0.5">
-                    {projectionDesc} {languageDesc && `• ${languageDesc}`}
+                    {projectionDesc} {languageDesc}
                   </div>
                 </td>
 
                 {/* COLUMNA FECHA */}
                 <td className="py-4 px-4 text-slate-500">
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 text-xs font-medium">
                     <Calendar className="w-3.5 h-3.5 text-slate-400" />
                     <span>{formatDate(st.start_time)}</span>
                   </div>
@@ -100,7 +107,7 @@ export function ShowtimesTab({ data, onEdit, onDelete, isLoading = false }) {
 
                 {/* COLUMNA HORARIO */}
                 <td className="py-4 px-4 text-slate-500">
-                  <div className="flex items-center gap-1.5 font-semibold text-slate-600">
+                  <div className="flex items-center gap-1.5 font-semibold text-slate-600 text-xs">
                     <Clock className="w-3.5 h-3.5 text-slate-400" />
                     <span>{formatTime(st.start_time)} - {formatTime(st.end_time)}</span>
                   </div>
@@ -108,11 +115,11 @@ export function ShowtimesTab({ data, onEdit, onDelete, isLoading = false }) {
 
                 {/* COLUMNA PRECIO */}
                 <td className="py-4 px-4 text-slate-600 font-medium">
-                  <div className="font-bold">
+                  <div className="font-bold text-xs text-slate-700">
                     {currencyCode === "VES" ? (
-                      <span>Bs. {parseFloat(st.price).toLocaleString("es-VE", { minimumFractionDigits: 2 })}</span>
+                      <span>Bs. {parseFloat(st.price || 0).toLocaleString("es-VE", { minimumFractionDigits: 2 })}</span>
                     ) : (
-                      <span>{currencySymbol} {parseFloat(st.price).toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+                      <span>{currencySymbol} {parseFloat(st.price || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
                     )}
                   </div>
                 </td>
@@ -130,17 +137,17 @@ export function ShowtimesTab({ data, onEdit, onDelete, isLoading = false }) {
                     <DisableIfNoPermission permission={"CRUD:UPDATE:SHOWTIMES"} title="No tienes permiso para editar funciones">
                       <button 
                         onClick={() => onEdit(st)}
-                        className="p-2 border rounded-lg text-brand-primary hover:bg-brand-primary hover:text-white transition-all shadow-sm"
+                        className="p-2 border border-slate-200 rounded-lg text-brand-primary hover:bg-brand-primary hover:text-white transition-all shadow-sm bg-white"
                       >
-                        <Pencil className="w-4 h-4" />
+                        <Pencil className="w-3.5 h-3.5" />
                       </button>
                     </DisableIfNoPermission>
                     <DisableIfNoPermission permission={"CRUD:DELETE:SHOWTIMES"} title="No tienes permiso para eliminar funciones">
                       <button 
                         onClick={() => onDelete(st)}
-                        className="p-2 border rounded-lg text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm"
+                        className="p-2 border border-slate-200 rounded-lg text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm bg-white"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </DisableIfNoPermission>
                   </div>
