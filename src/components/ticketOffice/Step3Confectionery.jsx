@@ -5,7 +5,7 @@ import PopcornImg from "../../assets/images/candy/popcorn.png";
 import SodaImg from "../../assets/images/candy/soda.png";
 import ComboImg from "../../assets/images/candy/combo.png";
 
-const CATEGORIES = ["Todos", "Popcorn", "Drinks", "Combos", "Candies"];
+const CATEGORIES = ["Todos", "Palomitas", "Bebidas", "Combos", "Dulces", "Promociones"];
 
 export default function Step3Confectionery({ products, combos, loading, onNext, onBack }) {
   const [selectedCategory, setSelectedCategory] = useState("Todos");

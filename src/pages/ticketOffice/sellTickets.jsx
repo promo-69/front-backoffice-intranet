@@ -95,8 +95,10 @@ function mapSeat(seat) {
 function mapProduct(p) {
   const catId = p._ProductCategories?.id ?? p.product_category;
   let category;
-  if (catId === 1) category = "Drinks";
-  else if (catId === 3) category = "Candies";
+  if (catId === 1) category = "Bebidas";
+  else if (catId === 2) category = "Palomitas";
+  else if (catId === 3) category = "Dulces";
+  else if (catId === 4) category = "Promociones";
   else category = "Popcorn";
   return {
     id: p.id,
@@ -346,7 +348,7 @@ export default function SellTickets() {
     try {
       const cinemaId = selectedCinema?.id || 1;
       await ordersService.cancelSession().catch(() => {});
-      await ordersService.createQuote(cinemaId, 1);
+      await ordersService.createQuote(cinemaId, saleData.customer?.customerId);
 
       const seatMapRes = await getSeatMap(showtime.id);
       const apiSeats = seatMapRes?.seats || [];

@@ -21,3 +21,8 @@ export const updateRentalStatus = async (id, payload) => {
   const res = await api.patch(`${BASE}/${id}/status`, payload);
   return res.data;
 };
+
+export const confirmRentalPayment = async (id) => {
+  const res = await api.patch(`${BASE}/${id}/payment`);
+  return res.data;
+};

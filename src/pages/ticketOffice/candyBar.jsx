@@ -10,7 +10,7 @@ import { paymentsService } from "../../services/payments.service";
 import StepIdentifyCustomer from "../../components/ticketOffice/StepIdentifyCustomer";
 import Step4Payment from "../../components/ticketOffice/Step4Payment";
 
-const CATEGORIES = ["Todos", "Popcorn", "Drinks", "Combos", "Candies"];
+const CATEGORIES = ["Todos", "Palomitas", "Bebidas", "Combos", "Dulces", "Promociones"];
 
 export default function CandyBar() {
   const [step, setStep] = useState(1);
@@ -32,7 +32,7 @@ export default function CandyBar() {
       await ordersService.cancelSession().catch(() => {});
       const userData = JSON.parse(localStorage.getItem("user") || "{}");
       const cinemaId = userData.cinemaId || 1;
-      await ordersService.createQuote(cinemaId, 1);
+      await ordersService.createQuote(cinemaId, customerData.customerId);
       const state = await ordersService.getSessionState().catch(() => null);
       const usdRate = state?.exchange_rates?.["1"]?.rate;
       if (usdRate) setExchangeRate(Number(usdRate));
@@ -108,7 +108,9 @@ export default function CandyBar() {
       const catId = p._ProductCategories?.id ?? p.product_category;
       let category;
       if (catId === 1) category = "Drinks";
+      else if (catId === 2) category = "Popcorn";
       else if (catId === 3) category = "Candies";
+      else if (catId === 4) category = "Promociones";
       else category = "Popcorn";
       return {
         id: `prod_${p.id}`,
@@ -181,7 +183,7 @@ export default function CandyBar() {
 
     try {
       await ordersService.cancelSession().catch(() => {});
-      await ordersService.createQuote(cinemaId, 1);
+      await ordersService.createQuote(cinemaId, customer?.customerId);
       await ordersService.checkout([], concessions);
       const allPayments = payments
         .filter(p => p.method !== 5)
