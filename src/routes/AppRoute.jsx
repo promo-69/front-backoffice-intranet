@@ -66,7 +66,7 @@ function AppRoute() {
         />
 
         {/* ============================
-            RUTAS ADMIN (PERMISOS REALES)
+            RUTAS ADMIN 
         ============================ */}
 
         <Route
