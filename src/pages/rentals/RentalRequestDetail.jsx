@@ -207,7 +207,7 @@ export default function RentalRequestDetail() {
                 disabled={actionLoading}
                 className="flex items-center gap-2 bg-brand-primary text-white px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all disabled:opacity-50"
               >
-                <DollarSign className="w-4 h-4" /> Cliente Pagó
+                <DollarSign className="w-4 h-4" /> Pagado
               </button>
             )}
             {canReject && (
