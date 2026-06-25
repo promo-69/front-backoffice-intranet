@@ -31,7 +31,8 @@ import LoyaltyDashboard from "@/pages/admin/loyalty/LoyaltyDashboard";
 
 import InvoicesPage from "@/pages/admin/invoices/InvoicesPage";
 
-import { ROUTE_PERMISSIONS } from "@/lib/route-permissions";
+//import { ROUTE_PERMISSIONS } from "@/lib/route-permissions";
+import { PERMISSIONS_GROUPS } from "@/lib/routePermissions";
 
 import PublicRoute from "./PublicRoute";
 
@@ -65,13 +66,13 @@ function AppRoute() {
         />
 
         {/* ============================
-            RUTAS ADMIN (PERMISOS REALES)
+            RUTAS ADMIN 
         ============================ */}
 
         <Route
           path="/admin/dashboard"
           element={
-            <ProtectedRoute permission={ROUTE_PERMISSIONS.DASHBOARD_ADMIN}>
+            <ProtectedRoute anyOf={PERMISSIONS_GROUPS.DASHBOARD}>
               <AdminLayout>
                 <Dashboard />
               </AdminLayout>
@@ -82,7 +83,7 @@ function AppRoute() {
         <Route
           path="/admin/billboard"
           element={
-            <ProtectedRoute permission={ROUTE_PERMISSIONS.EXHIBITION_READ}>
+            <ProtectedRoute anyOf={PERMISSIONS_GROUPS.BILLBOARD}>
               <AdminLayout>
                 <Billboard />
               </AdminLayout>
@@ -93,7 +94,7 @@ function AppRoute() {
         <Route
           path="/admin/catalogo"
           element={
-            <ProtectedRoute permission={ROUTE_PERMISSIONS.CATALOG_READ}>
+            <ProtectedRoute anyOf={PERMISSIONS_GROUPS.MAESTROS}>
               <AdminLayout>
                 <CatalogsPage />
               </AdminLayout>
@@ -104,7 +105,7 @@ function AppRoute() {
         <Route
           path="/admin/sucursales"
           element={
-            <ProtectedRoute permission={ROUTE_PERMISSIONS.CINEMAS_READ}>
+            <ProtectedRoute anyOf={PERMISSIONS_GROUPS.CINEMAS}>
               <AdminLayout>
                 <CinemasPage />
               </AdminLayout>
@@ -115,7 +116,7 @@ function AppRoute() {
         <Route
           path="/admin/personal"
           element={
-            <ProtectedRoute permission={ROUTE_PERMISSIONS.PERSONAL_READ}>
+            <ProtectedRoute anyOf={PERMISSIONS_GROUPS.PERSONAL}>
               <AdminLayout />
             </ProtectedRoute>
           }
@@ -128,7 +129,7 @@ function AppRoute() {
         <Route
           path="/admin/inventario"
           element={
-            <ProtectedRoute permission={ROUTE_PERMISSIONS.INVENTORY_READ}>
+            <ProtectedRoute anyOf={PERMISSIONS_GROUPS.INVENTORY}>
               <AdminLayout>
                 <ProductsPage />
               </AdminLayout>
@@ -139,12 +140,8 @@ function AppRoute() {
         <Route
           path="/admin/finanzas"
           element={
-            <ProtectedRoute 
-              anyOf={[
-                ROUTE_PERMISSIONS.CURRENCIES_PAGE, 
-                ROUTE_PERMISSIONS.RATES_PAGE, 
-                ROUTE_PERMISSIONS.BANK_ACCOUNTS_PAGE
-              ]}
+            <ProtectedRoute
+              anyOf={PERMISSIONS_GROUPS.FINANCES}
             >
               <AdminLayout>
                 <FinancesPage />
@@ -156,7 +153,7 @@ function AppRoute() {
         <Route
           path="/admin/reports"
           element={
-            <ProtectedRoute permission={ROUTE_PERMISSIONS.REPORTS_READ}>
+            <ProtectedRoute anyOf={PERMISSIONS_GROUPS.REPORTS}>
               <AdminLayout>
                 <ReportsDashboard />
               </AdminLayout>
@@ -167,7 +164,7 @@ function AppRoute() {
         <Route
           path="/admin/loyalty"
           element={
-            <ProtectedRoute permission={ROUTE_PERMISSIONS.CATALOG_READ}>
+            <ProtectedRoute anyOf={PERMISSIONS_GROUPS.LOYALTY}>
               <AdminLayout>
                 <LoyaltyDashboard />
               </AdminLayout>
@@ -178,7 +175,7 @@ function AppRoute() {
         <Route
           path="/admin/invoices"
           element={
-            <ProtectedRoute permission={ROUTE_PERMISSIONS.INVOICES_READ}>
+            <ProtectedRoute anyOf={PERMISSIONS_GROUPS.INVOICES}>
               <AdminLayout>
                 <InvoicesPage />
               </AdminLayout>
@@ -193,7 +190,7 @@ function AppRoute() {
         <Route
           path="/admin/rentals"
           element={
-            <ProtectedRoute permission={ROUTE_PERMISSIONS.RENTALS_READ}>
+            <ProtectedRoute anyOf={PERMISSIONS_GROUPS.RENTALS}>
               <AdminLayout>
                 <RentalRequestsList />
               </AdminLayout>
@@ -204,7 +201,7 @@ function AppRoute() {
         <Route
           path="/admin/rentals/:id"
           element={
-            <ProtectedRoute permission={ROUTE_PERMISSIONS.RENTALS_READ}>
+            <ProtectedRoute anyOf={PERMISSIONS_GROUPS.RENTALS}>
               <AdminLayout>
                 <RentalRequestDetail />
               </AdminLayout>
@@ -219,7 +216,7 @@ function AppRoute() {
         <Route
           path="/ticketOffice/dashboard"
           element={
-            <ProtectedRoute permission={ROUTE_PERMISSIONS.CASHIER_DASHBOARD}>
+            <ProtectedRoute anyOf={PERMISSIONS_GROUPS.DASHBOARD_CASHIER}>
               <AdminLayout>
                 <DashboardCashier />
               </AdminLayout>
@@ -230,7 +227,7 @@ function AppRoute() {
         <Route
           path="/ticketOffice/sell"
           element={
-            <ProtectedRoute permission={ROUTE_PERMISSIONS.SELL_TICKETS}>
+            <ProtectedRoute anyOf={PERMISSIONS_GROUPS.SELL_TICKETS}>
               <AdminLayout>
                 <SellTickets />
               </AdminLayout>
@@ -241,7 +238,7 @@ function AppRoute() {
         <Route
           path="/ticketOffice/candy"
           element={
-            <ProtectedRoute permission={ROUTE_PERMISSIONS.CANDY_BAR}>
+            <ProtectedRoute anyOf={PERMISSIONS_GROUPS.CONFECTIONERY}>
               <AdminLayout>
                 <CandyBar />
               </AdminLayout>

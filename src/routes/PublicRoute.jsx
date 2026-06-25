@@ -35,8 +35,6 @@ export default function PublicRoute({ children }) {
     const landing = getLanding();
     if (landing) return <Navigate to={landing} replace />;
 
-    // Si no sabemos dónde enviarlo, caer a /no-access
-    //return <Navigate to="/no-access" replace />;
   }
 
   return children;

@@ -34,85 +34,85 @@ import { cn } from "@/lib/utils";
 
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
+import { PERMISSIONS_GROUPS } from "@/lib/routePermissions";
 
-// Menú base con permisos REALES
 const navItems = [
   {
     id: "dashboard",
     title: "Dashboard",
     url: "/admin/dashboard",
     icon: LayoutDashboard,
-    permission: "CRUD:READ:ROOMS",
+    requiredPermissions: PERMISSIONS_GROUPS.DASHBOARD,
   },
   {
     id: "cinemas",
     title: "Sucursales",
     url: "/admin/sucursales",
     icon: MapPin,
-    permission: "CRUD:READ:CINEMAS",
+    requiredPermissions: PERMISSIONS_GROUPS.CINEMAS,
   },
   {
     id: "personal",
     title: "Personal",
     url: "/admin/personal",
     icon: Users,
-    permission: "CRUD:READ:EMPLOYEES",
+    requiredPermissions: PERMISSIONS_GROUPS.PERSONAL,
   },
   {
     id: "billboard",
     title: "Cartelera",
     url: "/admin/billboard",
     icon: Film,
-    permission: "CRUD:READ:ROOM-EVENTS",
+    requiredPermissions: PERMISSIONS_GROUPS.BILLBOARD,
   },
   {
     id: "inventory",
     title: "Inventario",
     url: "/admin/inventario",
     icon: Package,
-    permission: "CRUD:READ:PRODUCTS",
+    requiredPermissions: PERMISSIONS_GROUPS.INVENTORY,
   },
   {
     id: "catalog",
     title: "Maestros",
     url: "/admin/catalogo",
     icon: BookOpen,
-    permission: "CRUD:READ:CATALOGS",
+    requiredPermissions: PERMISSIONS_GROUPS.MAESTROS,
   },
   {
     id: "loyalty",
     title: "Fidelización",
     url: "/admin/loyalty",
     icon: Sparkles,
-    permission: "CRUD:READ:CATALOGS",
+    requiredPermissions: PERMISSIONS_GROUPS.LOYALTY,
   },
   {
     id: "rentals",
     title: "Alquiler de Salas",
     url: "/admin/rentals",
     icon: Calendar,
-    permission: "CRUD:READ:RENTALS",
+    requiredPermissions: PERMISSIONS_GROUPS.RENTALS,
   },
   {
     id: "reports",
     title: "Reportes",
     url: "/admin/reports",
     icon: BarChart3,
-    permission: "CRUD:READ:REPORTS",
+    requiredPermissions: PERMISSIONS_GROUPS.REPORTS,
   },
   {
     id: "invoices",
     title: "Facturas",
     url: "/admin/invoices",
     icon: Receipt,
-    permission: "CRUD:READ:INVOICES",
+    requiredPermissions: PERMISSIONS_GROUPS.INVOICES,
   },
   {
     id: "finances",
     title: "Finanzas",
     url: "/admin/finanzas",
     icon: Landmark,
-    permission: "CRUD:READ:CURRENCIES",
+    requiredPermissions: PERMISSIONS_GROUPS.FINANCES,
   },
 
   // Cajero
@@ -121,30 +121,34 @@ const navItems = [
     title: "Dashboard Cajero",
     url: "/ticketOffice/dashboard",
     icon: LayoutDashboard,
-    permission: "CRUD:READ:PRODUCTS",
+    requiredPermissions: PERMISSIONS_GROUPS.DASHBOARD_CASHIER,
   },
   {
     id: "sell_tickets",
     title: "Venta de Boletos",
     url: "/ticketOffice/sell",
     icon: TicketIcon,
-    permission: "CRUD:READ:CINEMAS-ROOM-EVENTS",
+    requiredPermissions: PERMISSIONS_GROUPS.SELL_TICKETS,
   },
   {
     id: "candy_bar",
     title: "Caramelería",
     url: "/ticketOffice/candy",
     icon: ShoppingBag,
-    permission: "CRUD:READ:COMBOS",
+    requiredPermissions: PERMISSIONS_GROUPS.CONFECTIONERY,
   },
 ];
 
 export function AppSidebar({ className, ...props }) {
-  const { can } = usePermission();
+  const { canAny } = usePermission();
   const { logout } = useAuth();
 
-  // Filtrar por permisos reales
-  const visibleMenu = navItems.filter((item) => can(item.permission));
+  const visibleMenu = navItems.filter((item) => {
+    if (!item.requiredPermissions || item.requiredPermissions.length === 0)
+      return true;
+
+    return canAny(item.requiredPermissions);
+  });
 
   return (
     <Sidebar
