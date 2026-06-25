@@ -34,7 +34,7 @@ import { cn } from "@/lib/utils";
 
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
-import { PERMISSIONS_GROUPS } from "@/constants/routePermissions";
+import { PERMISSIONS_GROUPS } from "@/lib/routePermissions";
 
 const navItems = [
   {
@@ -49,7 +49,7 @@ const navItems = [
     title: "Sucursales",
     url: "/admin/sucursales",
     icon: MapPin,
-    requiredPermissions: PERMISSIONS_GROUPS.SUCURSALES,
+    requiredPermissions: PERMISSIONS_GROUPS.CINEMAS,
   },
   {
     id: "personal",
@@ -140,11 +140,15 @@ const navItems = [
 ];
 
 export function AppSidebar({ className, ...props }) {
-  const { can } = usePermission();
+  const { canAny } = usePermission();
   const { logout } = useAuth();
 
-  // Filtrar por permisos reales
-  const visibleMenu = navItems.filter((item) => can(item.permission));
+  const visibleMenu = navItems.filter((item) => {
+    if (!item.requiredPermissions || item.requiredPermissions.length === 0)
+      return true;
+
+    return canAny(item.requiredPermissions);
+  });
 
   return (
     <Sidebar
