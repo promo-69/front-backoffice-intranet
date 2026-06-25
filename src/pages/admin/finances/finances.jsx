@@ -31,6 +31,16 @@ import BankAccountSearchBar from "@/components/admin/finances/bank-accounts/Bank
 import BankAccountTable from "@/components/admin/finances/bank-accounts/BankAccountTable";
 import BankAccountModal from "@/components/admin/finances/bank-accounts/BankAccountModal";
 
+import PriceModifierSearchBar from "@/components/admin/finances/price-modifiers/PriceModifierSearchBar";
+import PriceModifierTable from "@/components/admin/finances/price-modifiers/PriceModifierTable";
+import PriceModifierModal from "@/components/admin/finances/price-modifiers/PriceModifierModal";
+import {
+  getPriceModifiers,
+  createPriceModifier,
+  updatePriceModifier,
+  deletePriceModifier,
+} from "@/services/price-modifiers.service";
+
 function CurrenciesTab() {
   const { showLoader, hideLoader } = useLoading();
   const [currencies, setCurrencies] = useState([]);
@@ -625,6 +635,210 @@ function BankAccountsTab() {
   );
 }
 
+function PriceModifiersTab() {
+  const { showLoader, hideLoader } = useLoading();
+  const [modifiers, setModifiers] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const [metadata, setMetadata] = useState({
+    total: 0,
+    per_page: 10,
+    current_page: 1,
+    total_pages: 1,
+    next_page: null,
+    prev_page: null,
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modifierToEdit, setModifierToEdit] = useState(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
+  const [isSuccessOpen, setIsSuccessOpen] = useState(false);
+  const [successConfig, setSuccessConfig] = useState({ title: "", message: "" });
+
+  const fetchModifiersData = async () => {
+    try {
+      showLoader();
+      const response = await getPriceModifiers({ page: currentPage, limit: metadata.per_page });
+      setModifiers(response?.data ?? []);
+      if (response?.metadata) {
+        setMetadata(response.metadata);
+      }
+    } catch (error) {
+      console.error("Error al cargar modificadores:", error);
+      setModifiers([]);
+    } finally {
+      hideLoader();
+    }
+  };
+
+  useEffect(() => {
+    fetchModifiersData();
+  }, [currentPage]);
+
+  const handleOpenEditModal = (modifier) => {
+    setModifierToEdit(modifier);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = (shouldRefresh) => {
+    setIsModalOpen(false);
+    if (shouldRefresh) {
+      fetchModifiersData();
+      setSuccessConfig({
+        title: modifierToEdit ? "¡Cambios Guardados!" : "¡Registro Exitoso!",
+        message: modifierToEdit
+          ? "La información del modificador ha sido actualizada."
+          : "El nuevo modificador ha sido registrado.",
+      });
+      setIsSuccessOpen(true);
+    }
+    setModifierToEdit(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    try {
+      showLoader();
+      await deletePriceModifier(itemToDelete.id);
+      setIsDeleteModalOpen(false);
+      setSuccessConfig({
+        title: "¡Modificador Eliminado!",
+        message: `Se ha removido el modificador exitosamente.`,
+      });
+      setIsSuccessOpen(true);
+      fetchModifiersData();
+    } catch (error) {
+      console.error("Error al eliminar modificador:", error);
+      const backendMessage = error.response?.data?.message || "Ocurrió un error al eliminar";
+      toast.error(backendMessage);
+    } finally {
+      setItemToDelete(null);
+      hideLoader();
+    }
+  };
+
+  const handleSaveModifier = async (payload) => {
+    if (payload.id) {
+      await updatePriceModifier(payload.id, payload);
+    } else {
+      await createPriceModifier(payload);
+    }
+  };
+
+  const filteredModifiers = modifiers.filter(
+    (m) =>
+      m.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-300">
+      <div className="flex justify-between items-center border-b border-gray-100 pb-4">
+        <div>
+          <h3 className="text-lg font-montserrat font-bold text-brand-primary">
+            Modificadores de Precio
+          </h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            Administra los modificadores, recargos y descuentos.
+          </p>
+        </div>
+        <PriceModifierSearchBar
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          onAddClick={() => {
+            setModifierToEdit(null);
+            setIsModalOpen(true);
+          }}
+        />
+      </div>
+
+      <PriceModifierTable
+        data={filteredModifiers}
+        onEdit={handleOpenEditModal}
+        onDelete={(id) => {
+          const m = modifiers.find((x) => x.id === id);
+          setItemToDelete(m);
+          setIsDeleteModalOpen(true);
+        }}
+      />
+
+      <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6 rounded-b-xl shadow-sm">
+        <div className="flex justify-between flex-1 sm:hidden">
+          <button
+            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            disabled={!metadata.prev_page}
+            className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+          >
+            Anterior
+          </button>
+          <button
+            onClick={() => setCurrentPage((prev) => prev + 1)}
+            disabled={!metadata.next_page}
+            className="relative ml-3 inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+          >
+            Siguiente
+          </button>
+        </div>
+        <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm text-gray-700">
+              Mostrando{" "}
+              <span className="font-medium">
+                {metadata.total > 0 ? (currentPage - 1) * metadata.per_page + 1 : 0}
+              </span>{" "}
+              a{" "}
+              <span className="font-medium">
+                {Math.min(currentPage * metadata.per_page, metadata.total)}
+              </span>{" "}
+              de <span className="font-medium">{metadata.total}</span> resultados
+            </p>
+          </div>
+          <div>
+            <nav className="inline-flex -space-x-px rounded-md shadow-sm">
+              <button
+                onClick={() => setCurrentPage(metadata.prev_page)}
+                disabled={!metadata.prev_page}
+                className="relative inline-flex items-center px-2 py-2 text-gray-400 rounded-l-md border border-gray-300 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+              <div className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-brand-primary border border-gray-300 bg-white">
+                Página {metadata.current_page} de {metadata.total_pages}
+              </div>
+              <button
+                onClick={() => setCurrentPage(metadata.next_page)}
+                disabled={!metadata.next_page}
+                className="relative inline-flex items-center px-2 py-2 text-gray-400 rounded-r-md border border-gray-300 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            </nav>
+          </div>
+        </div>
+      </div>
+
+      <DeleteConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        itemName={itemToDelete?.description}
+      />
+      <SuccessModal
+        isOpen={isSuccessOpen}
+        onClose={() => setIsSuccessOpen(false)}
+        title={successConfig.title}
+        message={successConfig.message}
+      />
+      <PriceModifierModal
+        open={isModalOpen}
+        onClose={handleCloseModal}
+        initialData={modifierToEdit}
+        onSave={handleSaveModifier}
+      />
+    </div>
+  );
+}
+
 const FinancesPage = () => {
   const { can } = usePermission();
 
@@ -637,6 +851,9 @@ const FinancesPage = () => {
   }
   if (can(ROUTE_PERMISSIONS.BANK_ACCOUNTS_PAGE) || can(ROUTE_PERMISSIONS.BANK_ACCOUNTS_READ)) {
     TABS.push({ id: "bank-accounts", label: "Cuentas Bancarias" });
+  }
+  if (can(ROUTE_PERMISSIONS.PRICE_MODIFIERS_PAGE) || can(ROUTE_PERMISSIONS.FINANCES_READ)) {
+    TABS.push({ id: "price-modifiers", label: "Modificadores de Precio" });
   }
 
   const [activeTab, setActiveTab] = useState(TABS[0]?.id || "");
@@ -655,6 +872,7 @@ const FinancesPage = () => {
         {activeTab === "currencies" && <CurrenciesTab />}
         {activeTab === "rates" && <RatesTab />}
         {activeTab === "bank-accounts" && <BankAccountsTab />}
+        {activeTab === "price-modifiers" && <PriceModifiersTab />}
       </div>
     </div>
   );
