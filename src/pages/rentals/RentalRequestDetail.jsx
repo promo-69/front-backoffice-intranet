@@ -1,15 +1,22 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getRentalRequestById, updateRentalStatus } from "@/services/rentals.service";
+import { getRentalRequestById, updateRentalStatus, confirmRentalPayment } from "@/services/rentals.service";
 import { toast } from "sonner";
-import { ArrowLeft, CheckCircle, XCircle, Ban } from "lucide-react";
+import { ArrowLeft, CheckCircle, XCircle, Ban, DollarSign } from "lucide-react";
 
 const STATUS_DEF = {
   1: { label: "Pendiente de Revisión", color: "bg-yellow-100 text-yellow-800" },
   2: { label: "Pendiente de Pago", color: "bg-blue-100 text-blue-800" },
-  3: { label: "Pagada", color: "bg-green-100 text-green-800" },
+  3: { label: "Confirmada", color: "bg-green-100 text-green-800" },
   4: { label: "Rechazada", color: "bg-red-100 text-red-800" },
   5: { label: "Cancelada", color: "bg-gray-100 text-gray-800" },
+};
+
+const EVENT_TYPES = {
+  4: "Corporativo",
+  5: "Cumpleaños",
+  6: "Evento Privado",
+  7: "Lanzamiento de Producto",
 };
 
 export default function RentalRequestDetail() {
@@ -84,6 +91,20 @@ export default function RentalRequestDetail() {
     }
   }
 
+  async function handleConfirmPayment() {
+    if (!confirm("¿Confirmar que el cliente pagó? La reserva de sala quedará activa.")) return;
+    setActionLoading(true);
+    try {
+      await confirmRentalPayment(id);
+      toast.success("Pago confirmado. La reserva de sala está activa.");
+      fetchDetail();
+    } catch (e) {
+      toast.error(e.response?.data?.message || "Error al confirmar el pago");
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="max-w-4xl mx-auto font-montserrat p-8 text-center text-muted-foreground">
@@ -97,6 +118,7 @@ export default function RentalRequestDetail() {
   const st = STATUS_DEF[req.status?.id] || STATUS_DEF[1];
   const canApprove = req.status?.id === 1;
   const canReject = req.status?.id === 1;
+  const canConfirmPayment = req.status?.id === 2;
   const canCancel = [1, 2].includes(req.status?.id);
 
   return (
@@ -113,7 +135,7 @@ export default function RentalRequestDetail() {
           <div>
             <h3 className="text-lg font-bold text-brand-primary">{req.event_name}</h3>
             <p className="text-xs text-muted-foreground">
-              Solicitud #{req.id} &middot; Creada {new Date(req.created_at).toLocaleDateString("es-VE")}
+              Solicitud #{req.id} &middot; {EVENT_TYPES[req.event_type?.id] || req.event_type?.description || "—"}
             </p>
           </div>
           <span className={`px-3 py-1.5 rounded-full text-xs font-semibold ${st.color}`}>
@@ -169,7 +191,7 @@ export default function RentalRequestDetail() {
           </div>
         )}
 
-        {canApprove || canReject || canCancel ? (
+        {canApprove || canReject || canConfirmPayment || canCancel ? (
           <div className="flex gap-3 pt-4 border-t">
             {canApprove && (
               <button
@@ -177,6 +199,15 @@ export default function RentalRequestDetail() {
                 className="flex items-center gap-2 bg-green-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all"
               >
                 <CheckCircle className="w-4 h-4" /> Aprobar
+              </button>
+            )}
+            {canConfirmPayment && (
+              <button
+                onClick={handleConfirmPayment}
+                disabled={actionLoading}
+                className="flex items-center gap-2 bg-brand-primary text-white px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all disabled:opacity-50"
+              >
+                <DollarSign className="w-4 h-4" /> Cliente Pagó
               </button>
             )}
             {canReject && (

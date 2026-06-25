@@ -6,9 +6,16 @@ import { usePermission } from "@/hooks/usePermission";
 const STATUS_MAP = {
   1: { label: "Pendiente de Revisión", color: "bg-yellow-100 text-yellow-800" },
   2: { label: "Pendiente de Pago", color: "bg-blue-100 text-blue-800" },
-  3: { label: "Pagada", color: "bg-green-100 text-green-800" },
+  3: { label: "Confirmada", color: "bg-green-100 text-green-800" },
   4: { label: "Rechazada", color: "bg-red-100 text-red-800" },
   5: { label: "Cancelada", color: "bg-gray-100 text-gray-800" },
+};
+
+const EVENT_TYPES = {
+  4: "Corporativo",
+  5: "Cumpleaños",
+  6: "Evento Privado",
+  7: "Lanzamiento de Producto",
 };
 
 export default function RentalRequestsList() {
@@ -79,6 +86,7 @@ export default function RentalRequestsList() {
             <thead>
               <tr className="border-b bg-gray-50 text-left text-xs uppercase tracking-wider text-muted-foreground">
                 <th className="p-4">Evento</th>
+                <th className="p-4">Tipo</th>
                 <th className="p-4">Sala</th>
                 <th className="p-4">Cliente</th>
                 <th className="p-4">Inicio</th>
@@ -97,6 +105,7 @@ export default function RentalRequestsList() {
                     onClick={() => navigate(`/admin/rentals/${r.id}`)}
                   >
                     <td className="p-4 font-medium">{r.event_name}</td>
+                    <td className="p-4">{EVENT_TYPES[r.event_type?.id] || r.event_type?.description || "—"}</td>
                     <td className="p-4">{r.room?.name || "—"}</td>
                     <td className="p-4">{r.customer?.people?.first_name} {r.customer?.people?.last_name}</td>
                     <td className="p-4">{formatDate(r.requested_start_time)}</td>
