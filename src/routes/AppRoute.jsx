@@ -210,19 +210,8 @@ function AppRoute() {
         />
 
         {/* ============================
-            RUTAS CAJERO (PERMISOS REALES)
+            RUTAS CAJERO
         ============================ */}
-
-        <Route
-          path="/ticketOffice/dashboard"
-          element={
-            <ProtectedRoute anyOf={PERMISSIONS_GROUPS.DASHBOARD_CASHIER}>
-              <AdminLayout>
-                <DashboardCashier />
-              </AdminLayout>
-            </ProtectedRoute>
-          }
-        />
 
         <Route
           path="/ticketOffice/sell"

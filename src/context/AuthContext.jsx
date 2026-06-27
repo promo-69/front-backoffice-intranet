@@ -142,29 +142,7 @@ export function AuthProvider({ children }) {
     } finally {
        localStorage.removeItem("user");
       setUser(null);
-      // Intento de limpieza por cliente: eliminar todas las cookies accesibles (no HttpOnly)
-      try {
-        if (typeof document !== "undefined") {
-          const cookies = document.cookie ? document.cookie.split(';').map(c => c.trim()).filter(Boolean) : [];
-          cookies.forEach((cookie) => {
-            const eqPos = cookie.indexOf('=');
-            const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
-            try {
-              document.cookie = `${name}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0;`;
-            } catch (e) {
-              // noop
-            }
-            try {
-              const domain = window.location.hostname;
-              document.cookie = `${name}=; Path=/; Domain=${domain}; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0;`;
-            } catch (e) {
-              // noop
-            }
-          });
-        }
-      } catch (e) {
-        console.warn("No se pudieron limpiar cookies desde cliente:", e);
-      }
+      
 
       hideLoader();
     }
