@@ -33,7 +33,6 @@ export default function Clients() {
     setCurrentPage(1);
   };
 
-  // 1. Primero filtramos el universo completo de clientes
   const filteredClients = clients.filter((c) => {
     if (!c?.person) return false;
 
@@ -50,10 +49,8 @@ export default function Clients() {
     return fullName.includes(searchLower) || doc.includes(searchLower);
   });
 
-  // 2. Calculamos los totales basados en el resultado filtrado
   const totalPages = Math.ceil(filteredClients.length / itemsPerPage);
 
-  // 3. Segmentamos la lista para mostrar solo los de la página activa
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentClientsPage = filteredClients.slice(
