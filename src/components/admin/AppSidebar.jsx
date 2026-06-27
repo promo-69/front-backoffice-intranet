@@ -59,6 +59,13 @@ const navItems = [
     requiredPermissions: PERMISSIONS_GROUPS.PERSONAL,
   },
   {
+    id: "clients",
+    title: "Clientes",
+    url: "/admin/clients",
+    icon: Users,
+    requiredPermissions: PERMISSIONS_GROUPS.CLIENTS,
+  },
+  {
     id: "billboard",
     title: "Cartelera",
     url: "/admin/billboard",
