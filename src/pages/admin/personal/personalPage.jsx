@@ -17,7 +17,6 @@ export default function PersonalPage() {
 
   const tabs = [
     { id: "employees", label: "Empleados" },
-    { id: "users", label: "Usuarios" },
     { id: "roles", label: "Roles" },
   ];
 
@@ -29,20 +28,16 @@ export default function PersonalPage() {
 
   const descriptions = {
     employees: "Administra la información laboral del personal",
-    users: "Administra los usuarios del sistema",
     roles: "Administra los roles del sistema",
   };
 
   const placeholders = {
     employees: "Buscar empleado...",
-    users: "Buscar usuario...",
     roles: "Buscar rol...",
   };
 
   const modalTypes = {
     employees: "employeeForm",
-    users: "userForm",
-    clients: null,
     roles: null,
   };
 
@@ -112,16 +107,11 @@ export default function PersonalPage() {
 
       {/* CONTENIDO DINÁMICO */}
       {activeTab === "employees" && <Employees search={search} />}
-      {activeTab === "users" && <Users search={search} />}
       {activeTab === "roles" && <Roles search={search} />}
 
       {/* MODALES */}
       {modal.isOpen && modal.type === "employeeForm" && (
         <RegisterEmployeeModal open={true} onClose={closeModal} />
-      )}
-
-      {modal.isOpen && modal.type === "userForm" && (
-        <RegisterUserModal open={true} onClose={closeModal} />
       )}
     </div>
   );
