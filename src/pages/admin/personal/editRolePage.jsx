@@ -8,7 +8,11 @@ import { Switch } from "@/components/ui/switch";
 import SuccessModal from "@/components/ui/SuccessModal";
 
 import { getAllPermissions } from "@/services/permissions.service";
-import { getRoleById, updateRolePermissions } from "@/services/roles.service";
+import {
+  getRoleById,
+  updateRolePermissions,
+  removeRolePermissions,
+} from "@/services/roles.service";
 
 export default function EditRolePage() {
   const navigate = useNavigate();
@@ -21,6 +25,8 @@ export default function EditRolePage() {
 
   const [permissionsByResource, setPermissionsByResource] = useState({});
   const [selectedPermissions, setSelectedPermissions] = useState(new Set());
+  // Snapshot de lo que el rol tenía al cargar, para calcular qué agregar y qué quitar.
+  const [originalPermissions, setOriginalPermissions] = useState(new Set());
 
   // ============================
   // 1. Cargar datos del rol + permisos globales
@@ -65,6 +71,7 @@ export default function EditRolePage() {
         const rolePermissions = roleData._RolePermissions || [];
         const assignedIds = new Set(rolePermissions.map((rp) => rp.permission));
         setSelectedPermissions(assignedIds);
+        setOriginalPermissions(new Set(assignedIds));
 
         // 4. Agrupar dinámicamente usando las descripciones amigables del backend
         const grouped = {};
@@ -114,15 +121,26 @@ export default function EditRolePage() {
   // 3. Guardar cambios
   // ============================
   const handleSave = async () => {
-    const permissionsArray = Array.from(selectedPermissions);
+    // Calculamos el delta real contra lo que el rol tenía al cargar:
+    //  - toAdd: seleccionados que antes no estaban  → POST
+    //  - toRemove: que estaban y ahora se desmarcaron → DELETE
+    const toAdd = [...selectedPermissions].filter(
+      (id) => !originalPermissions.has(id),
+    );
+    const toRemove = [...originalPermissions].filter(
+      (id) => !selectedPermissions.has(id),
+    );
 
     try {
-      await updateRolePermissions(roleId, permissionsArray);
+      if (toAdd.length > 0) await updateRolePermissions(roleId, toAdd);
+      if (toRemove.length > 0) await removeRolePermissions(roleId, toRemove);
+
+      setOriginalPermissions(new Set(selectedPermissions));
       setIsSuccessOpen(true);
 
       setTimeout(() => {
         setIsSuccessOpen(false);
-        navigate("/admin/personal");
+        navigate("/admin/personal?tab=roles");
       }, 2000);
     } catch (error) {
       console.error("Error guardando permisos:", error);
@@ -134,7 +152,7 @@ export default function EditRolePage() {
     <div className="bg-white p-6 rounded-cineflix border shadow-sm space-y-6">
       {/* BOTÓN VOLVER */}
       <button
-        onClick={() => navigate("/admin/personal")}
+        onClick={() => navigate("/admin/personal?tab=roles")}
         className="flex items-center gap-2 text-sm font-semibold text-brand-primary hover:underline"
       >
         <ArrowLeft className="w-4 h-4" />
@@ -235,7 +253,7 @@ export default function EditRolePage() {
       {/* MODAL DE CONFIRMACIÓN */}
       <SuccessModal
         isOpen={isSuccessOpen}
-        onClose={() => navigate("/admin/personal")}
+        onClose={() => navigate("/admin/personal?tab=roles")}
         message="¡Permisos del rol actualizados correctamente!"
       />
     </div>

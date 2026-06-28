@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import EmployeeTable from "@/pages/admin/employees/employeeTable";
 import RegisterEmployeeModal from "@/components/admin/employees/RegisterEmployeeModal";
 import EditEmployeeModal from "@/components/admin/employees/EditEmployeeModal";
+import EditUserModal from "@/components/admin/users/EditUserModal";
 
 import DeleteConfirmModal from "@/components/ui/DialogConfirmModal";
 import SuccessModal from "@/components/ui/SuccessModal";
@@ -21,6 +22,10 @@ export default function Employees({ search }) {
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
   const [successTitle, setSuccessTitle] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+
+  // Cuenta de acceso del empleado (correo + activar/desactivar). RF-12.
+  const [isAccountOpen, setIsAccountOpen] = useState(false);
+  const [accountUser, setAccountUser] = useState(null);
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
@@ -76,6 +81,13 @@ export default function Employees({ search }) {
     setIsRegisterOpen(true);
   }
 
+  // Abre la gestión de la cuenta de acceso del empleado (correo + estado).
+  const handleAccountClick = (employee) => {
+    if (!employee?._User?.id) return; // empleado sin cuenta de acceso asociada
+    setAccountUser(employee._User);
+    setIsAccountOpen(true);
+  };
+
   const handleDeleteClick = (employee) => {
     setItemToDelete(employee);
     setIsDeleteOpen(true);
@@ -106,6 +118,7 @@ export default function Employees({ search }) {
       <EmployeeTable
         employees={paginatedEmployees}
         onEdit={handleEditClick}
+        onAccount={handleAccountClick}
         onDelete={handleDeleteClick}
         isLoading={loading}
       />
@@ -159,13 +172,13 @@ export default function Employees({ search }) {
         message={successMessage}
       />
 
-      {/* 🌟 Modal Único Adaptado */}
+      {/* Modal Único Adaptado */}
       <RegisterEmployeeModal
         open={isRegisterOpen}
         initialData={employeeToEdit} // Recibe el objeto para editar (o null si es nuevo)
         onClose={(shouldRefresh) => {
           setIsRegisterOpen(false);
-          setEmployeeToEdit(null); 
+          setEmployeeToEdit(null);
           if (shouldRefresh) {
             if (employeeToEdit) {
               refreshEditEmployees();
@@ -174,6 +187,24 @@ export default function Employees({ search }) {
             }
           }
           setEmployeeToEdit(null);
+        }}
+      />
+
+      {/* Cuenta de acceso del empleado: correo + activar/desactivar (RF-12) */}
+      <EditUserModal
+        open={isAccountOpen}
+        user={accountUser}
+        onClose={(shouldRefresh) => {
+          setIsAccountOpen(false);
+          setAccountUser(null);
+          if (shouldRefresh) {
+            fetchEmployees();
+            setSuccessTitle("Cuenta Actualizada");
+            setSuccessMessage(
+              "Los datos de acceso del empleado se actualizaron correctamente.",
+            );
+            setIsSuccessOpen(true);
+          }
         }}
       />
     </div>

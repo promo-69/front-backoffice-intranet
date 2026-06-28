@@ -12,8 +12,12 @@ import { Button } from "@/components/ui/button";
 import { InputForm } from "@/components/ui/inputForm";
 import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
 import { SelectForm } from "@/components/ui/SelectForm";
+import { DatePickerCustom } from "@/components/ui/DatePickerCustom";
 
-import { createEmployee, changeEmployeePosition } from "@/services/employees.service";
+import {
+  createEmployee,
+  changeEmployeePosition,
+} from "@/services/employees.service";
 import { getCinemas } from "@/services/cinema.service";
 import { getRoles } from "@/services/roles.service";
 import { AiFillEye, AiFillEyeInvisible } from "react-icons/ai";
@@ -26,7 +30,6 @@ function ErrorMsg({ message }) {
     </p>
   ) : null;
 }
-
 
 const emptyEmployeeForm = {
   documentNumber: "",
@@ -63,7 +66,7 @@ export default function RegisterEmployeeModal({ open, onClose, initialData }) {
     }
   };
 
-  // ⭐ Cargar sucursales al abrir
+  // Cargar sucursales al abrir
   useEffect(() => {
     if (open) loadCinemas();
   }, [open]);
@@ -79,7 +82,7 @@ export default function RegisterEmployeeModal({ open, onClose, initialData }) {
           "Error al cargar los roles en el modal de empleados:",
           err,
         );
-        setRoles([]); 
+        setRoles([]);
       }
     }
 
@@ -111,7 +114,7 @@ export default function RegisterEmployeeModal({ open, onClose, initialData }) {
     }
   }, [open, initialData]);
 
-  // ⭐ Validaciones
+  // Validaciones
   const validateField = (name, value) => {
     // Si estamos editando, la contraseña puede ir vacía
     if (isEdit && name === "password" && !value) return "";
@@ -162,7 +165,7 @@ export default function RegisterEmployeeModal({ open, onClose, initialData }) {
 
     try {
       if (isEdit) {
-        // 🌟 Payload específico para cambiar de posición (PATCH /employees/:id/position)
+        // Payload específico para cambiar de posición (PATCH /employees/:id/position)
         const patchPayload = {
           jobPosition: Number(employeeData.jobPosition),
           cinema: Number(employeeData.cinema),
@@ -304,14 +307,22 @@ export default function RegisterEmployeeModal({ open, onClose, initialData }) {
           </div>
 
           {/* FECHA DE INICIO */}
-          <InputForm
-            label="Fecha de Inicio"
-            name="startDate"
-            type="date"
-            value={employeeData.startDate}
-            onChange={handleChange}
-          />
-          <ErrorMsg message={errors.startDate} />
+          <div>
+            <DatePickerCustom
+              label="Fecha de Inicio"
+              value={employeeData.startDate}
+              clearable={false}
+              onChange={(iso) => {
+                setEmployeeData((prev) => ({ ...prev, startDate: iso }));
+                setErrors((prev) => ({
+                  ...prev,
+                  startDate: null,
+                  general: null,
+                }));
+              }}
+            />
+            <ErrorMsg message={errors.startDate} />
+          </div>
 
           {/* SALARIO */}
           <InputForm
@@ -391,7 +402,12 @@ export default function RegisterEmployeeModal({ open, onClose, initialData }) {
           >
             Cancelar
           </Button>
-          <DisableIfNoPermission permission={isEdit ? "CRUD:UPDATE:EMPLOYEES" : "CRUD:CREATE:EMPLOYEES"} title="No tienes permiso para guardar empleados">
+          <DisableIfNoPermission
+            permission={
+              isEdit ? "CRUD:UPDATE:EMPLOYEES" : "CRUD:CREATE:EMPLOYEES"
+            }
+            title="No tienes permiso para guardar empleados"
+          >
             <Button
               onClick={handleSubmit}
               disabled={isSubmitting}

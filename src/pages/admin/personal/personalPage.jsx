@@ -1,49 +1,39 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { useModal } from "@/hooks/useModal";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Employees from "../employees/employees";
-import Users from "../users/users";
 import Roles from "./rolesPage";
 import RegisterEmployeeModal from "@/components/admin/employees/RegisterEmployeeModal";
-import RegisterUserModal from "@/components/admin/users/RegisterUserModal";
 
 export default function PersonalPage() {
   const { modal, openModal, closeModal } = useModal();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
-  const [activeTab, setActiveTab] = useState("employees");
+  const initialTab =
+    searchParams.get("tab") === "roles" ? "roles" : "employees";
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [search, setSearch] = useState("");
 
   const tabs = [
     { id: "employees", label: "Empleados" },
-    { id: "users", label: "Usuarios" },
     { id: "roles", label: "Roles" },
   ];
 
   const titles = {
     employees: "Gestión de Empleados",
-    users: "Gestión de Usuarios",
     roles: "Gestión de Roles",
   };
 
   const descriptions = {
     employees: "Administra la información laboral del personal",
-    users: "Administra los usuarios del sistema",
     roles: "Administra los roles del sistema",
   };
 
   const placeholders = {
     employees: "Buscar empleado...",
-    users: "Buscar usuario...",
     roles: "Buscar rol...",
-  };
-
-  const modalTypes = {
-    employees: "employeeForm",
-    users: "userForm",
-    clients: null,
-    roles: null,
   };
 
   return (
@@ -69,27 +59,19 @@ export default function PersonalPage() {
             className="w-64 px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-brand-primary/20 outline-none transition-all"
           />
 
-          {/* BOTÓN DINÁMICO */}
-          {activeTab !== "clients" && activeTab !== "users" && (
-            <button
-              onClick={() => {
-                if (activeTab === "roles") {
-                  navigate("/admin/personal/create-role");
-                } else {
-                  openModal(modalTypes[activeTab]);
-                }
-              }}
-              className="bg-brand-primary text-white px-6 py-2.5 rounded-xl flex items-center gap-2 text-[11px] font-black uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-md"
-            >
-              <Plus className="w-6 h-6 text-brand-gold" strokeWidth={3} />
-
-              {activeTab === "employees"
-                ? "Añadir Empleado"
-                  : activeTab === "roles"
-                    ? "Crear Rol"
-                    : ""}
-            </button>
-          )}
+          <button
+            onClick={() => {
+              if (activeTab === "roles") {
+                navigate("/admin/personal/create-role");
+              } else {
+                openModal("employeeForm");
+              }
+            }}
+            className="bg-brand-primary text-white px-6 py-2.5 rounded-xl flex items-center gap-2 text-[11px] font-black uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-md"
+          >
+            <Plus className="w-6 h-6 text-brand-gold" strokeWidth={3} />
+            {activeTab === "employees" ? "Añadir Empleado" : "Crear Rol"}
+          </button>
         </div>
       </div>
 
@@ -112,16 +94,11 @@ export default function PersonalPage() {
 
       {/* CONTENIDO DINÁMICO */}
       {activeTab === "employees" && <Employees search={search} />}
-      {activeTab === "users" && <Users search={search} />}
       {activeTab === "roles" && <Roles search={search} />}
 
       {/* MODALES */}
       {modal.isOpen && modal.type === "employeeForm" && (
         <RegisterEmployeeModal open={true} onClose={closeModal} />
-      )}
-
-      {modal.isOpen && modal.type === "userForm" && (
-        <RegisterUserModal open={true} onClose={closeModal} />
       )}
     </div>
   );
