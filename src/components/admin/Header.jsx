@@ -8,7 +8,7 @@ import {
   BreadcrumbPage, 
   BreadcrumbSeparator 
 } from "@/components/ui/breadcrumb"
-import { Bell, Settings, User } from "lucide-react"
+import { Bell, Settings, User, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -18,16 +18,42 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/context/AuthContext";
+import { useEffect, useState } from "react";
+import { getCinemaById } from "@/services/cinema.service";
 
 
 export function Navbar({ sectionTitle }) {
 
   const { user, logout } = useAuth();
   const { open } = useSidebar();
+  const [cinemaName, setCinemaName] = useState("");
 
   const fullName = `${user?.firstName || ""} ${user?.lastName || ""}`.trim();
   const email = user?.email || "";
   const role = user?.role || "";
+  const cinemaId = user?.cinemaId;
+
+  useEffect(() => {
+    // Si no hay sucursal asociada (ej. es SUPER_ADMIN), limpiamos y salimos
+    if (!cinemaId) {
+      setCinemaName("");
+      return;
+    }
+
+    async function fetchCinemaData() {
+      try {
+        const response = await getCinemaById(cinemaId);
+        if (response?.data?.name) {
+          setCinemaName(response.data.name);
+        }
+      } catch (error) {
+        console.error("Error cargando el nombre del cine en el header:", error);
+        setCinemaName("");
+      }
+    }
+
+    fetchCinemaData();
+  }, [cinemaId]);
 
   const formatRole = (role) =>
     role
@@ -70,6 +96,15 @@ export function Navbar({ sectionTitle }) {
           <div className="ml-auto flex items-center gap-2">
             <Separator orientation="vertical" className="mx-2 h-8" />
 
+            {cinemaName && (
+              <div className="hidden sm:flex items-center gap-1.5 bg-slate-100 text-slate-700 px-3 py-1 rounded-full border border-slate-200">
+                <MapPin className="h-3.5 w-3.5 text-brand-primary" />
+                <span className="text-[10px] font-bold font-montserrat uppercase tracking-wider">
+                  {cinemaName}
+                </span>
+              </div>
+            )}
+
             {/* Perfil de Usuario */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -82,7 +117,7 @@ export function Navbar({ sectionTitle }) {
                       {fullName || email}
                     </p>
                     <p className="text-[10px] text-muted-foreground">
-                      {formatRole(role)}
+                      {formatRole(role)} {cinemaName ? `• ${cinemaName}` : ""}
                     </p>
                   </div>
                   <div className="w-9 h-9 rounded-full bg-brand-primary flex items-center justify-center text-white border-2 border-brand-gold/20 shadow-sm">

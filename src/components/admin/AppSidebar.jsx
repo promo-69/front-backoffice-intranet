@@ -59,6 +59,13 @@ const navItems = [
     requiredPermissions: PERMISSIONS_GROUPS.PERSONAL,
   },
   {
+    id: "clients",
+    title: "Clientes",
+    url: "/admin/clients",
+    icon: Users,
+    requiredPermissions: PERMISSIONS_GROUPS.CLIENTS,
+  },
+  {
     id: "billboard",
     title: "Cartelera",
     url: "/admin/billboard",
@@ -116,13 +123,6 @@ const navItems = [
   },
 
   // Cajero
-  {
-    id: "dashboard_cashier",
-    title: "Dashboard Cajero",
-    url: "/ticketOffice/dashboard",
-    icon: LayoutDashboard,
-    requiredPermissions: PERMISSIONS_GROUPS.DASHBOARD_CASHIER,
-  },
   {
     id: "sell_tickets",
     title: "Venta de Boletos",
