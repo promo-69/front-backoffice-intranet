@@ -2,20 +2,23 @@ import { useState, useEffect } from "react";
 
 import EmployeeTable from "@/pages/admin/employees/employeeTable";
 import RegisterEmployeeModal from "@/components/admin/employees/RegisterEmployeeModal";
-import EditEmployeeModal from "@/components/admin/employees/EditEmployeeModal";
 import EditUserModal from "@/components/admin/users/EditUserModal";
-
 import DeleteConfirmModal from "@/components/ui/DialogConfirmModal";
 import SuccessModal from "@/components/ui/SuccessModal";
 
 import { getEmployees, deleteEmployee } from "@/services/employees.service";
 
-export default function Employees({ search }) {
+const SUBTABS = [
+  { id: "active", label: "Activos", dot: "bg-emerald-500" },
+  { id: "inactive", label: "Desactivados", dot: "bg-red-400" },
+];
+
+export default function Employees({ search, cinemaId }) {
   const [loading, setLoading] = useState(true);
   const [employees, setEmployees] = useState([]);
+  const [subTab, setSubTab] = useState("active");
 
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
-  //const [isEditOpen, setIsEditOpen] = useState(null);
   const [employeeToEdit, setEmployeeToEdit] = useState(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
@@ -23,24 +26,21 @@ export default function Employees({ search }) {
   const [successTitle, setSuccessTitle] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
-  // Cuenta de acceso del empleado (correo + activar/desactivar). RF-12.
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [accountUser, setAccountUser] = useState(null);
 
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6;
+  const itemsPerPage = 10;
 
   const fetchEmployees = async () => {
     try {
-      setLoading(true); // Activamos carga local
-      const employeesRaw = await getEmployees();
-      setEmployees(employeesRaw);
-
-    } catch (error) {
-      console.error("Error cargando empleados:", error);
+      setLoading(true);
+      setEmployees(await getEmployees());
+    } catch (err) {
+      console.error("Error cargando empleados:", err);
       setEmployees([]);
     } finally {
-      setLoading(false); // Desactivamos carga local
+      setLoading(false);
     }
   };
 
@@ -48,63 +48,70 @@ export default function Employees({ search }) {
     fetchEmployees();
   }, []);
 
-  const refreshEmployees = () => {
+  // Resetear página al cambiar sub-pestaña o filtros
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [subTab, search, cinemaId]);
+
+  const refreshEmployees = (title, message) => {
     fetchEmployees();
-    setSuccessTitle("Empleado Registrado");
-    setSuccessMessage("El empleado ha sido registrado exitosamente.");
+    setSuccessTitle(title);
+    setSuccessMessage(message);
     setIsSuccessOpen(true);
   };
 
-  const refreshEditEmployees = () => {
-    fetchEmployees();
-    setSuccessTitle("Empleado Actualizado");
-    setSuccessMessage(
-      "Los datos del empleado han sido modificados correctamente.",
-    );
-    setIsSuccessOpen(true);
-  };
-
-  const filteredEmployees = employees.filter((e) => {
+  // ── Filtrado ──────────────────────────────────────────────────────────────
+  const bySearch = (e) => {
     const fullName =
       `${e.people?.first_name || ""} ${e.people?.last_name || ""}`.toLowerCase();
-    return fullName.includes(search.toLowerCase());
-  });
+    return fullName.includes((search || "").toLowerCase());
+  };
 
-  const totalPages = Math.ceil(filteredEmployees.length / itemsPerPage);
-  const paginatedEmployees = filteredEmployees.slice(
+  const byCinema = (e) => {
+    if (!cinemaId) return true;
+    // normalizeEmployee ya resuelve la posición activa y guarda el id en e.cinema
+    return String(e.cinema) === String(cinemaId);
+  };
+
+  const activeEmployees = employees.filter(
+    (e) => e._User?.status !== 0 && bySearch(e) && byCinema(e),
+  );
+  const inactiveEmployees = employees.filter(
+    (e) => e._User?.status === 0 && bySearch(e) && byCinema(e),
+  );
+
+  const currentList = subTab === "active" ? activeEmployees : inactiveEmployees;
+  const totalPages = Math.ceil(currentList.length / itemsPerPage);
+  const paginated = currentList.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage,
   );
 
-  const handleEditClick = (employee) => {
-    setEmployeeToEdit(employee);
+  // ── Handlers ──────────────────────────────────────────────────────────────
+  const handleEditClick = (emp) => {
+    setEmployeeToEdit(emp);
     setIsRegisterOpen(true);
-  }
-
-  // Abre la gestión de la cuenta de acceso del empleado (correo + estado).
-  const handleAccountClick = (employee) => {
-    if (!employee?._User?.id) return; // empleado sin cuenta de acceso asociada
-    setAccountUser(employee._User);
+  };
+  const handleAccountClick = (emp) => {
+    if (!emp?._User?.id) return;
+    setAccountUser(emp._User);
     setIsAccountOpen(true);
   };
-
-  const handleDeleteClick = (employee) => {
-    setItemToDelete(employee);
+  const handleDeleteClick = (emp) => {
+    setItemToDelete(emp);
     setIsDeleteOpen(true);
   };
 
   const handleConfirmDelete = async () => {
     try {
-      setLoading(true); // Mostramos el esqueleto mientras eliminamos
+      setLoading(true);
       await deleteEmployee(itemToDelete.id);
-
-      setSuccessTitle("Empleado Eliminado");
-      setSuccessMessage(`El empleado ha sido eliminado correctamente.`);
-      setIsSuccessOpen(true);
-
-      fetchEmployees();
-    } catch (error) {
-      console.error("Error eliminando empleado:", error);
+      refreshEmployees(
+        "Empleado Eliminado",
+        "El empleado ha sido eliminado correctamente.",
+      );
+    } catch (err) {
+      console.error("Error eliminando empleado:", err);
       setLoading(false);
     } finally {
       setIsDeleteOpen(false);
@@ -113,51 +120,88 @@ export default function Employees({ search }) {
   };
 
   return (
-    <div className="space-y-6">
-      {/* TABLA CON PROPIEDAD LOADING */}
+    <div className="space-y-4">
+      {/* ── SUB-TABS: Activos / Desactivados ── */}
+      <div className="flex items-center gap-1 border-b border-gray-200">
+        {SUBTABS.map((t) => {
+          const count =
+            t.id === "active"
+              ? activeEmployees.length
+              : inactiveEmployees.length;
+          const isActive = subTab === t.id;
+          return (
+            <button
+              key={t.id}
+              onClick={() => setSubTab(t.id)}
+              className={`flex items-center gap-2 px-4 py-2.5 text-[11px] font-black uppercase tracking-widest transition-all border-b-2 -mb-px ${
+                isActive
+                  ? "border-brand-primary text-brand-primary"
+                  : "border-transparent text-muted-foreground hover:text-slate-700"
+              }`}
+            >
+              <span className={`w-2 h-2 rounded-full shrink-0 ${t.dot}`} />
+              {t.label}
+              {!loading && (
+                <span
+                  className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                    isActive
+                      ? "bg-brand-primary text-white"
+                      : "bg-gray-100 text-gray-500"
+                  }`}
+                >
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── TABLA ── */}
       <EmployeeTable
-        employees={paginatedEmployees}
+        employees={paginated}
         onEdit={handleEditClick}
         onAccount={handleAccountClick}
         onDelete={handleDeleteClick}
         isLoading={loading}
+        emptyMessage={
+          subTab === "active"
+            ? "No hay empleados activos."
+            : "No hay empleados desactivados."
+        }
       />
 
-      {/* PAGINACIÓN (solo si no estamos cargando) */}
-      {!loading && (
-        <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6 rounded-b-xl shadow-sm">
-          <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-            <p className="text-sm text-gray-700">
-              Mostrando {(currentPage - 1) * itemsPerPage + 1} a{" "}
-              {Math.min(currentPage * itemsPerPage, filteredEmployees.length)}{" "}
-              de {filteredEmployees.length} resultados
-            </p>
-            <nav className="inline-flex -space-x-px rounded-md shadow-sm">
-              <button
-                onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                disabled={currentPage === 1}
-                className="px-3 py-2 border border-gray-300 bg-white text-gray-500 rounded-l-md disabled:opacity-50"
-              >
-                ◀
-              </button>
-              <div className="px-4 py-2 text-sm font-semibold text-brand-primary border border-gray-300 bg-white">
-                Página {currentPage} de {totalPages || 1}
-              </div>
-              <button
-                onClick={() =>
-                  setCurrentPage((p) => Math.min(p + 1, totalPages))
-                }
-                disabled={currentPage === totalPages || totalPages === 0}
-                className="px-3 py-2 border border-gray-300 bg-white text-gray-500 rounded-r-md disabled:opacity-50"
-              >
-                ▶
-              </button>
-            </nav>
-          </div>
+      {/* ── PAGINACIÓN ── */}
+      {!loading && currentList.length > 0 && (
+        <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 rounded-b-xl shadow-sm">
+          <p className="text-sm text-gray-700">
+            Mostrando {(currentPage - 1) * itemsPerPage + 1} a{" "}
+            {Math.min(currentPage * itemsPerPage, currentList.length)} de{" "}
+            {currentList.length} resultados
+          </p>
+          <nav className="inline-flex -space-x-px rounded-md shadow-sm">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-2 border border-gray-300 bg-white text-gray-500 rounded-l-md disabled:opacity-50"
+            >
+              ◀
+            </button>
+            <div className="px-4 py-2 text-sm font-semibold text-brand-primary border border-gray-300 bg-white">
+              Página {currentPage} de {totalPages || 1}
+            </div>
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+              disabled={currentPage === totalPages || totalPages === 0}
+              className="px-3 py-2 border border-gray-300 bg-white text-gray-500 rounded-r-md disabled:opacity-50"
+            >
+              ▶
+            </button>
+          </nav>
         </div>
       )}
 
-      {/* MODALES */}
+      {/* ── MODALES ── */}
       <DeleteConfirmModal
         isOpen={isDeleteOpen}
         onClose={() => setIsDeleteOpen(false)}
@@ -172,25 +216,23 @@ export default function Employees({ search }) {
         message={successMessage}
       />
 
-      {/* Modal Único Adaptado */}
       <RegisterEmployeeModal
         open={isRegisterOpen}
-        initialData={employeeToEdit} // Recibe el objeto para editar (o null si es nuevo)
+        initialData={employeeToEdit}
         onClose={(shouldRefresh) => {
           setIsRegisterOpen(false);
           setEmployeeToEdit(null);
           if (shouldRefresh) {
-            if (employeeToEdit) {
-              refreshEditEmployees();
-            } else {
-              refreshEmployees();
-            }
+            refreshEmployees(
+              employeeToEdit ? "Empleado Actualizado" : "Empleado Registrado",
+              employeeToEdit
+                ? "Los datos del empleado han sido modificados correctamente."
+                : "El empleado ha sido registrado exitosamente.",
+            );
           }
-          setEmployeeToEdit(null);
         }}
       />
 
-      {/* Cuenta de acceso del empleado: correo + activar/desactivar (RF-12) */}
       <EditUserModal
         open={isAccountOpen}
         user={accountUser}
@@ -198,12 +240,10 @@ export default function Employees({ search }) {
           setIsAccountOpen(false);
           setAccountUser(null);
           if (shouldRefresh) {
-            fetchEmployees();
-            setSuccessTitle("Cuenta Actualizada");
-            setSuccessMessage(
+            refreshEmployees(
+              "Cuenta Actualizada",
               "Los datos de acceso del empleado se actualizaron correctamente.",
             );
-            setIsSuccessOpen(true);
           }
         }}
       />

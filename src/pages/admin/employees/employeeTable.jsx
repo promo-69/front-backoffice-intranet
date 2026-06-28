@@ -7,6 +7,7 @@ export default function EmployeeTable({
   onAccount,
   onDelete,
   isLoading = false,
+  emptyMessage = "No hay empleados registrados.",
 }) {
   const skeletonRows = Array(5).fill(0);
 
@@ -34,43 +35,42 @@ export default function EmployeeTable({
           </tr>
         </thead>
 
-        {/* ⭐ CUERPO */}
         <tbody className="divide-y divide-[#4B2E83]/40">
-          {/* ⭐ ESTADO DE CARGA (SKELETON) */}
+          {/* SKELETON */}
           {isLoading &&
-            skeletonRows.map((_, index) => (
-              <tr key={`skeleton-${index}`} className="animate-pulse">
+            skeletonRows.map((_, i) => (
+              <tr key={`skeleton-${i}`} className="animate-pulse">
                 <td className="py-4 px-4">
-                  <div className="h-4 bg-gray-200 rounded w-32"></div>
+                  <div className="h-4 bg-gray-200 rounded w-32" />
                 </td>
                 <td className="py-4 px-4">
-                  <div className="h-4 bg-gray-200 rounded w-24"></div>
+                  <div className="h-4 bg-gray-200 rounded w-24" />
                 </td>
                 <td className="py-4 px-4">
-                  <div className="h-4 bg-gray-200 rounded w-20"></div>
+                  <div className="h-4 bg-gray-200 rounded w-20" />
                 </td>
                 <td className="py-4 px-4">
-                  <div className="h-4 bg-gray-200 rounded w-20"></div>
+                  <div className="h-4 bg-gray-200 rounded w-20" />
                 </td>
                 <td className="py-4 px-4">
-                  <div className="h-5 bg-gray-200 rounded w-16 mx-auto"></div>
+                  <div className="h-5 bg-gray-200 rounded w-16 mx-auto" />
                 </td>
               </tr>
             ))}
 
-          {/* ⭐ ESTADO VACÍO (Solo si NO está cargando) */}
+          {/* VACÍO */}
           {!isLoading && employees.length === 0 && (
             <tr>
               <td
                 colSpan="5"
-                className="text-center py-6 text-gray-500 font-montserrat"
+                className="text-center py-6 text-gray-500 font-montserrat text-sm"
               >
-                No hay empleados registrados.
+                {emptyMessage}
               </td>
             </tr>
           )}
 
-          {/* ⭐ ESTADO CON DATOS */}
+          {/* FILAS */}
           {!isLoading &&
             employees.map((emp) => {
               const firstName =

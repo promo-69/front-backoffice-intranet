@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Eye, Download, Building2, Search } from "lucide-react";
+import { Eye, Download, Search } from "lucide-react";
 import { useInvoices, useVoidInvoice } from "@/hooks/useInvoices";
 import { InvoiceDetailSheet } from "@/components/admin/invoices/InvoiceDetailSheet";
 import { VoidInvoiceModal } from "@/components/admin/invoices/VoidInvoiceModal";
@@ -12,10 +12,11 @@ import { downloadInvoicePdf } from "@/services/invoices.service";
 import { getCinemas } from "@/services/cinema.service";
 import { toast } from "react-hot-toast";
 import { CustomToast } from "@/components/ui/CustomToast";
+import CinemaSelector from "@/components/admin/inventory/CinemaSelector";
 
 const STATUS_FILTERS = [
-  { value: "all",    label: "Todas"    },
-  { value: "active", label: "Activas"  },
+  { value: "all", label: "Todas" },
+  { value: "active", label: "Activas" },
   { value: "voided", label: "Anuladas" },
 ];
 
@@ -32,18 +33,18 @@ function StatusBadge({ isVoided }) {
 }
 
 export default function InvoicesPage() {
-  const { _user }             = useAuth();
+  const { _user } = useAuth();
   const { can, isSuperAdmin } = usePermission();
-  const canVoid    = can("CRUD:DELETE:INVOICES-VOID");
+  const canVoid = can("CRUD:DELETE:INVOICES-VOID");
   const canViewAll = isSuperAdmin || can("CRUD:READ:INVOICES-ALL");
 
   const [cinemaId, setCinemaId] = useState(undefined);
-  const [from,     setFrom]     = useState("");
-  const [to,       setTo]       = useState("");
-  const [search,   setSearch]   = useState("");
-  const [status,   setStatus]   = useState("all");
-  const [page,     setPage]     = useState(1);
-  const [cinemas,  setCinemas]  = useState([]);
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("all");
+  const [page, setPage] = useState(1);
+  const [cinemas, setCinemas] = useState([]);
 
   useEffect(() => {
     if (!canViewAll) return;
@@ -54,8 +55,8 @@ export default function InvoicesPage() {
 
   const { invoices, pagination, loading, refetch } = useInvoices({
     cinemaId,
-    from:   from   || undefined,
-    to:     to     || undefined,
+    from: from || undefined,
+    to: to || undefined,
     search: search || undefined,
     status,
     page,
@@ -64,25 +65,39 @@ export default function InvoicesPage() {
 
   const { voidInvoice, loading: voiding } = useVoidInvoice();
   const [selectedId, setSelectedId] = useState(null);
-  const [sheetOpen,  setSheetOpen]  = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [voidTarget, setVoidTarget] = useState(null);
 
-  const openDetail = (id) => { setSelectedId(id); setSheetOpen(true); };
+  const openDetail = (id) => {
+    setSelectedId(id);
+    setSheetOpen(true);
+  };
 
   const handleVoidConfirm = async (reason) => {
     try {
       await voidInvoice(voidTarget.id, reason, cinemaId);
       toast.custom((t) => (
-        <CustomToast t={t} type="success" title="Factura anulada"
-          message={`Factura ${voidTarget.invoice_number} anulada exitosamente.`} />
+        <CustomToast
+          t={t}
+          type="success"
+          title="Factura anulada"
+          message={`Factura ${voidTarget.invoice_number} anulada exitosamente.`}
+        />
       ));
       setVoidTarget(null);
       setSheetOpen(false);
       refetch();
     } catch (e) {
       toast.custom((t) => (
-        <CustomToast t={t} type="error" title="No se pudo anular"
-          message={e?.response?.data?.message || "Ocurrió un error al anular la factura."} />
+        <CustomToast
+          t={t}
+          type="error"
+          title="No se pudo anular"
+          message={
+            e?.response?.data?.message ||
+            "Ocurrió un error al anular la factura."
+          }
+        />
       ));
     }
   };
@@ -93,25 +108,32 @@ export default function InvoicesPage() {
       await downloadInvoicePdf(inv.id, inv.invoice_number, cinemaId);
     } catch {
       toast.custom((t) => (
-        <CustomToast t={t} type="error" title="Error" message="No se pudo descargar la factura." />
+        <CustomToast
+          t={t}
+          type="error"
+          title="Error"
+          message="No se pudo descargar la factura."
+        />
       ));
     }
   };
 
   const paginationMeta = pagination.total
     ? {
-        total:        pagination.total,
-        per_page:     pagination.limit,
+        total: pagination.total,
+        per_page: pagination.limit,
         current_page: pagination.page,
-        total_pages:  Math.ceil(pagination.total / pagination.limit),
-        prev_page:    pagination.page > 1 ? pagination.page - 1 : null,
-        next_page:    pagination.page * pagination.limit < pagination.total ? pagination.page + 1 : null,
+        total_pages: Math.ceil(pagination.total / pagination.limit),
+        prev_page: pagination.page > 1 ? pagination.page - 1 : null,
+        next_page:
+          pagination.page * pagination.limit < pagination.total
+            ? pagination.page + 1
+            : null,
       }
     : null;
 
   return (
     <div className="max-w-7xl mx-auto font-montserrat space-y-6">
-
       {/* ── HEADER — patrón Billboard ── */}
       <header className="flex flex-wrap justify-between items-center bg-white p-6 rounded-xl border border-gray-100 shadow-sm gap-4">
         <div>
@@ -130,7 +152,10 @@ export default function InvoicesPage() {
             type="text"
             placeholder="Nombre, cédula, nro de factura..."
             value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
             className="w-full h-9 pl-9 pr-4 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-[#231640]/20 focus:border-[#231640] outline-none transition-all"
           />
         </div>
@@ -138,39 +163,35 @@ export default function InvoicesPage() {
 
       {/* ── BARRA DE FILTROS ── */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex flex-wrap items-end gap-3">
-
         {/* Selector de sucursal — solo superadmin */}
         {canViewAll && (
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-              Sucursal
-            </label>
-            <div className="relative">
-              <Building2 className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-              <select
-                value={cinemaId ?? ""}
-                onChange={(e) => { setCinemaId(e.target.value ? Number(e.target.value) : undefined); setPage(1); }}
-                className="h-9 pl-8 pr-3 rounded-md border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[#231640] min-w-[180px]"
-              >
-                <option value="">Todas las sucursales</option>
-                {cinemas.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            </div>
-          </div>
+          <CinemaSelector
+            cinemas={cinemas}
+            value={cinemaId ?? ""}
+            onChange={(id) => {
+              setCinemaId(id ? Number(id) : undefined);
+              setPage(1);
+            }}
+            showAll={true}
+          />
         )}
 
         {/* Fechas con calendario propio */}
         <DatePickerCustom
           label="Desde"
           value={from}
-          onChange={(v) => { setFrom(v); setPage(1); }}
+          onChange={(v) => {
+            setFrom(v);
+            setPage(1);
+          }}
         />
         <DatePickerCustom
           label="Hasta"
           value={to}
-          onChange={(v) => { setTo(v); setPage(1); }}
+          onChange={(v) => {
+            setTo(v);
+            setPage(1);
+          }}
         />
 
         {/* Estado */}
@@ -182,7 +203,10 @@ export default function InvoicesPage() {
             {STATUS_FILTERS.map((s) => (
               <button
                 key={s.value}
-                onClick={() => { setStatus(s.value); setPage(1); }}
+                onClick={() => {
+                  setStatus(s.value);
+                  setPage(1);
+                }}
                 className={`h-9 px-3 rounded-md text-sm font-medium border transition-colors ${
                   status === s.value
                     ? "bg-[#231640] border-[#231640] text-white"
@@ -210,16 +234,32 @@ export default function InvoicesPage() {
           <table className="w-full text-sm">
             <thead className="bg-secondary/50">
               <tr>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">N° Factura</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Fecha</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  N° Factura
+                </th>
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Fecha
+                </th>
                 {canViewAll && (
-                  <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sucursal</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Sucursal
+                  </th>
                 )}
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Empleado</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Cliente</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total</th>
-                <th className="text-center px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Estado</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Acciones</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Empleado
+                </th>
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Cliente
+                </th>
+                <th className="text-right px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Total
+                </th>
+                <th className="text-center px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Estado
+                </th>
+                <th className="text-right px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Acciones
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -229,29 +269,49 @@ export default function InvoicesPage() {
                   onClick={() => openDetail(inv.id)}
                   className={`border-t border-border hover:bg-secondary/20 transition-colors cursor-pointer ${inv.is_voided ? "bg-red-50/30" : ""}`}
                 >
-                  <td className="px-4 py-3 font-medium text-foreground">{inv.invoice_number}</td>
+                  <td className="px-4 py-3 font-medium text-foreground">
+                    {inv.invoice_number}
+                  </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {new Date(inv.issued_at).toLocaleDateString("es-VE")}
                   </td>
                   {canViewAll && (
-                    <td className="px-4 py-3 text-muted-foreground">{inv.order?.cinema?.name ?? "—"}</td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {inv.order?.cinema?.name ?? "—"}
+                    </td>
                   )}
-                  <td className="px-4 py-3 text-foreground">{inv.order?.employee?.name ?? "—"}</td>
-                  <td className="px-4 py-3 text-foreground">{inv.billing_name}</td>
+                  <td className="px-4 py-3 text-foreground">
+                    {inv.order?.employee?.name ?? "—"}
+                  </td>
+                  <td className="px-4 py-3 text-foreground">
+                    {inv.billing_name}
+                  </td>
                   <td className="px-4 py-3 text-right font-semibold text-foreground">
-                    {inv.order?.currency?.symbol ?? "$"} {Number(inv.order?.total ?? 0).toFixed(2)}
+                    {inv.order?.currency?.symbol ?? "$"}{" "}
+                    {Number(inv.order?.total ?? 0).toFixed(2)}
                   </td>
                   <td className="px-4 py-3 text-center">
                     <StatusBadge isVoided={inv.is_voided} />
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8"
-                        onClick={(e) => { e.stopPropagation(); openDetail(inv.id); }}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openDetail(inv.id);
+                        }}
+                      >
                         <Eye className="w-4 h-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8"
-                        onClick={(e) => handleQuickDownload(inv, e)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={(e) => handleQuickDownload(inv, e)}
+                      >
                         <Download className="w-4 h-4" />
                       </Button>
                     </div>
@@ -264,7 +324,11 @@ export default function InvoicesPage() {
       </div>
 
       {paginationMeta && (
-        <CustomPagination metadata={paginationMeta} currentPage={page} onPageChange={setPage} />
+        <CustomPagination
+          metadata={paginationMeta}
+          currentPage={page}
+          onPageChange={setPage}
+        />
       )}
 
       <InvoiceDetailSheet
