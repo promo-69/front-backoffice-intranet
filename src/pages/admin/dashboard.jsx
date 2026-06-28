@@ -28,10 +28,6 @@ import { useContext } from "react";
 import { AuthContext } from "@/context/AuthContext";
 
 // ── Formateadores ─────────────────────────────────────────────────────────────
-const fmtCurrency = (v) =>
-  v != null
-    ? `$${Number(v).toLocaleString("es-MX", { minimumFractionDigits: 2 })}`
-    : "—";
 const fmtNumber = (v) => (v != null ? Number(v).toLocaleString("es-MX") : "—");
 
 // ── Componentes base ──────────────────────────────────────────────────────────
@@ -148,7 +144,7 @@ function QuickLink({ to, icon: Icon, label, color }) {
 
 // ── Vista Superadmin ──────────────────────────────────────────────────────────
 
-function SuperAdminDashboard({ cinemas, loading }) {
+function SuperAdminDashboard({ cinemas, counts, loading }) {
   const [selectedCinema, setSelectedCinema] = useState(null);
   const [showtimes, setShowtimes] = useState([]);
   const [loadingDetail, setLoadingDetail] = useState(false);
@@ -169,7 +165,7 @@ function SuperAdminDashboard({ cinemas, loading }) {
       onlyFuture: false,
       limit: 8,
     })
-      .then((r) => setShowtimes(r.showtimes ?? []))
+      .then((r) => setShowtimes(r.data ?? []))
       .catch(() => setShowtimes([]))
       .finally(() => setLoadingDetail(false));
   }, [selectedCinema]);
@@ -191,7 +187,7 @@ function SuperAdminDashboard({ cinemas, loading }) {
           <StatCard
             icon={Film}
             label="Películas"
-            value={null}
+            value={fmtNumber(counts?.movies)}
             color="bg-violet-600"
             loading={loading}
             to="/admin/billboard"
@@ -199,14 +195,14 @@ function SuperAdminDashboard({ cinemas, loading }) {
           <StatCard
             icon={CalendarClock}
             label="Funciones"
-            value={null}
+            value={fmtNumber(counts?.showtimes)}
             color="bg-amber-500"
             loading={loading}
           />
           <StatCard
             icon={Users}
             label="Empleados"
-            value={null}
+            value={fmtNumber(counts?.employees)}
             color="bg-emerald-500"
             loading={loading}
             to="/admin/personal"
@@ -214,7 +210,7 @@ function SuperAdminDashboard({ cinemas, loading }) {
           <StatCard
             icon={UserCog}
             label="Usuarios"
-            value={null}
+            value={fmtNumber(counts?.users)}
             color="bg-rose-500"
             loading={loading}
             to="/admin/personal"
@@ -325,7 +321,7 @@ function BranchDashboard({ user }) {
         onlyFuture: false,
         limit: 8,
       })
-        .then((r) => r.showtimes ?? [])
+        .then((r) => r.data ?? [])
         .catch(() => []),
       getMyInventory({ cinemaId, page: 1, limit: 50 })
         .then((r) => {
@@ -501,7 +497,7 @@ export default function Dashboard() {
   }, [isSuperAdmin]);
 
   if (isSuperAdmin) {
-    const enrichedCinemas = cinemas; // ya tiene todos los campos
+    const enrichedCinemas = cinemas;
     return (
       <SuperAdminDashboard
         cinemas={enrichedCinemas}
