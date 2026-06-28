@@ -26,6 +26,7 @@ import { getMyInventory } from "@/services/inventory.service";
 import { usePermission } from "@/hooks/usePermission";
 import { useContext } from "react";
 import { AuthContext } from "@/context/AuthContext";
+import CinemaSelector from "@/components/admin/inventory/CinemaSelector";
 
 // ── Formateadores ─────────────────────────────────────────────────────────────
 const fmtNumber = (v) => (v != null ? Number(v).toLocaleString("es-MX") : "—");
@@ -223,21 +224,16 @@ function SuperAdminDashboard({ cinemas, counts, loading }) {
         <div className="xl:col-span-2 bg-white rounded-xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center justify-between mb-4">
             <SectionTitle>Funciones de hoy</SectionTitle>
-            <select
+            <CinemaSelector
+              cinemas={cinemas}
               value={selectedCinema?.id ?? ""}
-              onChange={(e) =>
+              onChange={(id) =>
                 setSelectedCinema(
-                  cinemas.find((c) => c.id === Number(e.target.value)),
+                  cinemas.find((c) => String(c.id) === String(id)),
                 )
               }
-              className="h-8 rounded-md border border-input bg-background px-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              {cinemas?.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+              showAll={false}
+            />
           </div>
           {loadingDetail ? (
             [1, 2, 3, 4].map((i) => (
