@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import Login from "../pages/auth/login";
 import Dashboard from "../pages/admin/dashboard";
+import DashboardCashier from "../pages/ticketOffice/dashboardCashier";
 import Billboard from "../pages/admin/billboard/billboard";
 //import Exhibition from "@/pages/admin/exhibition/bilboardPage";
 import SellTickets from "../pages/ticketOffice/sellTickets";
@@ -11,7 +12,6 @@ import AuthLayout from "../layouts/AuthLayout";
 import AdminLayout from "../layouts/AdminLayout";
 
 import Personal from "../pages/admin/personal/personalPage";
-import Clients from "../pages/admin/clients/clients";
 import CinemasPage from "../pages/admin/cinemas/cinemas";
 import CatalogsPage from "../pages/admin/catalogs/catalogs";
 import ProductsPage from "../pages/admin/inventory/products";
@@ -127,17 +127,6 @@ function AppRoute() {
         </Route>
 
         <Route
-          path="/admin/clients"
-          element={
-            <ProtectedRoute anyOf={PERMISSIONS_GROUPS.CLIENTS}>
-              <AdminLayout>
-                <Clients />
-              </AdminLayout>
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
           path="/admin/inventario"
           element={
             <ProtectedRoute anyOf={PERMISSIONS_GROUPS.INVENTORY}>
@@ -221,8 +210,19 @@ function AppRoute() {
         />
 
         {/* ============================
-            RUTAS CAJERO
+            RUTAS CAJERO (PERMISOS REALES)
         ============================ */}
+
+        <Route
+          path="/ticketOffice/dashboard"
+          element={
+            <ProtectedRoute anyOf={PERMISSIONS_GROUPS.DASHBOARD_CASHIER}>
+              <AdminLayout>
+                <DashboardCashier />
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/ticketOffice/sell"
