@@ -1,6 +1,7 @@
 import { BarChart2, LineChart, RefreshCw, Table } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DatePickerCustom } from "@/components/ui/DatePickerCustom";
+import { SelectCustom } from "@/components/ui/SelectCustom";
 
 const CHANNELS = [
   { value: "all", label: "Todos los canales" },
@@ -27,7 +28,6 @@ export function ReportFilters({
   channel,
   groupBy,
   chartType,
-  viewMode,
   onFromChange,
   onToChange,
   onChannelChange,
@@ -43,7 +43,7 @@ export function ReportFilters({
   const handleTypeClick = (value) => {
     onChartTypeChange(value);
     const mode = value === "table" ? "table" : "chart";
-    onViewModeChange(mode);
+    onViewModeChange?.(mode);
   };
 
   return (
@@ -54,42 +54,26 @@ export function ReportFilters({
 
       {/* Canal */}
       {showChannel && (
-        <div className="flex flex-col gap-1">
-          <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-            Canal
-          </label>
-          <select
-            value={channel}
-            onChange={(e) => onChannelChange(e.target.value)}
-            className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[#231640]"
-          >
-            {CHANNELS.map((c) => (
-              <option key={c.value} value={c.value}>
-                {c.label}
-              </option>
-            ))}
-          </select>
-        </div>
+        <SelectCustom
+          label="Canal"
+          placeholder="Todos los canales"
+          value={channel}
+          onValueChange={onChannelChange}
+          options={CHANNELS}
+          className="w-44"
+        />
       )}
 
       {/* Agrupación */}
       {showGroupBy && (
-        <div className="flex flex-col gap-1">
-          <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-            Agrupar
-          </label>
-          <select
-            value={groupBy}
-            onChange={(e) => onGroupByChange(e.target.value)}
-            className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[#231640]"
-          >
-            {GROUP_BY.map((g) => (
-              <option key={g.value} value={g.value}>
-                {g.label}
-              </option>
-            ))}
-          </select>
-        </div>
+        <SelectCustom
+          label="Agrupar"
+          placeholder="Por día"
+          value={groupBy}
+          onValueChange={onGroupByChange}
+          options={GROUP_BY}
+          className="w-40"
+        />
       )}
 
       {/* Tipo de gráfico */}

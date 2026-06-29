@@ -27,6 +27,7 @@ import { usePermission } from "@/hooks/usePermission";
 import { useContext } from "react";
 import { AuthContext } from "@/context/AuthContext";
 import CinemaSelector from "@/components/admin/inventory/CinemaSelector";
+import { LiveOccupancyPanel } from "@/components/admin/reports/liveOccupancyPanel";
 
 // ── Formateadores ─────────────────────────────────────────────────────────────
 const fmtNumber = (v) => (v != null ? Number(v).toLocaleString("es-MX") : "—");
@@ -293,6 +294,9 @@ function SuperAdminDashboard({ cinemas, counts, loading }) {
           </div>
         </div>
       </div>
+
+      {/* RF-50 · Ocupación en tiempo real de la sucursal seleccionada */}
+      <LiveOccupancyPanel cinemaId={selectedCinema?.id} />
     </div>
   );
 }
@@ -407,6 +411,9 @@ function BranchDashboard({ user }) {
           )}
         </div>
       </div>
+
+      {/* RF-50 · Ocupación en tiempo real de la sucursal */}
+      <LiveOccupancyPanel cinemaId={cinemaId} />
 
       {/* Accesos rápidos */}
       <div>
