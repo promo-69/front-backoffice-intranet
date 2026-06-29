@@ -7,9 +7,12 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { DatePickerCustom } from "@/components/ui/DatePickerCustom";
+import { SelectCustom } from "@/components/ui/SelectCustom";
 import { updateCustomer } from "@/services/customers.service";
 
 const GENDERS = [
+  { value: "none", label: "Sin especificar" },
   { value: "M", label: "Masculino" },
   { value: "F", label: "Femenino" },
   { value: "O", label: "Otro" },
@@ -48,7 +51,7 @@ export default function EditCustomerModal({ open, customer, onClose }) {
       document_number: p.document_number ?? "",
       phone_number: p.phone_number ?? "",
       personal_email: p.personal_email ?? "",
-      gender: p.gender ?? "",
+      gender: p.gender || "none",
       birth_date: p.birth_date ? p.birth_date.slice(0, 10) : "",
     });
     setError("");
@@ -65,15 +68,15 @@ export default function EditCustomerModal({ open, customer, onClose }) {
     try {
       setLoading(true);
       setError("");
+      // El backend espera el body PLANO y en camelCase
+      // (firstName, lastName, phoneNumber, email, birthDate, gender).
       await updateCustomer(customer.customer.id, {
-        person: {
-          first_name: form.first_name.trim(),
-          last_name: form.last_name.trim(),
-          phone_number: form.phone_number.trim() || null,
-          personal_email: form.personal_email.trim() || null,
-          gender: form.gender || null,
-          birth_date: form.birth_date || null,
-        },
+        firstName: form.first_name.trim(),
+        lastName: form.last_name.trim(),
+        phoneNumber: form.phone_number.trim() || null,
+        email: form.personal_email.trim() || null,
+        gender: form.gender && form.gender !== "none" ? form.gender : null,
+        birthDate: form.birth_date || null,
       });
       onClose(true);
     } catch (err) {
@@ -125,20 +128,15 @@ export default function EditCustomerModal({ open, customer, onClose }) {
             />
           </Field>
 
-          <Field label="Género">
-            <select
-              value={form.gender}
-              onChange={handle("gender")}
-              className={inputClass}
-            >
-              <option value="">Sin especificar</option>
-              {GENDERS.map((g) => (
-                <option key={g.value} value={g.value}>
-                  {g.label}
-                </option>
-              ))}
-            </select>
-          </Field>
+          <SelectCustom
+            label="Género"
+            placeholder="Sin especificar"
+            options={GENDERS}
+            value={form.gender}
+            onValueChange={(val) =>
+              setForm((prev) => ({ ...prev, gender: val }))
+            }
+          />
 
           <Field label="Teléfono">
             <input
@@ -149,14 +147,13 @@ export default function EditCustomerModal({ open, customer, onClose }) {
             />
           </Field>
 
-          <Field label="Fecha de Nacimiento">
-            <input
-              type="date"
-              value={form.birth_date}
-              onChange={handle("birth_date")}
-              className={inputClass}
-            />
-          </Field>
+          <DatePickerCustom
+            label="Fecha de Nacimiento"
+            value={form.birth_date}
+            onChange={(iso) =>
+              setForm((prev) => ({ ...prev, birth_date: iso }))
+            }
+          />
 
           <div className="col-span-2">
             <Field label="Correo Personal">
