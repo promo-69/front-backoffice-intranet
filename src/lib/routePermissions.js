@@ -202,6 +202,13 @@ export const PERMISSIONS_GROUPS = {
     "CRUD:READ:CUSTOMERS",
   ],
 
+  CUSTOMERS: [
+    "CRUD:READ:CUSTOMERS",
+    "CRUD:UPDATE:CUSTOMERS",
+    "CRUD:CREATE:CUSTOMERS",
+    "CRUD:DELETE:CUSTOMERS",
+  ],
+
   RENTALS: [
     "CRUD:READ:RENTALS",
     "VIEW:ACCESS:RENTALS-MY",
@@ -268,7 +275,7 @@ export const PERMISSIONS_GROUPS = {
     "CRUD:READ:EXCHANGE-RATES",
   ],
 
-  // 🛒 Sección de Taquilla / Cajero
+  // Sección de Taquilla / Cajero
   DASHBOARD_CASHIER: [
     "CRUD:READ:REPORTS-SHOWTIMES",
     "CRUD:READ:REPORTS-CASHIER",

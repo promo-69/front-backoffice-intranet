@@ -30,6 +30,7 @@ import ReportsDashboard from "@/pages/admin/reports/reportsDashboard";
 import LoyaltyDashboard from "@/pages/admin/loyalty/LoyaltyDashboard";
 
 import InvoicesPage from "@/pages/admin/invoices/InvoicesPage";
+import CustomersPage from "@/pages/admin/customers/CustomersPage";
 
 //import { ROUTE_PERMISSIONS } from "@/lib/route-permissions";
 import { PERMISSIONS_GROUPS } from "@/lib/routePermissions";
@@ -66,7 +67,7 @@ function AppRoute() {
         />
 
         {/* ============================
-            RUTAS ADMIN 
+            RUTAS ADMIN
         ============================ */}
 
         <Route
@@ -178,6 +179,17 @@ function AppRoute() {
             <ProtectedRoute anyOf={PERMISSIONS_GROUPS.INVOICES}>
               <AdminLayout>
                 <InvoicesPage />
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/customers"
+          element={
+            <ProtectedRoute anyOf={PERMISSIONS_GROUPS.CUSTOMERS}>
+              <AdminLayout>
+                <CustomersPage />
               </AdminLayout>
             </ProtectedRoute>
           }

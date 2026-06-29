@@ -3,6 +3,7 @@ import {
   Film,
   MapPin,
   Users,
+  UserRound,
   Package,
   BarChart3,
   LogOut,
@@ -57,6 +58,13 @@ const navItems = [
     url: "/admin/personal",
     icon: Users,
     requiredPermissions: PERMISSIONS_GROUPS.PERSONAL,
+  },
+  {
+    id: "customers",
+    title: "Clientes",
+    url: "/admin/customers",
+    icon: UserRound,
+    requiredPermissions: PERMISSIONS_GROUPS.CUSTOMERS,
   },
   {
     id: "billboard",
