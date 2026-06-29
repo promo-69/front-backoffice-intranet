@@ -143,13 +143,13 @@ export function DatePickerCustom({
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-xl shadow-lg p-3 w-[240px]">
+        <div className="absolute top-full left-0 mt-1 z-50 bg-[#E7E3F4] border border-[#B6A9DF]/60 rounded-xl shadow-lg p-3 w-[240px]">
           {/* Navegación mes/año */}
           <div className="flex items-center justify-between mb-2">
             <button
               type="button"
               onClick={prevMonth}
-              className="p-1 rounded hover:bg-gray-100 transition-colors"
+              className="p-1 rounded hover:bg-white/60 transition-colors"
             >
               <ChevronLeft className="w-4 h-4 text-[#231640]" />
             </button>
@@ -159,7 +159,7 @@ export function DatePickerCustom({
             <button
               type="button"
               onClick={nextMonth}
-              className="p-1 rounded hover:bg-gray-100 transition-colors"
+              className="p-1 rounded hover:bg-white/60 transition-colors"
             >
               <ChevronRight className="w-4 h-4 text-[#231640]" />
             </button>
@@ -190,7 +190,7 @@ export function DatePickerCustom({
                         isSel(d)
                           ? "bg-[#231640] text-white font-bold"
                           : isToday(d)
-                            ? "border-2 border-[#d9982f] text-[#231640] font-bold hover:bg-[#231640]/10"
+                            ? "bg-[#d9982f] text-white font-bold hover:brightness-95"
                             : "text-foreground hover:bg-[#231640]/10"
                       }`}
                   >
@@ -205,7 +205,7 @@ export function DatePickerCustom({
 
           {/* Footer */}
           <div
-            className={`flex mt-2 pt-2 border-t border-gray-100 ${clearable ? "justify-between" : "justify-end"}`}
+            className={`flex mt-2 pt-2 border-t border-[#B6A9DF]/40 ${clearable ? "justify-between" : "justify-end"}`}
           >
             {clearable && (
               <button
