@@ -21,7 +21,7 @@ import {
   getShowtimesByCinema,
 } from "@/services/showtime.service";
 import { getEmployees } from "@/services/employees.service";
-import { getUsers } from "@/services/users.service";
+import { getCustomers } from "@/services/customers.service";
 import { getMyInventory } from "@/services/inventory.service";
 import { usePermission } from "@/hooks/usePermission";
 import { useContext } from "react";
@@ -210,11 +210,11 @@ function SuperAdminDashboard({ cinemas, counts, loading }) {
           />
           <StatCard
             icon={UserCog}
-            label="Usuarios"
-            value={fmtNumber(counts?.users)}
+            label="Clientes Registrados"
+            value={fmtNumber(counts?.customers)}
             color="bg-rose-500"
             loading={loading}
-            to="/admin/personal"
+            to="/admin/customers"
           />
         </div>
       </div>
@@ -481,13 +481,13 @@ export default function Dashboard() {
       getEmployees()
         .then((r) => r?.length ?? 0)
         .catch(() => 0),
-      getUsers()
+      getCustomers()
         .then((r) => r?.length ?? 0)
         .catch(() => 0),
     ])
-      .then(([cms, movies, showtimes, employees, users]) => {
+      .then(([cms, movies, showtimes, employees, customers]) => {
         setCinemas(cms);
-        setCounts({ movies, showtimes, employees, users });
+        setCounts({ movies, showtimes, employees, customers });
       })
       .finally(() => setLoading(false));
   }, [isSuperAdmin]);
