@@ -19,6 +19,7 @@ import { useDashboard } from "@/hooks/useReport";
 import { usePermission } from "@/hooks/usePermission";
 import { getCinemas } from "@/services/cinema.service";
 import { Skeleton } from "@/components/ui/skeleton";
+import CinemaSelector from "@/components/admin/inventory/CinemaSelector";
 
 // ── Formateadores ─────────────────────────────────────────────────────────────
 
@@ -85,22 +86,12 @@ function SuperAdminContent({ cinemas, cinemaId, setCinemaId }) {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-wrap items-end gap-3">
           {/* Selector de sucursal */}
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-              Sucursal
-            </label>
-            <select
-              value={cinemaId ?? ""}
-              onChange={(e) => setCinemaId(Number(e.target.value))}
-              className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring min-w-[180px]"
-            >
-              {cinemas.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <CinemaSelector
+            cinemas={cinemas}
+            value={cinemaId ?? ""}
+            onChange={(id) => setCinemaId(id ? Number(id) : cinemas[0]?.id)}
+            showAll={false}
+          />
 
           <ReportFilters
             from={from}

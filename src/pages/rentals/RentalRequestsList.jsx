@@ -1,7 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getRentalRequests, getAdminRentalRequests } from "@/services/rentals.service";
+import {
+  getRentalRequests,
+  getAdminRentalRequests,
+} from "@/services/rentals.service";
 import { usePermission } from "@/hooks/usePermission";
+import { SelectCustom } from "@/components/ui/SelectCustom";
 
 const STATUS_MAP = {
   1: { label: "Pendiente de Revisión", color: "bg-yellow-100 text-yellow-800" },
@@ -48,8 +52,11 @@ export default function RentalRequestsList() {
   function formatDate(d) {
     if (!d) return "—";
     return new Date(d).toLocaleDateString("es-VE", {
-      day: "2-digit", month: "2-digit", year: "numeric",
-      hour: "2-digit", minute: "2-digit",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   }
 
@@ -64,23 +71,30 @@ export default function RentalRequestsList() {
             Gestiona las solicitudes de alquiler de salas
           </p>
         </div>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-brand-primary/20 outline-none"
-        >
-          <option value="">Todos los estados</option>
-          {Object.entries(STATUS_MAP).map(([id, s]) => (
-            <option key={id} value={id}>{s.label}</option>
-          ))}
-        </select>
+        <SelectCustom
+          placeholder="Todos los estados"
+          value={statusFilter || "all"}
+          onValueChange={(val) => setStatusFilter(val === "all" ? "" : val)}
+          options={[
+            { value: "all", label: "Todos los estados" },
+            ...Object.entries(STATUS_MAP).map(([id, s]) => ({
+              value: id,
+              label: s.label,
+            })),
+          ]}
+          className="w-56"
+        />
       </div>
 
       <div className="bg-white rounded-cineflix border border-gray-100 shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center text-muted-foreground">Cargando...</div>
+          <div className="p-8 text-center text-muted-foreground">
+            Cargando...
+          </div>
         ) : requests.length === 0 ? (
-          <div className="p-8 text-center text-muted-foreground">No hay solicitudes</div>
+          <div className="p-8 text-center text-muted-foreground">
+            No hay solicitudes
+          </div>
         ) : (
           <table className="w-full text-sm">
             <thead>
@@ -105,17 +119,30 @@ export default function RentalRequestsList() {
                     onClick={() => navigate(`/admin/rentals/${r.id}`)}
                   >
                     <td className="p-4 font-medium">{r.event_name}</td>
-                    <td className="p-4">{EVENT_TYPES[r.event_type?.id] || r.event_type?.description || "—"}</td>
+                    <td className="p-4">
+                      {EVENT_TYPES[r.event_type?.id] ||
+                        r.event_type?.description ||
+                        "—"}
+                    </td>
                     <td className="p-4">{r.room?.name || "—"}</td>
-                    <td className="p-4">{r.customer?.people?.first_name} {r.customer?.people?.last_name}</td>
-                    <td className="p-4">{formatDate(r.requested_start_time)}</td>
+                    <td className="p-4">
+                      {r.customer?.people?.first_name}{" "}
+                      {r.customer?.people?.last_name}
+                    </td>
+                    <td className="p-4">
+                      {formatDate(r.requested_start_time)}
+                    </td>
                     <td className="p-4">{formatDate(r.requested_end_time)}</td>
                     <td className="p-4">
-                      <span className={`px-2.5 py-1 rounded-full text-[11px] font-semibold ${st.color}`}>
+                      <span
+                        className={`px-2.5 py-1 rounded-full text-[11px] font-semibold ${st.color}`}
+                      >
                         {st.label}
                       </span>
                     </td>
-                    <td className="p-4 text-muted-foreground">{formatDate(r.created_at)}</td>
+                    <td className="p-4 text-muted-foreground">
+                      {formatDate(r.created_at)}
+                    </td>
                   </tr>
                 );
               })}

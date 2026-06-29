@@ -3,6 +3,7 @@ import {
   Film,
   MapPin,
   Users,
+  UserRound,
   Package,
   BarChart3,
   LogOut,
@@ -59,11 +60,11 @@ const navItems = [
     requiredPermissions: PERMISSIONS_GROUPS.PERSONAL,
   },
   {
-    id: "clients",
+    id: "customers",
     title: "Clientes",
-    url: "/admin/clients",
-    icon: Users,
-    requiredPermissions: PERMISSIONS_GROUPS.CLIENTS,
+    url: "/admin/customers",
+    icon: UserRound,
+    requiredPermissions: PERMISSIONS_GROUPS.CUSTOMERS,
   },
   {
     id: "billboard",
@@ -123,6 +124,13 @@ const navItems = [
   },
 
   // Cajero
+  {
+    id: "dashboard_cashier",
+    title: "Dashboard Cajero",
+    url: "/ticketOffice/dashboard",
+    icon: LayoutDashboard,
+    requiredPermissions: PERMISSIONS_GROUPS.DASHBOARD_CASHIER,
+  },
   {
     id: "sell_tickets",
     title: "Venta de Boletos",

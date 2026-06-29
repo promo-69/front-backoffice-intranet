@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { SelectForm } from "@/components/ui/SelectForm";
 import { InputForm } from "@/components/ui/inputForm";
+import { DatePickerCustom } from "@/components/ui/DatePickerCustom";
 import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
 
 import { changeEmployeePosition } from "@/services/employees.service";
@@ -25,7 +26,7 @@ export default function EditEmployeeModal({ open, onClose, employee }) {
     startDate: "",
   });
 
-  // ⭐ Cargar sucursales
+  // Cargar sucursales
   const loadCinemas = async () => {
     try {
       const data = await getCinemas();
@@ -35,19 +36,21 @@ export default function EditEmployeeModal({ open, onClose, employee }) {
     }
   };
 
-  // ⭐ Cargar datos del empleado
+  // Cargar datos del empleado
   useEffect(() => {
     if (employee) {
       setForm({
         jobPosition: employee.job_position || employee.jobPosition || "",
         cinema: employee.cinema || "",
         salaryBase: employee.salary_base || employee.salaryBase || "",
-        startDate: employee.start_date || employee.startDate || "",
+        startDate: (employee.start_date || employee.startDate || "").split(
+          "T",
+        )[0],
       });
     }
   }, [employee]);
 
-  // ⭐ Cargar sucursales al abrir
+  // Cargar sucursales al abrir
   useEffect(() => {
     if (open) loadCinemas();
   }, [open]);
@@ -114,12 +117,11 @@ export default function EditEmployeeModal({ open, onClose, employee }) {
             onChange={(e) => setForm({ ...form, salaryBase: e.target.value })}
           />
 
-          <InputForm
+          <DatePickerCustom
             label="Fecha de Inicio"
-            name="startDate"
-            type="date"
             value={form.startDate}
-            onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+            clearable={false}
+            onChange={(iso) => setForm({ ...form, startDate: iso })}
           />
         </div>
 
@@ -128,7 +130,10 @@ export default function EditEmployeeModal({ open, onClose, employee }) {
             Cancelar
           </Button>
 
-          <DisableIfNoPermission permission={"CRUD:UPDATE:EMPLOYEES"} title="No tienes permiso para actualizar empleados">
+          <DisableIfNoPermission
+            permission={"CRUD:UPDATE:EMPLOYEES"}
+            title="No tienes permiso para actualizar empleados"
+          >
             <Button
               onClick={handleSubmit}
               className="bg-brand-primary text-white"
