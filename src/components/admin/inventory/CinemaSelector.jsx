@@ -184,7 +184,7 @@ const CinemaSelector = ({
           {cinemas.length > 0 && (
             <div className="px-4 py-2 border-t border-gray-50 bg-slate-50/60">
               <p className="text-[10px] text-slate-400 text-center">
-                Selecciona una sucursal para ver su inventario
+                Selecciona una sucursal
               </p>
             </div>
           )}

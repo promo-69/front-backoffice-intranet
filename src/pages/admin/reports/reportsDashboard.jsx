@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { KpiCard } from "@/components/admin/reports/kpiCard";
 import { ReportChart } from "@/components/admin/reports/reportChart";
+import { DataTableView } from "@/components/admin/reports/dataTableView";
 import { ReportSection } from "@/components/admin/reports/reportSection";
 import { ReportFilters } from "@/components/admin/reports/reportFilters";
 import { ExportButton } from "@/components/admin/reports/exportButton";
@@ -186,6 +187,13 @@ function SuperAdminContent({ cinemas, cinemaId, setCinemaId }) {
           </div>
           {loading ? (
             <Skeleton className="w-full h-72" />
+          ) : chartType === "table" ? (
+            <DataTableView
+              data={{ datasets: data?.daily_series ?? [] }}
+              reportType="sales"
+              filters={{ from, to }}
+              cinemaId={cinemaId}
+            />
           ) : (
             <ReportChart
               data={{
@@ -335,6 +343,13 @@ function ManagerView() {
           </div>
           {loading ? (
             <Skeleton className="w-full h-72" />
+          ) : chartType === "table" ? (
+            <DataTableView
+              data={{ datasets: data?.daily_series ?? [] }}
+              reportType="sales"
+              filters={{ from, to }}
+              cinemaId={cinemaId}
+            />
           ) : (
             <ReportChart
               data={{
