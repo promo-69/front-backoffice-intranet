@@ -1,10 +1,8 @@
 import api from "@/api/axios";
 
 // Obtener todos los eventos - Mary
-export const getEvents = async (params = { page: 1 }) => {
-  const response = await api.get('/special-events/admin', {
-    params: params 
-  });
+export const getEvents = async ({ page = 1, limit = 10 } = {}) => {
+  const response = await api.get('/special-events/admin', { params: { page, limit } }); 
   return response.data;
 };
 

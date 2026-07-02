@@ -6,7 +6,7 @@ const CLASSIFICATION_FALLBACK = { 1: "A (Todo Público)", 2: "B (+12)", 3: "C (+
 export function EventsTab({ data = [], onEdit, onDelete, isLoading }) {
   // Genera un array de 6 elementos para renderizar las filas de carga
   const skeletonRows = Array(6).fill(null);
-
+ 
   return (
     <div className="overflow-x-auto bg-surface-container rounded-cineflix border border-border shadow-sm">
       <table className="w-full text-left text-xs">
