@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useForm, useWatch, Controller} from "react-hook-form";
+import { useForm, useWatch, Controller } from "react-hook-form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -14,12 +14,14 @@ import { useLoading } from "@/context/LoadingContext";
 import { createShowtimesBulk } from "@/services/showtime.service";
 import { toast } from "sonner";
 
-// Conversión rápida sumando las 4 horas del offset (de VET a UTC)
+// Componentes de Shadcn UI 
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Check, ChevronsUpDown, Search } from "lucide-react";
+import { cn } from "@/lib/utils";
+
 const convertLocalTimeToUTCString = (timeString) => {
   if (!timeString) return "";
   const [hours, minutes] = timeString.split(":").map(Number);
-  
-  // Sumamos 4 horas para llevarlo a UTC (revisando que no se pase de 24)
   const utcHours = (hours + 4) % 24; 
   return `${String(utcHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 };
@@ -39,6 +41,8 @@ export function ShowtimeModal({
   const [events, setEvents] = useState([]);
   const [roomsList, setRoomsList] = useState([]);
   const [isLoadingAux, setIsLoadingAux] = useState(false);
+  const [openSearch, setOpenSearch] = useState(false);
+  const [searchTerm, setSearchTerm] = useState(""); // Estado local para el filtro de texto
 
   const { register, handleSubmit, reset, control, setValue, formState } = useForm({
     defaultValues: {
@@ -58,19 +62,16 @@ export function ShowtimeModal({
 
   const { errors, isDirty } = formState;
 
-  // Bulk creation state
   const [isBulk, setIsBulk] = useState(false);
   const [slots, setSlots] = useState([{ start_time: '', end_time: '' }]);
-  const [daysSelected, setDaysSelected] = useState([]); // 0..6
+  const [daysSelected, setDaysSelected] = useState([]);
 
   const watchContentType = useWatch({ control, name: "content_type", defaultValue: "movie" });
   const watchContentId = useWatch({ control, name: "content_id" });
   const watchStartTime = useWatch({ control, name: "start_time_raw", defaultValue: "" });
   const watchProjection = useWatch({ control, name: "projection_type", defaultValue: "" });
   const watchLanguage = useWatch({ control, name: "language", defaultValue: "" });
-  const watchCurrency = useWatch({ control, name: "currency", defaultValue: "" });
 
-  // Función reutilizable para calcular la hora de fin estimada
   const getComputedEndTime = (startTime, duration) => {
     if (!startTime || !duration) return "";
     const [hours, minutes] = startTime.split(':').map(Number);
@@ -88,7 +89,6 @@ export function ShowtimeModal({
         setIsLoadingAux(true);
         try {
           const cleanCinemaId = cinemaId?.id || cinemaId;
-
           const [moviesRes, roomsRes, eventsRes] = await Promise.all([
             getMovies({ limit: 100 }),
             getRoomsByCinema(cleanCinemaId),
@@ -96,16 +96,12 @@ export function ShowtimeModal({
           ]);
 
           setMovies(moviesRes.data || []);
-
           const allRooms = Array.isArray(roomsRes) ? roomsRes : (roomsRes?.rows || []);
-          
           const filteredRoomsByCinema = allRooms.filter(
             (room) => String(room.cinema) === String(cleanCinemaId)
           );
-
           setRoomsList(filteredRoomsByCinema);
 
-          // Manejo de eventos
           if (Array.isArray(eventsRes)) setEvents(eventsRes);
           else if (Array.isArray(eventsRes?.data)) setEvents(eventsRes.data);
           else if (Array.isArray(eventsRes?.data?.rows)) setEvents(eventsRes.data.rows);
@@ -121,13 +117,11 @@ export function ShowtimeModal({
     }
   }, [open, cinemaId]);
 
-  // Contenido seleccionado dinámico
   const selectedContent =
     watchContentType === "movie"
       ? movies.find(m => String(m.id) === String(watchContentId))
       : events.find(e => String(e.id) === String(watchContentId));
 
-  // Filtrado proyección e idioma
   const filteredProjections = selectedContent?.projection_types?.length
     ? projectionTypes.filter(p => selectedContent.projection_types.some(mp => String(mp.projection_type || mp.projection_type_id || mp.id || mp) === String(p.id)))
     : projectionTypes;
@@ -136,7 +130,11 @@ export function ShowtimeModal({
     ? languagesList.filter(l => selectedContent.languages.some(ml => String(ml.language || ml.language_id || ml.id || ml) === String(l.id)))
     : languagesList;
 
-  // Limpiar campos inválidos
+  useEffect(() => {
+    setValue("content_id", "");
+    setSearchTerm(""); // Limpiar buscador al cambiar tipo
+  }, [watchContentType, setValue]);
+
   useEffect(() => {
     if (watchContentId) {
       if (watchProjection && !filteredProjections.some(p => String(p.id) === String(watchProjection))) setValue("projection_type", "");
@@ -144,20 +142,16 @@ export function ShowtimeModal({
     }
   }, [watchContentId, filteredProjections, filteredLanguages, setValue, watchProjection, watchLanguage]);
 
-  // Cálculo hora de fin estimada (Modo Simple)
   useEffect(() => {
     if (isEdit && !isDirty) return;
-
     if (watchContentId && watchStartTime && selectedContent?.duration_minutes) {
       const endTime = getComputedEndTime(watchStartTime, selectedContent.duration_minutes);
       setValue("end_time_raw", endTime);
     }
   }, [watchContentId, watchStartTime, selectedContent, setValue, isEdit, isDirty]);
 
-  // Recalcular horas de fin de los slots si cambia la película/duración (Modo Lote)
   useEffect(() => {
     if (!isBulk || !selectedContent?.duration_minutes) return;
-
     setSlots(prev =>
       prev.map(slot => {
         if (slot.start_time) {
@@ -171,10 +165,8 @@ export function ShowtimeModal({
     );
   }, [selectedContent?.duration_minutes, isBulk]);
 
-  // Cargar formulario
   useEffect(() => {
     if (!open) return;
-
     if (initialData && initialData.id) {
       const currencyId = initialData.currency?.id || initialData.currency;
       const basePrice = parseFloat(initialData.price).toFixed(2);
@@ -199,7 +191,7 @@ export function ShowtimeModal({
       
       reset({
         content_type: isMovie ? "movie" : "event",
-        content_id: initialContentId || "",
+        content_id: String(initialContentId || ""),
         room: initialData.room?.id || initialData.room,
         date: datePart,
         start_time_raw: startTimePart,
@@ -227,13 +219,11 @@ export function ShowtimeModal({
     }
   }, [initialData, open, reset]);
 
-  // Submit
   const { showLoader, hideLoader } = useLoading();
 
   const handleFormSubmit = async (data) => {
     let cleanPrice = typeof data.price === "string" ? data.price.replace(",", ".") : data.price;
     
-    // If bulk mode, build bulk payload and call bulk service
     if (isBulk) {
       showLoader();
       try {
@@ -248,7 +238,6 @@ export function ShowtimeModal({
           period_start: data.period_start,
           period_end: data.period_end,
           days_of_week: daysSelected,
-          // Se aplica la conversión de desfase UTC-4 antes de despachar al backend
           daily_slots: slots
             .filter(s => s.start_time && s.end_time)
             .map(s => ({ 
@@ -264,7 +253,7 @@ export function ShowtimeModal({
         toast.success("Creación en lote completada");
         onClose(true, "Se crearon las funciones en lote correctamente.");
       } catch (error) {
-        console.error("Error al crear funciones en lote:", error);
+        console.error(error);
         toast.error(error?.response?.data?.message || "Error al crear funciones en lote");
       } finally {
         hideLoader();
@@ -272,7 +261,6 @@ export function ShowtimeModal({
       return;
     }
 
-    // Single creation flow (existing behavior)
     const startTimeISO = new Date(`${data.date}T${data.start_time_raw}:00`).toISOString();
     const endTimeISO = new Date(`${data.date}T${data.end_time_raw}:00`).toISOString();
 
@@ -295,8 +283,13 @@ export function ShowtimeModal({
     onSave(payload);
   };
 
-  // Opciones de precio predeterminadas
   const priceOptions = ["3.00","6.00","10.00","12.00"];
+  const searchableList = watchContentType === "movie" ? movies : events;
+
+  // Filtrado manual local por texto
+  const filteredSearchList = searchableList.filter(item => 
+    item.title?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -328,18 +321,76 @@ export function ShowtimeModal({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Select dinámico */}
-            <SelectForm
-              label={watchContentType === "movie" ? "Película" : "Evento"}
-              error={errors.content_id?.message}
-              {...register("content_id",{ required: "Este campo es obligatorio" })}
-            >
-              <option value="">{watchContentType === "movie" ? "Seleccionar película..." : "Seleccionar evento..."}</option>
-              {watchContentType === "movie"
-                ? movies.map(item => <option key={item.id} value={item.id}>{item.title}</option>)
-                : events.map(item => <option key={item.id} value={item.id}>{item.title}</option>)
-              }
-            </SelectForm>
+            
+            {/* BUSCADOR MANUAL MEDIANTE REEMPLAZO DE LA PROPIEDAD COMMAND */}
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-bold text-brand-primary uppercase">
+                {watchContentType === "movie" ? "Buscar Película" : "Buscar Evento"}
+              </label>
+              <Controller
+                control={control}
+                name="content_id"
+                rules={{ required: "Este campo es obligatorio" }}
+                render={({ field }) => (
+                  <Popover open={openSearch} onOpenChange={setOpenSearch}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={openSearch}
+                        className="w-full justify-between bg-white border border-slate-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-brand-primary h-10 font-normal text-left"
+                      >
+                        {field.value
+                          ? searchableList.find((item) => String(item.id) === String(field.value))?.title
+                          : watchContentType === "movie" ? "Seleccionar película..." : "Seleccionar evento..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[300px] md:w-[310px] p-2 bg-white shadow-xl rounded-md border flex flex-col gap-2" align="start">
+                      {/* Input de búsqueda nativo */}
+                      <div className="flex items-center gap-2 border border-slate-200 rounded-md px-2 py-1 bg-slate-50">
+                        <Search className="h-4 w-4 text-slate-400" />
+                        <input 
+                          type="text"
+                          placeholder={watchContentType === "movie" ? "Escribe el título..." : "Escribe el nombre..."}
+                          className="w-full bg-transparent text-sm focus:outline-none py-1 text-slate-700"
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                      </div>
+                      
+                      {/* Lista de elementos filtrados */}
+                      <div className="max-h-[200px] overflow-y-auto flex flex-col">
+                        {filteredSearchList.length === 0 ? (
+                          <span className="p-2 text-xs text-slate-400 text-center">No se encontraron resultados.</span>
+                        ) : (
+                          filteredSearchList.map((item) => (
+                            <button
+                              type="button"
+                              key={item.id}
+                              onClick={() => {
+                                field.onChange(String(item.id));
+                                setOpenSearch(false);
+                              }}
+                              className="w-full text-left cursor-pointer hover:bg-slate-100 p-2 text-sm flex items-center justify-between rounded-md transition-colors"
+                            >
+                              <span className="truncate text-slate-700">{item.title}</span>
+                              <Check
+                                className={cn(
+                                  "ml-2 h-4 w-4 text-brand-primary",
+                                  String(field.value) === String(item.id) ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                )}
+              />
+              {errors.content_id && <span className="text-xs text-red-500">{errors.content_id.message}</span>}
+            </div>
 
             {/* Sala */}
             <SelectForm 
@@ -353,7 +404,6 @@ export function ShowtimeModal({
             </SelectForm>
           </div>
 
-          {/* Fecha simple o periodo bulk */}
           {!isBulk && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <InputForm label="Fecha de la Función" type="date" error={errors.date?.message} {...register("date", { required: "Este campo es obligatorio" })} />
@@ -433,7 +483,6 @@ export function ShowtimeModal({
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            {/* Moneda */}
             <div className="flex flex-col gap-1">
               <label className="text-xs font-bold text-brand-primary uppercase">Moneda</label>
               <Controller
@@ -458,7 +507,6 @@ export function ShowtimeModal({
               {errors.currency && <span className="text-xs text-red-500">{errors.currency.message}</span>}
             </div>
 
-            {/* Precio */}
             <div className="flex flex-col gap-1">
               <label className="text-xs font-bold text-brand-primary uppercase">Precio</label>
               <Controller

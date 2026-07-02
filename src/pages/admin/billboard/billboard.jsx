@@ -27,7 +27,7 @@ const [cinemas, setCinemas] = useState([]);
 
   const tabs = [
     { id: "movies", label: "Películas" },
-        { id: "events", label: "Eventos" },
+    { id: "events", label: "Eventos" },
     { id: "showtimes", label: "Funciones" },
   ];
 
