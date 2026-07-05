@@ -8,15 +8,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export default defineConfig({
-  plugins: [
-    react(),
-    basicSsl()
-  ],
-  
+  plugins: [react(), basicSsl()],
+
   server: {
     https: false,
     host: false,
-    port: 5174, 
+    port: 5174,
   },
 
   resolve: {
@@ -29,11 +26,12 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: "./src/setupTests.js",
-    exclude: ['node_modules', 'dist', '.idea', '.git', '.cache', 'tests/**'],
+    exclude: ["node_modules", "dist", ".idea", ".git", ".cache", "tests/**"],
   },
 
   build: {
     outDir: "dist",
+    cssMinify: "esbuild",
   },
 
   assetsInclude: ["*/.png"],
