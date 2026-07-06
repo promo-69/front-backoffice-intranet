@@ -1,19 +1,43 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
 import { useModal } from "@/hooks/useModal";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Employees from "../employees/employees";
-import Users from "../users/users";
 import Roles from "./rolesPage";
 import RegisterEmployeeModal from "@/components/admin/employees/RegisterEmployeeModal";
-import RegisterUserModal from "@/components/admin/users/RegisterUserModal";
+import CinemaSelector from "@/components/admin/inventory/CinemaSelector";
+import { getCinemas } from "@/services/cinema.service";
+import { usePermission } from "@/hooks/usePermission";
 
 export default function PersonalPage() {
   const { modal, openModal, closeModal } = useModal();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { isSuperAdmin } = usePermission();
 
-  const [activeTab, setActiveTab] = useState("employees");
+  const initialTab =
+    searchParams.get("tab") === "roles" ? "roles" : "employees";
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [search, setSearch] = useState("");
+
+  // ── Filtro de sucursal (solo superadmin, solo pestaña Empleados) ──
+  const [cinemas, setCinemas] = useState([]);
+  const [cinemaId, setCinemaId] = useState("");
+  const [cinemasLoading, setCinemasLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isSuperAdmin) return;
+    setCinemasLoading(true);
+    getCinemas({ page: 1, limit: 100 })
+      .then((res) => {
+        const list = Array.isArray(res.data)
+          ? res.data
+          : (res.data?.cinemas ?? res.data ?? []);
+        setCinemas(list);
+      })
+      .catch(() => {})
+      .finally(() => setCinemasLoading(false));
+  }, [isSuperAdmin]);
 
   const tabs = [
     { id: "employees", label: "Empleados" },
@@ -22,7 +46,6 @@ export default function PersonalPage() {
 
   const titles = {
     employees: "Gestión de Empleados",
-    users: "Gestión de Usuarios",
     roles: "Gestión de Roles",
   };
 
@@ -34,11 +57,6 @@ export default function PersonalPage() {
   const placeholders = {
     employees: "Buscar empleado...",
     roles: "Buscar rol...",
-  };
-
-  const modalTypes = {
-    employees: "employeeForm",
-    roles: null,
   };
 
   return (
@@ -64,49 +82,56 @@ export default function PersonalPage() {
             className="w-64 px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-brand-primary/20 outline-none transition-all"
           />
 
-          {/* BOTÓN DINÁMICO */}
-          {activeTab !== "clients" && activeTab !== "users" && (
-            <button
-              onClick={() => {
-                if (activeTab === "roles") {
-                  navigate("/admin/personal/create-role");
-                } else {
-                  openModal(modalTypes[activeTab]);
-                }
-              }}
-              className="bg-brand-primary text-white px-6 py-2.5 rounded-xl flex items-center gap-2 text-[11px] font-black uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-md"
-            >
-              <Plus className="w-6 h-6 text-brand-gold" strokeWidth={3} />
-
-              {activeTab === "employees"
-                ? "Añadir Empleado"
-                  : activeTab === "roles"
-                    ? "Crear Rol"
-                    : ""}
-            </button>
-          )}
+          <button
+            onClick={() => {
+              if (activeTab === "roles") {
+                navigate("/admin/personal/create-role");
+              } else {
+                openModal("employeeForm");
+              }
+            }}
+            className="bg-brand-primary text-white px-6 py-2.5 rounded-xl flex items-center gap-2 text-[11px] font-black uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-md"
+          >
+            <Plus className="w-6 h-6 text-brand-gold" strokeWidth={3} />
+            {activeTab === "employees" ? "Añadir Empleado" : "Crear Rol"}
+          </button>
         </div>
       </div>
 
       {/* NAVEGACION POR PESTAÑAS (TABS) */}
-      <div className="flex gap-4 border-b pb-2">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            className={`text-xs font-montserrat uppercase tracking-wide pb-1 border-b-2 transition-colors ${
-              activeTab === tab.id
-                ? "font-bold text-brand-gold border-brand-gold"
-                : "text-muted-foreground border-transparent hover:text-brand-primary"
-            }`}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div className="flex items-center justify-between border-b pb-2">
+        <div className="flex gap-4">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              className={`text-xs font-montserrat uppercase tracking-wide pb-1 border-b-2 transition-colors ${
+                activeTab === tab.id
+                  ? "font-bold text-brand-gold border-brand-gold"
+                  : "text-muted-foreground border-transparent hover:text-brand-primary"
+              }`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* SELECTOR DE SUCURSAL — solo superadmin en pestaña Empleados */}
+        {isSuperAdmin && activeTab === "employees" && (
+          <CinemaSelector
+            cinemas={cinemas}
+            value={cinemaId}
+            onChange={setCinemaId}
+            showAll={true}
+            loading={cinemasLoading}
+          />
+        )}
       </div>
 
       {/* CONTENIDO DINÁMICO */}
-      {activeTab === "employees" && <Employees search={search} />}
+      {activeTab === "employees" && (
+        <Employees search={search} cinemaId={cinemaId || undefined} />
+      )}
       {activeTab === "roles" && <Roles search={search} />}
 
       {/* MODALES */}

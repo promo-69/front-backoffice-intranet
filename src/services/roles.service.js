@@ -3,25 +3,33 @@ import api from "../api/axios.js";
 // Obtener todos los roles
 export async function getRoles() {
   const { data } = await api.get("/roles");
-  return data.data; 
+  return data.data;
 }
 
 // Obtener un rol por ID
 export async function getRoleById(roleId) {
   const { data } = await api.get(`/roles/${roleId}`);
-  return data.data; 
+  return data.data;
 }
 
 // Obtener permisos asignados a un rol
 export async function getRolePermissions(roleId) {
   const { data } = await api.get(`/roles/${roleId}/permissions`);
-  return data.data.rows; 
+  return data.data.rows;
 }
 
-// Asignar permisos a un rol
+// Asignar (agregar) permisos a un rol
 export async function updateRolePermissions(roleId, permissionsIds) {
   const { data } = await api.post(`/roles/${roleId}/permissions`, {
     permissions: permissionsIds,
+  });
+  return data;
+}
+
+// Quitar permisos de un rol (DELETE con body)
+export async function removeRolePermissions(roleId, permissionsIds) {
+  const { data } = await api.delete(`/roles/${roleId}/permissions`, {
+    data: { permissions: permissionsIds },
   });
   return data;
 }

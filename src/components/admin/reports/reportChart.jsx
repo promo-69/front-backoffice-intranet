@@ -4,6 +4,7 @@ import {
   Line,
   BarChart,
   Bar,
+  Cell,
   AreaChart,
   Area,
   XAxis,
@@ -109,6 +110,9 @@ export function ReportChart({
         );
       }
       if (chartType === "bar") {
+        // Una sola serie (p. ej. "Solicitudes por estado") → una barra por
+        // categoría, cada una con su propio color. Multi-serie mantiene 1 color/serie.
+        const singleSeries = data.datasets.length === 1;
         return (
           <Bar
             key={ds.key}
@@ -116,7 +120,12 @@ export function ReportChart({
             name={ds.label}
             fill={color}
             radius={[4, 4, 0, 0]}
-          />
+          >
+            {singleSeries &&
+              flatData.map((_, j) => (
+                <Cell key={j} fill={PALETTE[j % PALETTE.length]} />
+              ))}
+          </Bar>
         );
       }
       return (

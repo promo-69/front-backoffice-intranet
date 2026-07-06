@@ -7,7 +7,12 @@ export const createEmployee = async (payload) => {
 
 function normalizeEmployee(emp) {
   const person = emp.person || {};
-  const firstPos = emp.employee?.positions?.[0] || {};
+  const positions = emp.employee?.positions || [];
+  const firstPos =
+    positions.find((p) => p.is_active) ||
+    positions.find((p) => p.end_date == null) ||
+    positions[positions.length - 1] ||
+    {};
   const jobTitle = firstPos?.job_position?.title || "";
   return {
     ...emp,
@@ -25,7 +30,10 @@ function normalizeEmployee(emp) {
     _User: emp.user
       ? {
           ...emp.user,
-          _Roles: jobTitle ? { code: jobTitle.toUpperCase().replace(/ /g, "_") } : null,
+          status: emp.user.is_active === false ? 0 : 1,
+          _Roles: jobTitle
+            ? { code: jobTitle.toUpperCase().replace(/ /g, "_") }
+            : null,
         }
       : null,
     _cinema_name: firstPos?.cinema?.name || null,
@@ -37,12 +45,11 @@ function normalizeEmployee(emp) {
 }
 
 export const getEmployees = async () => {
-  const res = await api.get("/employees");
+  const res = await api.get("/employees", { params: { _t: Date.now() } });
   const data = res.data.data;
   const rows = Array.isArray(data) ? data : (data?.rows ?? []);
   return rows.map(normalizeEmployee);
 };
-
 
 export const getEmployeeById = async (id) => {
   const res = await api.get(`/employees/${id}`);

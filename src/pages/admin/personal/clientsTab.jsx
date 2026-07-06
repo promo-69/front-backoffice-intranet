@@ -17,7 +17,7 @@ export default function ClientsTable({ clients, isLoading = false }) {
         {/* CUERPO */}
         <tbody className="divide-y divide-[#4B2E83]/40">
           
-          {/* ESTADO DE CARGA */}
+          {/* ESTADO DE CARGA - Alineado con las celdas de datos */}
           {isLoading &&
             skeletonRows.map((_, index) => (
               <tr key={`skeleton-${index}`} className="animate-pulse">

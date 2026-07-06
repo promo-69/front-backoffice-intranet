@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import {
   Dialog,
   DialogContent,
@@ -11,7 +11,8 @@ import {
 import { Button } from "@/components/ui/button";
 import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
 import { Upload, X, Loader2 } from "lucide-react";
-import { InputForm } from "@/components/ui/inputForm"; 
+import { InputForm } from "@/components/ui/inputForm";
+import { DatePickerCustom } from "@/components/ui/DatePickerCustom";
 import { SelectForm } from "@/components/ui/SelectForm";
 import { TextAreaCustom } from "@/components/ui/TextAreaCustom";
 import { ChipsSelectorForm } from "@/components/ui/ChipsSelectorForm";
@@ -19,16 +20,16 @@ import { Label } from "@/components/ui/label";
 import { createMovie, updateMovie } from "@/services/movie.service";
 import { toast } from "sonner";
 
-export default function MovieModal({ 
-  open, 
-  onClose, 
-  onSuccess, 
-  initialData, 
-  lifecycleStatesList, 
+export default function MovieModal({
+  open,
+  onClose,
+  onSuccess,
+  initialData,
+  lifecycleStatesList,
   genresList = [],
   ageClassificationsList,
   languagesList = [],
-  projectionTypesList=[]
+  projectionTypesList = [],
 }) {
   const isEdit = !!initialData;
   const fileInputRef = useRef(null);
@@ -37,15 +38,23 @@ export default function MovieModal({
   const [bannerPreview, setBannerPreview] = useState(null);
 
   // 1. Extraemos isSubmitting del formState
-  const { register, handleSubmit, reset, watch, setValue, formState: { errors, isSubmitting } } = useForm({
+  const {
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    setValue,
+    control,
+    formState: { errors, isSubmitting },
+  } = useForm({
     defaultValues: {
       lifecycleState: "",
       ageClassification: "",
       durationMinutes: "0",
       genres: [],
-      languages:[],
-      projectionTypes:[]
-    }
+      languages: [],
+      projectionTypes: [],
+    },
   });
 
   const selectedGenres = watch("genres") || [];
@@ -57,14 +66,22 @@ export default function MovieModal({
       const getNormalizedId = (list, fieldData) => {
         if (!fieldData) return "";
         if (typeof fieldData === "number") return fieldData;
-        if (typeof fieldData === "string" && !isNaN(fieldData) && fieldData.trim() !== "") return Number(fieldData);
-        
+        if (
+          typeof fieldData === "string" &&
+          !isNaN(fieldData) &&
+          fieldData.trim() !== ""
+        )
+          return Number(fieldData);
+
         if (typeof fieldData === "object") {
           if (fieldData.id) return fieldData.id;
           if (fieldData.description && list?.length > 0) {
-            const found = list.find(item => 
-              item.description?.toLowerCase() === fieldData.description?.toLowerCase() || 
-              item.name?.toLowerCase() === fieldData.description?.toLowerCase()
+            const found = list.find(
+              (item) =>
+                item.description?.toLowerCase() ===
+                  fieldData.description?.toLowerCase() ||
+                item.name?.toLowerCase() ===
+                  fieldData.description?.toLowerCase(),
             );
             return found ? found.id : "";
           }
@@ -75,37 +92,62 @@ export default function MovieModal({
       const formattedData = {
         title: initialData.title,
         synopsis: initialData.synopsis,
-        durationMinutes: initialData.duration_minutes, 
-        releaseDate: initialData.release_date?.split('T')[0], 
-        ageClassification: getNormalizedId(ageClassificationsList, initialData.age_classification), 
-        lifecycleState: getNormalizedId(lifecycleStatesList, initialData.lifecycle_state), 
+        durationMinutes: initialData.duration_minutes,
+        releaseDate: initialData.release_date?.split("T")[0],
+        ageClassification: getNormalizedId(
+          ageClassificationsList,
+          initialData.age_classification,
+        ),
+        lifecycleState: getNormalizedId(
+          lifecycleStatesList,
+          initialData.lifecycle_state,
+        ),
         poster: initialData.poster_url,
         banner: initialData.banner_url,
-        trailerUrl: initialData.trailer_url, 
-        genres: (initialData.genres || initialData._MovieGenres)?.map(g => (g.genre || g.id).toString()) || [],
-        languages: (initialData.languages || initialData._MovieLanguages)?.map(lang => (lang.language || lang.id).toString()) || [],
-        projectionTypes: (initialData.projection_types || initialData._MovieProjectionTypes)?.map(projt => (projt.projection_type || projt.id).toString()) || []
+        trailerUrl: initialData.trailer_url,
+        genres:
+          (initialData.genres || initialData._MovieGenres)?.map((g) =>
+            (g.genre || g.id).toString(),
+          ) || [],
+        languages:
+          (initialData.languages || initialData._MovieLanguages)?.map((lang) =>
+            (lang.language || lang.id).toString(),
+          ) || [],
+        projectionTypes:
+          (
+            initialData.projection_types || initialData._MovieProjectionTypes
+          )?.map((projt) => (projt.projection_type || projt.id).toString()) ||
+          [],
       };
       reset(formattedData);
       setBannerPreview(initialData.banner_url);
       setPosterPreview(initialData.poster_url);
     } else if (open) {
-      reset({ 
-        title: "", 
-        synopsis: "", 
-        durationMinutes: "", 
-        releaseDate: "", 
-        trailerUrl: "", 
-        ageClassification: "", 
-        lifecycleState: "", 
-        genres: [], 
+      reset({
+        title: "",
+        synopsis: "",
+        durationMinutes: "",
+        releaseDate: "",
+        trailerUrl: "",
+        ageClassification: "",
+        lifecycleState: "",
+        genres: [],
         languages: [],
-        projectionTypes: []
+        projectionTypes: [],
       });
       setBannerPreview(null);
       setPosterPreview(null);
     }
-  }, [initialData, open, reset, genresList, ageClassificationsList, lifecycleStatesList, languagesList, projectionTypesList]);
+  }, [
+    initialData,
+    open,
+    reset,
+    genresList,
+    ageClassificationsList,
+    lifecycleStatesList,
+    languagesList,
+    projectionTypesList,
+  ]);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -113,47 +155,50 @@ export default function MovieModal({
   };
 
   const handleRemovePoster = (e) => {
-    e.stopPropagation(); 
+    e.stopPropagation();
     setPosterPreview(null);
-    setValue("poster", null); 
-    if (fileInputRef.current) fileInputRef.current.value = ""; 
+    setValue("poster", null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleRemoveBanner = (e) => {
-    e.stopPropagation(); 
+    e.stopPropagation();
     setBannerPreview(null);
-    setValue("banner", null); 
-    if (bannerInputRef.current) bannerInputRef.current.value = ""; 
+    setValue("banner", null);
+    if (bannerInputRef.current) bannerInputRef.current.value = "";
   };
 
   const onSubmit = async (data) => {
     try {
       const formData = new FormData();
-      formData.append('title', data.title);
-      formData.append('durationMinutes', Number(data.durationMinutes)); 
-      formData.append('ageClassification', Number(data.ageClassification));
-      formData.append('lifecycleState', Number(data.lifecycleState));
-      formData.append('synopsis', data.synopsis);
-      formData.append('releaseDate', data.releaseDate);
-      formData.append('trailerUrl', data.trailerUrl || "");
+      formData.append("title", data.title);
+      formData.append("durationMinutes", Number(data.durationMinutes));
+      formData.append("ageClassification", Number(data.ageClassification));
+      formData.append("lifecycleState", Number(data.lifecycleState));
+      formData.append("synopsis", data.synopsis);
+      formData.append("releaseDate", data.releaseDate);
+      formData.append("trailerUrl", data.trailerUrl || "");
 
       if (data.genres && data.genres.length > 0) {
-        formData.append('genres', JSON.stringify(data.genres.map(Number)));
+        formData.append("genres", JSON.stringify(data.genres.map(Number)));
       }
 
-      formData.append('languages', JSON.stringify(data.languages.map(Number)));
-      formData.append('projectionTypes', JSON.stringify(data.projectionTypes.map(Number)));
+      formData.append("languages", JSON.stringify(data.languages.map(Number)));
+      formData.append(
+        "projectionTypes",
+        JSON.stringify(data.projectionTypes.map(Number)),
+      );
 
       if (data.poster && data.poster instanceof FileList && data.poster[0]) {
-        formData.append('poster', data.poster[0]);
+        formData.append("poster", data.poster[0]);
       } else if (data.poster === null) {
-        formData.append('poster', ''); 
+        formData.append("poster", "");
       }
-    
+
       if (data.banner && data.banner instanceof FileList && data.banner[0]) {
-        formData.append('banner', data.banner[0]);
+        formData.append("banner", data.banner[0]);
       } else if (data.banner === null) {
-        formData.append('banner', ''); 
+        formData.append("banner", "");
       }
 
       if (isEdit) {
@@ -161,7 +206,9 @@ export default function MovieModal({
         onSuccess(`"${data.title}" ha sido actualizada correctamente.`);
       } else {
         await createMovie(formData);
-        onSuccess(`"${data.title}" se ha registrado exitosamente en la cartelera.`);
+        onSuccess(
+          `"${data.title}" se ha registrado exitosamente en la cartelera.`,
+        );
       }
     } catch (error) {
       console.error("Error guardando película:", error);
@@ -169,47 +216,55 @@ export default function MovieModal({
     }
   };
 
-  const posterRegister = register("poster", { 
+  const posterRegister = register("poster", {
     validate: {
-      lessThan2MB: files => {
-        if (!files || !files[0] || typeof files === "string") return true; 
+      lessThan2MB: (files) => {
+        if (!files || !files[0] || typeof files === "string") return true;
         return files[0].size < 2 * 1024 * 1024 || "La imagen excede los 2MB";
       },
-      acceptedFormats: files => {
+      acceptedFormats: (files) => {
         if (!files || !files[0] || typeof files === "string") return true;
-        return ['image/jpeg', 'image/png', 'image/webp'].includes(files[0].type) || "Solo se permite JPG, PNG o WebP";
-      }
+        return (
+          ["image/jpeg", "image/png", "image/webp"].includes(files[0].type) ||
+          "Solo se permite JPG, PNG o WebP"
+        );
+      },
     },
-    onChange: handleImageChange 
+    onChange: handleImageChange,
   });
 
   const bannerRegister = register("banner", {
     required: false,
     validate: {
-      lessThan3MB: files => {
+      lessThan3MB: (files) => {
         if (!files || !files[0] || typeof files === "string") return true;
-        return files[0].size < 3 * 1024 * 1024 || "El banner no puede pesar más de 3MB";
+        return (
+          files[0].size < 3 * 1024 * 1024 ||
+          "El banner no puede pesar más de 3MB"
+        );
       },
-      acceptedFormats: files => { 
+      acceptedFormats: (files) => {
         if (!files || !files[0] || typeof files === "string") return true;
-        return ['image/jpeg', 'image/png', 'image/webp'].includes(files[0].type) || "Formato de banner no válido";
-      }
+        return (
+          ["image/jpeg", "image/png", "image/webp"].includes(files[0].type) ||
+          "Formato de banner no válido"
+        );
+      },
     },
     onChange: (e) => {
       const file = e.target.files[0];
       if (file) setBannerPreview(URL.createObjectURL(file));
-    }
+    },
   });
 
   return (
     // 2. Deshabilitamos cerrar el modal con click afuera mientras se procesa la petición
     <Dialog open={open} onOpenChange={isSubmitting ? null : onClose}>
       <DialogContent className="max-w-4xl bg-white rounded-cineflix p-8 shadow-2xl overflow-y-auto max-h-[90vh] font-montserrat">
-        
         {/* 3. Deshabilitamos el botón de cerrar de la esquina superior */}
-        <button 
-          type="button" 
-          onClick={onClose} 
+        <button
+          type="button"
+          onClick={onClose}
           disabled={isSubmitting}
           className="absolute top-4 right-4 text-gray-400 hover:text-brand-primary z-10 disabled:opacity-50 disabled:cursor-not-allowed"
         >
@@ -221,26 +276,40 @@ export default function MovieModal({
             {isEdit ? "Editar Película" : "Nueva Película"}
           </DialogTitle>
           <DialogDescription className="text-xs text-slate-500">
-            {isEdit ? "Modifica los datos de la película seleccionada." : "Registra una nueva película."}
+            {isEdit
+              ? "Modifica los datos de la película seleccionada."
+              : "Registra una nueva película."}
           </DialogDescription>
         </DialogHeader>
 
         {/* 4. Opción UX avanzada (opcional): se puede deshabilitar interacciones completas del form con un fieldset */}
-        <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-12 space-y-4 mt-6 gap-6">
-          
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="grid grid-cols-1 md:grid-cols-12 space-y-4 mt-6 gap-6"
+        >
           {/* SECCIÓN PORTADA / PÓSTER */}
           <div className="md:col-span-4">
-            <label className="text-[10px] font-bold uppercase text-brand-primary">Póster Oficial</label>
-            <div 
+            <label className="text-[10px] font-bold uppercase text-brand-primary">
+              Póster Oficial
+            </label>
+            <div
               onClick={() => !isSubmitting && fileInputRef.current?.click()}
               className={`relative aspect-[2/3] w-full rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer overflow-hidden transition-all ${
-                errors.poster ? 'border-red-500 bg-red-50' : posterPreview ? 'border-brand-primary' : 'border-gray-200 bg-gray-50'
-              } ${isSubmitting ? 'opacity-60 cursor-not-allowed' : ''}`}
+                errors.poster
+                  ? "border-red-500 bg-red-50"
+                  : posterPreview
+                    ? "border-brand-primary"
+                    : "border-gray-200 bg-gray-50"
+              } ${isSubmitting ? "opacity-60 cursor-not-allowed" : ""}`}
             >
               {posterPreview ? (
                 <div className="relative h-full w-full group">
-                  <img src={posterPreview} alt="Preview" className="h-full w-full object-cover" />
-                  
+                  <img
+                    src={posterPreview}
+                    alt="Preview"
+                    className="h-full w-full object-cover"
+                  />
+
                   <button
                     type="button"
                     onClick={handleRemovePoster}
@@ -253,24 +322,34 @@ export default function MovieModal({
 
                   <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
                     <Upload className="h-6 w-6 text-white mb-1" />
-                    <p className="text-[9px] font-bold text-white uppercase">Cambiar Póster</p>
+                    <p className="text-[9px] font-bold text-white uppercase">
+                      Cambiar Póster
+                    </p>
                   </div>
                 </div>
               ) : (
                 <div className="text-center p-4">
-                  <Upload className={`h-8 w-8 mx-auto mb-2 ${errors.poster ? 'text-red-400' : 'text-gray-300'}`} />
-                  <p className={`text-[10px] font-bold ${errors.poster ? 'text-red-500' : 'text-gray-400'}`}>SUBIR IMAGEN</p>
+                  <Upload
+                    className={`h-8 w-8 mx-auto mb-2 ${errors.poster ? "text-red-400" : "text-gray-300"}`}
+                  />
+                  <p
+                    className={`text-[10px] font-bold ${errors.poster ? "text-red-500" : "text-gray-400"}`}
+                  >
+                    SUBIR IMAGEN
+                  </p>
                 </div>
               )}
             </div>
 
             {errors.poster && (
-              <p className="text-[10px] text-red-500 font-bold uppercase mt-1 italic">* {errors.poster.message}</p>
+              <p className="text-[10px] text-red-500 font-bold uppercase mt-1 italic">
+                * {errors.poster.message}
+              </p>
             )}
 
-            <input 
-              type="file" 
-              className="hidden" 
+            <input
+              type="file"
+              className="hidden"
               disabled={isSubmitting}
               accept="image/jpeg,image/png,image/webp"
               name={posterRegister.name}
@@ -293,27 +372,40 @@ export default function MovieModal({
             />
 
             <div className="grid grid-cols-2 gap-4">
-              <SelectForm 
-                label="Clasificación" 
+              <SelectForm
+                label="Clasificación"
                 disabled={isSubmitting}
-                {...register("ageClassification", { required: "Este campo es obligatorio", valueAsNumber: true })}
+                {...register("ageClassification", {
+                  required: "Este campo es obligatorio",
+                  valueAsNumber: true,
+                })}
                 error={errors.ageClassification?.message}
               >
                 <option value="">Seleccionar...</option>
-                {ageClassificationsList.map(item => (
+                {ageClassificationsList.map((item) => (
                   <option key={item.id} value={item.id}>
                     {item.name || item.description}
                   </option>
                 ))}
               </SelectForm>
 
-              <InputForm 
-                label="Estreno" 
-                type="date" 
-                disabled={isSubmitting}
-                {...register("releaseDate", { required: "Este campo es obligatorio"})}
-                error={errors.releaseDate?.message}
+              <Controller
+                name="releaseDate"
+                control={control}
+                rules={{ required: "Este campo es obligatorio" }}
+                render={({ field }) => (
+                  <DatePickerCustom
+                    label="Estreno"
+                    value={field.value || ""}
+                    onChange={(iso) => field.onChange(iso)}
+                  />
+                )}
               />
+              {errors.releaseDate?.message && (
+                <p className="text-[10px] text-red-500 font-bold mt-1 ml-2 uppercase">
+                  {errors.releaseDate.message}
+                </p>
+              )}
             </div>
 
             <ChipsSelectorForm
@@ -321,19 +413,21 @@ export default function MovieModal({
               options={languagesList}
               selectedValues={selectedLanguages}
               disabled={isSubmitting}
-              registerProps={register("languages", { 
-                validate: (value) => value.length > 0 || "Este campo es obligatorio" 
+              registerProps={register("languages", {
+                validate: (value) =>
+                  value.length > 0 || "Este campo es obligatorio",
               })}
               error={errors.languages?.message}
             />
-              
+
             <ChipsSelectorForm
               label="Proyecciones"
               options={projectionTypesList}
               selectedValues={selectedProjectionTypes}
               disabled={isSubmitting}
-              registerProps={register("projectionTypes", { 
-                validate: (value) => value.length > 0 || "Este campo es obligatorio" 
+              registerProps={register("projectionTypes", {
+                validate: (value) =>
+                  value.length > 0 || "Este campo es obligatorio",
               })}
               error={errors.projectionTypes?.message}
             />
@@ -343,35 +437,40 @@ export default function MovieModal({
               options={genresList}
               selectedValues={selectedGenres}
               disabled={isSubmitting}
-              registerProps={register("genres", { 
-                validate: (value) => value.length > 0 || "Este campo es obligatorio" 
+              registerProps={register("genres", {
+                validate: (value) =>
+                  value.length > 0 || "Este campo es obligatorio",
               })}
               error={errors.genres?.message}
             />
 
             <div className="grid grid-cols-2 gap-4">
-              <InputForm 
-                label="Duración (min)" 
+              <InputForm
+                label="Duración (min)"
                 disabled={isSubmitting}
                 onKeyDown={(e) => {
-                  if (["-", "e", "E", ".", ","].includes(e.key)) e.preventDefault();
+                  if (["-", "e", "E", ".", ","].includes(e.key))
+                    e.preventDefault();
                 }}
-                type="number" 
-                {...register("durationMinutes", { 
+                type="number"
+                {...register("durationMinutes", {
                   required: "Este campo es obligatorio",
-                  valueAsNumber: true
-                })} 
+                  valueAsNumber: true,
+                })}
                 error={errors.durationMinutes?.message}
               />
 
-              <SelectForm 
-                label="Estado en Ciclo" 
+              <SelectForm
+                label="Estado en Ciclo"
                 disabled={isSubmitting}
-                {...register("lifecycleState", { required: "Este campo es obligatorio", valueAsNumber: true })}
+                {...register("lifecycleState", {
+                  required: "Este campo es obligatorio",
+                  valueAsNumber: true,
+                })}
                 error={errors.lifecycleState?.message}
               >
                 <option value="">Seleccionar...</option>
-                {lifecycleStatesList.map(state => (
+                {lifecycleStatesList.map((state) => (
                   <option key={state.id} value={state.id}>
                     {state.name || state.description}
                   </option>
@@ -379,29 +478,46 @@ export default function MovieModal({
               </SelectForm>
             </div>
 
-            <TextAreaCustom 
+            <TextAreaCustom
               label="Sinopsis"
               rows={3}
               disabled={isSubmitting}
-              {...register("synopsis", { required: "Este campo es obligatorio" })}
+              {...register("synopsis", {
+                required: "Este campo es obligatorio",
+              })}
               error={errors.synopsis?.message}
             />
-            
-            <InputForm label="URL Trailer" disabled={isSubmitting} {...register("trailerUrl")} placeholder="https://youtube.com/..." />
+
+            <InputForm
+              label="URL Trailer"
+              disabled={isSubmitting}
+              {...register("trailerUrl")}
+              placeholder="https://youtube.com/..."
+            />
 
             {/* SECCIÓN BANNER */}
             <div className="md:col-span-12 space-y-2 text-left">
-              <Label className="text-[12px] font-bold uppercase text-brand-primary">Banner de Fondo</Label>
-              <div 
+              <Label className="text-[12px] font-bold uppercase text-brand-primary">
+                Banner de Fondo
+              </Label>
+              <div
                 onClick={() => !isSubmitting && bannerInputRef.current?.click()}
                 className={`relative aspect-[16/5] w-full rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer overflow-hidden transition-all ${
-                  errors.banner ? 'border-red-500 bg-red-50' : bannerPreview ? 'border-brand-primary' : 'border-gray-200 bg-gray-50'
-                } ${isSubmitting ? 'opacity-60 cursor-not-allowed' : ''}`}
+                  errors.banner
+                    ? "border-red-500 bg-red-50"
+                    : bannerPreview
+                      ? "border-brand-primary"
+                      : "border-gray-200 bg-gray-50"
+                } ${isSubmitting ? "opacity-60 cursor-not-allowed" : ""}`}
               >
                 {bannerPreview ? (
                   <div className="relative h-full w-full group">
-                    <img src={bannerPreview} alt="Banner Preview" className="h-full w-full object-cover" />
-                    
+                    <img
+                      src={bannerPreview}
+                      alt="Banner Preview"
+                      className="h-full w-full object-cover"
+                    />
+
                     <button
                       type="button"
                       onClick={handleRemoveBanner}
@@ -414,53 +530,65 @@ export default function MovieModal({
 
                     <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
                       <Upload className="h-5 w-5 text-white mb-1" />
-                      <p className="text-[9px] font-bold text-white uppercase">Cambiar Banner</p>
+                      <p className="text-[9px] font-bold text-white uppercase">
+                        Cambiar Banner
+                      </p>
                     </div>
                   </div>
                 ) : (
                   <div className="text-center p-4">
-                    <Upload className={`h-6 w-6 mx-auto mb-1 ${errors.banner ? 'text-red-400' : 'text-gray-300'}`} />
-                    <p className={`text-[10px] font-bold ${errors.banner ? 'text-red-500' : 'text-gray-400'}`}>SUBIR BANNER HORIZONTAL</p>
+                    <Upload
+                      className={`h-6 w-6 mx-auto mb-1 ${errors.banner ? "text-red-400" : "text-gray-300"}`}
+                    />
+                    <p
+                      className={`text-[10px] font-bold ${errors.banner ? "text-red-500" : "text-gray-400"}`}
+                    >
+                      SUBIR BANNER HORIZONTAL
+                    </p>
                   </div>
                 )}
               </div>
 
               {errors.banner && (
-                <p className="text-[10px] text-red-500 font-bold uppercase mt-1 italic">* {errors.banner.message}</p>
+                <p className="text-[10px] text-red-500 font-bold uppercase mt-1 italic">
+                  * {errors.banner.message}
+                </p>
               )}
 
-              <input 
-                type="file" 
-                className="hidden" 
+              <input
+                type="file"
+                className="hidden"
                 disabled={isSubmitting}
                 accept="image/jpeg,image/png,image/webp"
                 name={bannerRegister.name}
                 onChange={bannerRegister.onChange}
                 onBlur={bannerRegister.onBlur}
                 ref={(e) => {
-                  bannerRegister.ref(e); 
-                  bannerInputRef.current = e; 
+                  bannerRegister.ref(e);
+                  bannerInputRef.current = e;
                 }}
               />
             </div>
 
             {/* MODIFICACIÓN EN EL DIALOG FOOTER */}
             <DialogFooter className="pt-6 border-t flex gap-2 justify-end">
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={onClose}
                 disabled={isSubmitting} // Deshabilitar si se está enviando
               >
                 Cancelar
               </Button>
-              <DisableIfNoPermission 
-                permission={isEdit ? "CRUD:UPDATE:MOVIES" : "CRUD:CREATE:MOVIES"} 
+              <DisableIfNoPermission
+                permission={
+                  isEdit ? "CRUD:UPDATE:MOVIES" : "CRUD:CREATE:MOVIES"
+                }
                 title="No tienes permiso para guardar películas"
               >
                 {/* 5. Loader reactivo en el botón de submit */}
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   className="bg-brand-primary text-white font-bold px-6 flex items-center gap-2"
                   disabled={isSubmitting}
                 >

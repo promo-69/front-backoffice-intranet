@@ -18,6 +18,7 @@ export default function PublicRoute({ children }) {
       if (perms.has(ROUTE_PERMISSIONS.PERSONAL_READ)) return "/admin/personal";
       if (perms.has(ROUTE_PERMISSIONS.INVENTORY_READ)) return "/admin/inventario";
       if (
+        perms.has(ROUTE_PERMISSIONS.CASHIER_DASHBOARD) ||
         perms.has(ROUTE_PERMISSIONS.SELL_TICKETS) ||
         role === "CASHIER"
       ) return "/ticketOffice/dashboard";

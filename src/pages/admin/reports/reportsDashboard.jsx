@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { KpiCard } from "@/components/admin/reports/kpiCard";
 import { ReportChart } from "@/components/admin/reports/reportChart";
+import { DataTableView } from "@/components/admin/reports/dataTableView";
 import { ReportSection } from "@/components/admin/reports/reportSection";
 import { ReportFilters } from "@/components/admin/reports/reportFilters";
 import { ExportButton } from "@/components/admin/reports/exportButton";
@@ -19,6 +20,7 @@ import { useDashboard } from "@/hooks/useReport";
 import { usePermission } from "@/hooks/usePermission";
 import { getCinemas } from "@/services/cinema.service";
 import { Skeleton } from "@/components/ui/skeleton";
+import CinemaSelector from "@/components/admin/inventory/CinemaSelector";
 
 // ── Formateadores ─────────────────────────────────────────────────────────────
 
@@ -85,22 +87,12 @@ function SuperAdminContent({ cinemas, cinemaId, setCinemaId }) {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-wrap items-end gap-3">
           {/* Selector de sucursal */}
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-              Sucursal
-            </label>
-            <select
-              value={cinemaId ?? ""}
-              onChange={(e) => setCinemaId(Number(e.target.value))}
-              className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring min-w-[180px]"
-            >
-              {cinemas.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <CinemaSelector
+            cinemas={cinemas}
+            value={cinemaId ?? ""}
+            onChange={(id) => setCinemaId(id ? Number(id) : cinemas[0]?.id)}
+            showAll={false}
+          />
 
           <ReportFilters
             from={from}
@@ -195,6 +187,13 @@ function SuperAdminContent({ cinemas, cinemaId, setCinemaId }) {
           </div>
           {loading ? (
             <Skeleton className="w-full h-72" />
+          ) : chartType === "table" ? (
+            <DataTableView
+              data={{ datasets: data?.daily_series ?? [] }}
+              reportType="sales"
+              filters={{ from, to }}
+              cinemaId={cinemaId}
+            />
           ) : (
             <ReportChart
               data={{
@@ -344,6 +343,13 @@ function ManagerView() {
           </div>
           {loading ? (
             <Skeleton className="w-full h-72" />
+          ) : chartType === "table" ? (
+            <DataTableView
+              data={{ datasets: data?.daily_series ?? [] }}
+              reportType="sales"
+              filters={{ from, to }}
+              cinemaId={cinemaId}
+            />
           ) : (
             <ReportChart
               data={{

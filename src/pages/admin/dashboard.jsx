@@ -21,17 +21,15 @@ import {
   getShowtimesByCinema,
 } from "@/services/showtime.service";
 import { getEmployees } from "@/services/employees.service";
-import { getUsers } from "@/services/users.service";
+import { getCustomers } from "@/services/customers.service";
 import { getMyInventory } from "@/services/inventory.service";
 import { usePermission } from "@/hooks/usePermission";
 import { useContext } from "react";
 import { AuthContext } from "@/context/AuthContext";
+import CinemaSelector from "@/components/admin/inventory/CinemaSelector";
+import { LiveOccupancyPanel } from "@/components/admin/reports/liveOccupancyPanel";
 
 // ── Formateadores ─────────────────────────────────────────────────────────────
-const fmtCurrency = (v) =>
-  v != null
-    ? `$${Number(v).toLocaleString("es-MX", { minimumFractionDigits: 2 })}`
-    : "—";
 const fmtNumber = (v) => (v != null ? Number(v).toLocaleString("es-MX") : "—");
 
 // ── Componentes base ──────────────────────────────────────────────────────────
@@ -148,7 +146,7 @@ function QuickLink({ to, icon: Icon, label, color }) {
 
 // ── Vista Superadmin ──────────────────────────────────────────────────────────
 
-function SuperAdminDashboard({ cinemas, loading }) {
+function SuperAdminDashboard({ cinemas, counts, loading }) {
   const [selectedCinema, setSelectedCinema] = useState(null);
   const [showtimes, setShowtimes] = useState([]);
   const [loadingDetail, setLoadingDetail] = useState(false);
@@ -169,7 +167,7 @@ function SuperAdminDashboard({ cinemas, loading }) {
       onlyFuture: false,
       limit: 8,
     })
-      .then((r) => setShowtimes(r.showtimes ?? []))
+      .then((r) => setShowtimes(r.data ?? []))
       .catch(() => setShowtimes([]))
       .finally(() => setLoadingDetail(false));
   }, [selectedCinema]);
@@ -191,7 +189,7 @@ function SuperAdminDashboard({ cinemas, loading }) {
           <StatCard
             icon={Film}
             label="Películas"
-            value={null}
+            value={fmtNumber(counts?.movies)}
             color="bg-violet-600"
             loading={loading}
             to="/admin/billboard"
@@ -199,25 +197,25 @@ function SuperAdminDashboard({ cinemas, loading }) {
           <StatCard
             icon={CalendarClock}
             label="Funciones"
-            value={null}
+            value={fmtNumber(counts?.showtimes)}
             color="bg-amber-500"
             loading={loading}
           />
           <StatCard
             icon={Users}
             label="Empleados"
-            value={null}
+            value={fmtNumber(counts?.employees)}
             color="bg-emerald-500"
             loading={loading}
             to="/admin/personal"
           />
           <StatCard
             icon={UserCog}
-            label="Usuarios"
-            value={null}
+            label="Clientes Registrados"
+            value={fmtNumber(counts?.customers)}
             color="bg-rose-500"
             loading={loading}
-            to="/admin/personal"
+            to="/admin/customers"
           />
         </div>
       </div>
@@ -227,21 +225,16 @@ function SuperAdminDashboard({ cinemas, loading }) {
         <div className="xl:col-span-2 bg-white rounded-xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center justify-between mb-4">
             <SectionTitle>Funciones de hoy</SectionTitle>
-            <select
+            <CinemaSelector
+              cinemas={cinemas}
               value={selectedCinema?.id ?? ""}
-              onChange={(e) =>
+              onChange={(id) =>
                 setSelectedCinema(
-                  cinemas.find((c) => c.id === Number(e.target.value)),
+                  cinemas.find((c) => String(c.id) === String(id)),
                 )
               }
-              className="h-8 rounded-md border border-input bg-background px-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              {cinemas?.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+              showAll={false}
+            />
           </div>
           {loadingDetail ? (
             [1, 2, 3, 4].map((i) => (
@@ -301,6 +294,9 @@ function SuperAdminDashboard({ cinemas, loading }) {
           </div>
         </div>
       </div>
+
+      {/* RF-50 · Ocupación en tiempo real de la sucursal seleccionada */}
+      <LiveOccupancyPanel cinemaId={selectedCinema?.id} />
     </div>
   );
 }
@@ -325,7 +321,7 @@ function BranchDashboard({ user }) {
         onlyFuture: false,
         limit: 8,
       })
-        .then((r) => r.showtimes ?? [])
+        .then((r) => r.data ?? [])
         .catch(() => []),
       getMyInventory({ cinemaId, page: 1, limit: 50 })
         .then((r) => {
@@ -416,6 +412,9 @@ function BranchDashboard({ user }) {
         </div>
       </div>
 
+      {/* RF-50 · Ocupación en tiempo real de la sucursal */}
+      <LiveOccupancyPanel cinemaId={cinemaId} />
+
       {/* Accesos rápidos */}
       <div>
         <SectionTitle>Accesos rápidos</SectionTitle>
@@ -489,19 +488,19 @@ export default function Dashboard() {
       getEmployees()
         .then((r) => r?.length ?? 0)
         .catch(() => 0),
-      getUsers()
+      getCustomers()
         .then((r) => r?.length ?? 0)
         .catch(() => 0),
     ])
-      .then(([cms, movies, showtimes, employees, users]) => {
+      .then(([cms, movies, showtimes, employees, customers]) => {
         setCinemas(cms);
-        setCounts({ movies, showtimes, employees, users });
+        setCounts({ movies, showtimes, employees, customers });
       })
       .finally(() => setLoading(false));
   }, [isSuperAdmin]);
 
   if (isSuperAdmin) {
-    const enrichedCinemas = cinemas; // ya tiene todos los campos
+    const enrichedCinemas = cinemas;
     return (
       <SuperAdminDashboard
         cinemas={enrichedCinemas}

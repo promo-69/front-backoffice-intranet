@@ -30,22 +30,24 @@ function AdminLayoutContent({ location, children }) {
       "/admin/billboard": "Gestión de Cartelera",
       "/admin/sucursales": "Gestión de Sucursales y Salas",
       "/admin/personal": "Gestión de Personal",
-      "/admin/clients": "Nuestros clientes",
       "/admin/transacciones": "Registro de Transacciones",
       "/admin/inventario": "Control de Inventario",
       "/admin/reports": "Reportes",
       "/admin/invoices": "Facturas",
+      "/admin/loyalty": "Cine Puntos",
       "/admin/catalogo": "Gestión de Maestros",
-      "/admin/loyalty": "Fidelizacion",
-      "/admin/rentals": "Gestión de alquiler",
+      "/admin/customers": "Clientes",
+      "/admin/rentals": "Alquileres de Salas",
+      "/admin/finanzas": "Finanzas",
       "/ticketOffice/sell": "Boletos",
       "/ticketOffice/candy": "Carameleria",
+      "/ticketOffice/dashboard": "Panel de Cajero",
     };
     return titles[pathname] || "Dashboard";
   };
 
   const currentTitle = getPageTitle(location.pathname);
-  // ⭐ Detectar si debemos ocultar el header global
+  // Detectar si debemos ocultar el header global
   const hideGlobalHeader = ["/admin/personal/create-role"].includes(
     location.pathname,
   );
@@ -65,7 +67,7 @@ function AdminLayoutContent({ location, children }) {
           }}
         >
           <div className="p-6 lg:p-10 max-w-[1600px] mx-auto w-full">
-            {/* ⭐ Header global ocultable */}
+            {/* Header global ocultable */}
             {!hideGlobalHeader && (
               <header className="mb-8">
                 <h1 className="text-h1-display text-brand-primary font-bebas tracking-wide uppercase">
