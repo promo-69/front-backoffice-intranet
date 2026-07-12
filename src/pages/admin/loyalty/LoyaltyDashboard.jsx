@@ -1,17 +1,190 @@
 import React, { useState, useEffect } from "react";
-import { Sparkles, Trophy, Coins, Edit2, Check, AlertCircle, RefreshCw } from "lucide-react";
+import { Sparkles, Trophy, Coins, Edit2, Check, AlertCircle, RefreshCw, Gift } from "lucide-react";
 import { toast } from "sonner";
-import { getCatalogRecords, updateCatalogRecord } from "../../../services/catalog.service";
+import { getCatalogRecords, updateCatalogRecord, getCatalogByName } from "../../../services/catalog.service";
 import { getExchangeRates, createExchangeRate } from "../../../services/rates.service";
+import {
+  getLoyaltyRewards,
+  createLoyaltyReward,
+  updateLoyaltyReward,
+  deleteLoyaltyReward,
+} from "../../../services/loyalty-rewards.service";
+import { cinemasService } from "../../../services/cinemas.service";
 import { useLoading } from "../../../context/LoadingContext";
+import { usePermission } from "@/hooks/usePermission";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { InputForm } from "@/components/ui/inputForm";
 import { Button } from "@/components/ui/button";
+import DeleteConfirmModal from "@/components/ui/DialogConfirmModal";
+import SuccessModal from "@/components/ui/SuccessModal";
+import RewardSearchBar from "@/components/admin/loyalty/rewards/RewardSearchBar";
+import RewardTable from "@/components/admin/loyalty/rewards/RewardTable";
+import RewardModal from "@/components/admin/loyalty/rewards/RewardModal";
+
+function RewardsTab() {
+  const { showLoader, hideLoader } = useLoading();
+  const { can } = usePermission();
+  const [rewards, setRewards] = useState([]);
+  const [levels, setLevels] = useState([]);
+  const [cinemas, setCinemas] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [rewardToEdit, setRewardToEdit] = useState(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
+  const [isSuccessOpen, setIsSuccessOpen] = useState(false);
+  const [successConfig, setSuccessConfig] = useState({ title: "", message: "" });
+
+  const fetchRewards = async () => {
+    try {
+      showLoader();
+      const res = await getLoyaltyRewards();
+      const list = res?.data ?? res ?? [];
+      setRewards(Array.isArray(list) ? list : []);
+    } catch (error) {
+      console.error("Error al cargar premios de fidelidad:", error);
+      toast.error("No se pudieron cargar los premios de fidelidad.");
+      setRewards([]);
+    } finally {
+      hideLoader();
+    }
+  };
+
+  const fetchAuxCatalogs = async () => {
+    try {
+      const [levelsList, cinemasList] = await Promise.all([
+        getCatalogByName("loyalty-levels").catch(() => []),
+        cinemasService.getAll().catch(() => []),
+      ]);
+      setLevels(Array.isArray(levelsList) ? levelsList : []);
+      setCinemas(Array.isArray(cinemasList) ? cinemasList : []);
+    } catch (error) {
+      console.error("Error al cargar catálogos de premios:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchRewards();
+    fetchAuxCatalogs();
+  }, []);
+
+  const handleOpenEditModal = (reward) => {
+    setRewardToEdit(reward);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = (shouldRefresh) => {
+    setIsModalOpen(false);
+    if (shouldRefresh) {
+      fetchRewards();
+      setSuccessConfig({
+        title: rewardToEdit ? "¡Cambios Guardados!" : "¡Premio Registrado!",
+        message: rewardToEdit
+          ? "La información del premio ha sido actualizada."
+          : "El nuevo premio ya está disponible en el catálogo de canje.",
+      });
+      setIsSuccessOpen(true);
+    }
+    setRewardToEdit(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    try {
+      showLoader();
+      await deleteLoyaltyReward(itemToDelete.id);
+      setIsDeleteModalOpen(false);
+      setSuccessConfig({
+        title: "¡Premio Desactivado!",
+        message: "Se ha removido el premio del catálogo de canje.",
+      });
+      setIsSuccessOpen(true);
+      fetchRewards();
+    } catch (error) {
+      console.error("Error al eliminar premio:", error);
+      const backendMessage = error.response?.data?.message || "Ocurrió un error al eliminar el premio";
+      toast.error(backendMessage);
+    } finally {
+      setItemToDelete(null);
+      hideLoader();
+    }
+  };
+
+  const handleSaveReward = async (payload) => {
+    if (payload.id) {
+      const { id, ...rest } = payload;
+      await updateLoyaltyReward(id, rest);
+    } else {
+      await createLoyaltyReward(payload);
+    }
+  };
+
+  const filteredRewards = rewards.filter((r) =>
+    (r.name || "").toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-300">
+      <div className="flex justify-between items-center border-b border-gray-100 pb-4">
+        <div>
+          <h3 className="text-lg font-montserrat font-bold text-brand-primary">
+            Premios y Promociones
+          </h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            Catálogo de premios canjeables solo con CinePuntos, agrupados por nivel de fidelidad requerido.
+          </p>
+        </div>
+        {can("CRUD:CREATE:LOYALTY-REWARDS") && (
+          <RewardSearchBar
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            onAddClick={() => {
+              setRewardToEdit(null);
+              setIsModalOpen(true);
+            }}
+          />
+        )}
+      </div>
+
+      <RewardTable
+        data={filteredRewards}
+        cinemas={cinemas}
+        levels={levels}
+        onEdit={handleOpenEditModal}
+        onDelete={(id) => {
+          const r = rewards.find((x) => x.id === id);
+          setItemToDelete(r);
+          setIsDeleteModalOpen(true);
+        }}
+      />
+
+      <DeleteConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        itemName={itemToDelete?.name}
+      />
+      <SuccessModal
+        isOpen={isSuccessOpen}
+        onClose={() => setIsSuccessOpen(false)}
+        title={successConfig.title}
+        message={successConfig.message}
+      />
+      <RewardModal
+        open={isModalOpen}
+        onClose={handleCloseModal}
+        initialData={rewardToEdit}
+        onSave={handleSaveReward}
+      />
+    </div>
+  );
+}
 
 export default function LoyaltyDashboard() {
   const { showLoader, hideLoader } = useLoading();
-  const [activeTab, setActiveTab] = useState("levels"); // "levels" or "equivalence"
-  
+  const { can } = usePermission();
+  const [activeTab, setActiveTab] = useState("levels"); // "levels" | "equivalence" | "rewards"
+
   // States for loyalty levels
   const [levels, setLevels] = useState([]);
   const [editingLevel, setEditingLevel] = useState(null);
@@ -44,14 +217,14 @@ export default function LoyaltyDashboard() {
       const res = await getExchangeRates({ page: 1, limit: 100 });
       const list = res.data || res || [];
       const ratesList = Array.isArray(list) ? list : [];
-      
+
       // Filtrar por la moneda 3 (Cinepuntos / PTS)
       const ptsRates = ratesList
         .filter((r) => Number(r.currency) === 3)
         .sort((a, b) => b.id - a.id); // Ordenar por ID descendente para tener el último primero
-      
+
       setRateHistory(ptsRates);
-      
+
       if (ptsRates.length > 0) {
         setCurrentRate(ptsRates[0]);
         setNewRateValue(ptsRates[0].rate.toString());
@@ -70,7 +243,7 @@ export default function LoyaltyDashboard() {
   useEffect(() => {
     if (activeTab === "levels") {
       fetchLoyaltyLevels();
-    } else {
+    } else if (activeTab === "equivalence") {
       fetchExchangeRates();
     }
   }, [activeTab]);
@@ -178,10 +351,25 @@ export default function LoyaltyDashboard() {
           <Coins className="w-4 h-4" />
           Equivalencia de Cinepuntos
         </button>
+        {can("CRUD:READ:LOYALTY-REWARDS") && (
+          <button
+            className={`text-xs uppercase tracking-wider pb-2 border-b-2 transition-colors duration-200 font-bold flex items-center gap-2 cursor-pointer ${
+              activeTab === "rewards"
+                ? "text-brand-gold border-brand-gold"
+                : "text-slate-400 border-transparent hover:text-brand-primary"
+            }`}
+            onClick={() => setActiveTab("rewards")}
+          >
+            <Gift className="w-4 h-4" />
+            Premios y Promociones
+          </button>
+        )}
       </div>
 
       {/* Tab Contents */}
-      {activeTab === "levels" ? (
+      {activeTab === "rewards" ? (
+        <RewardsTab />
+      ) : activeTab === "levels" ? (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="p-5 border-b border-gray-50 bg-gradient-to-r from-slate-50 to-white">
             <h4 className="text-sm font-bold text-slate-700">Rangos de Estatus</h4>

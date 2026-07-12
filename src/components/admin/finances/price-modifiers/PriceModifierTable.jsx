@@ -1,7 +1,13 @@
 import { Pencil, Trash2 } from "lucide-react";
 
-const PriceModifierTable = ({ data, onEdit, onDelete }) => {
+const PriceModifierTable = ({ data, onEdit, onDelete, loyaltyLevels = [] }) => {
   const safeData = Array.isArray(data) ? data : [];
+
+  const getLevelLabel = (levelId) => {
+    if (!levelId) return null;
+    const level = loyaltyLevels.find((l) => Number(l.id) === Number(levelId));
+    return level?.name || `Nivel #${levelId}`;
+  };
 
   return (
     <div className="overflow-x-auto bg-surface-container rounded-cineflix border border-border shadow-sm">
@@ -30,6 +36,11 @@ const PriceModifierTable = ({ data, onEdit, onDelete }) => {
               >
                 <td className="py-4 px-4 font-bold text-slate-700">
                   {item.description || "—"}
+                  {getLevelLabel(item.min_loyalty_level) && (
+                    <span className="block mt-1 w-fit text-[9px] font-black uppercase tracking-wide text-brand-primary bg-brand-primary/10 px-1.5 py-0.5 rounded">
+                      Nivel mín: {getLevelLabel(item.min_loyalty_level)}
+                    </span>
+                  )}
                 </td>
 
                 <td className="py-4 px-4 text-center">
