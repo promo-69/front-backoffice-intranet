@@ -3,13 +3,14 @@ import api from '../api/axios';
 function extractRows(resp) {
   const raw = resp?.data ?? resp;
   if (Array.isArray(raw)) return raw;
-  if (raw?.rows) return raw.rows;
+  if (Array.isArray(raw?.data)) return raw.data;
+  if (Array.isArray(raw?.rows)) return raw.rows;
   return [];
 }
 
 export const cinemasService = {
   getAll: async () => {
-    const response = await api.get('/cinemas');
+    const response = await api.get('/cinemas?limit=-1');
     return extractRows(response.data);
   },
 };
