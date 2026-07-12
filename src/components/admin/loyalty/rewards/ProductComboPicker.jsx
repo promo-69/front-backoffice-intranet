@@ -21,14 +21,6 @@ export default function ProductComboPicker({ open, mode, cinemaId, onSelect, onC
 
   const isCombo = mode === "combo";
 
-  useEffect(() => {
-    if (!open) return;
-    setSearch("");
-    setPage(1);
-    fetchItems();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, mode, cinemaId]);
-
   const fetchItems = async () => {
     setIsLoading(true);
     setLoadError(null);
@@ -55,6 +47,14 @@ export default function ProductComboPicker({ open, mode, cinemaId, onSelect, onC
     }
   };
 
+  useEffect(() => {
+    if (!open) return;
+    setSearch("");
+    setPage(1);
+    fetchItems();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, mode, cinemaId]);
+
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     if (!term) return items;
@@ -71,10 +71,10 @@ export default function ProductComboPicker({ open, mode, cinemaId, onSelect, onC
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent className="max-w-3xl bg-white rounded-cineflix p-0 shadow-2xl border-none flex flex-col max-h-[80vh] min-h-[560px] overflow-hidden">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b border-brand-primary/10 bg-gradient-to-r from-brand-primary/[0.06] to-transparent">
+      <DialogContent className="max-w-4xl bg-white rounded-cineflix p-0 shadow-2xl border-none flex flex-col max-h-[80vh] min-h-[560px] overflow-hidden">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b border-brand-primary/15 bg-gradient-to-r from-brand-primary/[0.10] to-transparent">
           <DialogTitle className="text-lg font-bold text-brand-primary flex items-center gap-2">
-            <span className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-brand-primary/10 text-brand-primary">
+            <span className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-brand-primary/15 text-brand-primary">
               <Icon className="w-4.5 h-4.5" />
             </span>
             Seleccionar {isCombo ? "Combo" : "Producto"}
@@ -98,7 +98,7 @@ export default function ProductComboPicker({ open, mode, cinemaId, onSelect, onC
                 setPage(1);
               }}
               placeholder={`Buscar ${isCombo ? "combo" : "producto"} por nombre...`}
-              className="w-full h-12 pl-10 pr-4 rounded-xl bg-brand-primary/[0.04] border border-brand-primary/10 text-sm font-montserrat focus:outline-none focus:ring-2 focus:ring-brand-primary/25 focus:border-brand-primary/40 transition-all"
+              className="w-full h-12 pl-10 pr-4 rounded-xl bg-brand-primary/[0.06] border border-brand-primary/20 text-sm font-montserrat focus:outline-none focus:ring-2 focus:ring-brand-primary/25 focus:border-brand-primary/40 transition-all"
             />
           </div>
         </div>
@@ -129,7 +129,7 @@ export default function ProductComboPicker({ open, mode, cinemaId, onSelect, onC
                 <button
                   key={item.id}
                   onClick={() => onSelect(item)}
-                  className="w-full flex items-center justify-between gap-3 p-4 rounded-xl border border-brand-primary/10 bg-brand-primary/[0.02] hover:border-brand-primary/40 hover:bg-brand-primary/[0.08] transition-colors text-left"
+                  className="w-full flex items-center justify-between gap-3 p-4 rounded-xl border border-brand-primary/20 bg-brand-primary/[0.05] hover:border-brand-primary/50 hover:bg-brand-primary/[0.12] transition-colors text-left"
                 >
                   <div>
                     <p className="text-sm font-bold text-slate-700">{item.name || item.description}</p>
@@ -137,7 +137,7 @@ export default function ProductComboPicker({ open, mode, cinemaId, onSelect, onC
                       <p className="text-[10px] text-slate-400 mt-0.5">{item.description}</p>
                     )}
                   </div>
-                  <span className="text-[10px] font-black uppercase text-brand-primary shrink-0 bg-brand-primary/10 px-2.5 py-1 rounded-full">
+                  <span className="text-[10px] font-black uppercase text-brand-primary shrink-0 bg-brand-primary/15 px-2.5 py-1 rounded-full">
                     Seleccionar
                   </span>
                 </button>
@@ -146,12 +146,12 @@ export default function ProductComboPicker({ open, mode, cinemaId, onSelect, onC
           )}
         </div>
 
-        <div className="px-6 py-4 bg-brand-primary/[0.04] border-t border-brand-primary/10 flex items-center justify-between">
+        <div className="px-6 py-4 bg-brand-primary/[0.06] border-t border-brand-primary/15 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={safePage === 1}
-              className="px-3 py-1.5 text-xs rounded-lg border border-brand-primary/15 bg-white disabled:opacity-40"
+              className="px-3 py-1.5 text-xs rounded-lg border border-brand-primary/20 bg-white disabled:opacity-40"
             >
               ◀
             </button>
@@ -161,7 +161,7 @@ export default function ProductComboPicker({ open, mode, cinemaId, onSelect, onC
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={safePage === totalPages}
-              className="px-3 py-1.5 text-xs rounded-lg border border-brand-primary/15 bg-white disabled:opacity-40"
+              className="px-3 py-1.5 text-xs rounded-lg border border-brand-primary/20 bg-white disabled:opacity-40"
             >
               ▶
             </button>

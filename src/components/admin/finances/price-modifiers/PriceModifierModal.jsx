@@ -76,43 +76,6 @@ export default function PriceModifierModal({ open, onClose, initialData, onSave 
     loyaltyLevels: [],
   });
 
-  useEffect(() => {
-    if (open) {
-      if (initialData) {
-        setFormData({
-          description: initialData.description || "",
-          operationType: initialData.operationType || initialData.operation_type || "",
-          isPercentage: initialData.isPercentage ?? initialData.is_percentage ?? true,
-          value: initialData.value || "",
-          currency: initialData.currency || "",
-          modifierScope: initialData.modifierScope || initialData.modifier_scope || "",
-          audienceCategory: initialData.audienceCategory || initialData.audience_category || "",
-          weekDay: initialData.weekDay || initialData.week_day || "",
-          seatCategory: initialData.seatCategory || initialData.seat_category || "",
-          projectionType: initialData.projectionType || initialData.projection_type || "",
-          productCategory: initialData.productCategory || initialData.product_category || "",
-          product: initialData.product || "",
-          cinema: initialData.cinema || "",
-          lineType: initialData.lineType || initialData.line_type || "",
-          bookingType: initialData.bookingType || initialData.booking_type || "",
-          movie: initialData.movie || "",
-          roomType: initialData.roomType || initialData.room_type || "",
-          targetCurrency: initialData.targetCurrency || initialData.target_currency || "",
-          targetCurrencyCondition: initialData.targetCurrencyCondition ?? initialData.target_currency_condition ?? false,
-          startDate: initialData.startDate || initialData.start_date || "",
-          endDate: initialData.endDate || initialData.end_date || "",
-          startTime: initialData.startTime || initialData.start_time || "",
-          endTime: initialData.endTime || initialData.end_time || "",
-          minLoyaltyLevel: initialData.minLoyaltyLevel || initialData.min_loyalty_level || "",
-        });
-      } else {
-        setFormData(emptyForm);
-      }
-      setErrors({});
-      fetchCatalogs();
-    }
-  }, [open, initialData]);
-
   const fetchCatalogs = async () => {
     try {
       const [
@@ -174,6 +137,43 @@ export default function PriceModifierModal({ open, onClose, initialData, onSave 
       console.error("Error fetching catalogs", error);
     }
   };
+
+  useEffect(() => {
+    if (open) {
+      if (initialData) {
+        setFormData({
+          description: initialData.description || "",
+          operationType: initialData.operationType || initialData.operation_type || "",
+          isPercentage: initialData.isPercentage ?? initialData.is_percentage ?? true,
+          value: initialData.value || "",
+          currency: initialData.currency || "",
+          modifierScope: initialData.modifierScope || initialData.modifier_scope || "",
+          audienceCategory: initialData.audienceCategory || initialData.audience_category || "",
+          weekDay: initialData.weekDay || initialData.week_day || "",
+          seatCategory: initialData.seatCategory || initialData.seat_category || "",
+          projectionType: initialData.projectionType || initialData.projection_type || "",
+          productCategory: initialData.productCategory || initialData.product_category || "",
+          product: initialData.product || "",
+          cinema: initialData.cinema || "",
+          lineType: initialData.lineType || initialData.line_type || "",
+          bookingType: initialData.bookingType || initialData.booking_type || "",
+          movie: initialData.movie || "",
+          roomType: initialData.roomType || initialData.room_type || "",
+          targetCurrency: initialData.targetCurrency || initialData.target_currency || "",
+          targetCurrencyCondition: initialData.targetCurrencyCondition ?? initialData.target_currency_condition ?? false,
+          startDate: initialData.startDate || initialData.start_date || "",
+          endDate: initialData.endDate || initialData.end_date || "",
+          startTime: initialData.startTime || initialData.start_time || "",
+          endTime: initialData.endTime || initialData.end_time || "",
+          minLoyaltyLevel: initialData.minLoyaltyLevel || initialData.min_loyalty_level || "",
+        });
+      } else {
+        setFormData(emptyForm);
+      }
+      setErrors({});
+      fetchCatalogs();
+    }
+  }, [open, initialData]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;

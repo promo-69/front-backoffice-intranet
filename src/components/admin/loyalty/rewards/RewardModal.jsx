@@ -70,6 +70,18 @@ export default function RewardModal({ open, onClose, initialData, onSave }) {
 
   const [activePicker, setActivePicker] = useState(null); // "product" | "combo" | null
 
+  const fetchCatalogs = async () => {
+    try {
+      const [levels, cinemas] = await Promise.all([
+        getCatalogByName("loyalty-levels").catch(() => []),
+        cinemasService.getAll().catch(() => []),
+      ]);
+      setCatalogs((prev) => ({ ...prev, levels, cinemas }));
+    } catch (error) {
+      console.error("Error fetching catalogs", error);
+    }
+  };
+
   useEffect(() => {
     if (open) {
       if (initialData) {
@@ -101,19 +113,7 @@ export default function RewardModal({ open, onClose, initialData, onSave }) {
       setErrors({});
       fetchCatalogs();
     }
-  }, [open, initialData]);
-
-  const fetchCatalogs = async () => {
-    try {
-      const [levels, cinemas] = await Promise.all([
-        getCatalogByName("loyalty-levels").catch(() => []),
-        cinemasService.getAll().catch(() => []),
-      ]);
-      setCatalogs((prev) => ({ ...prev, levels, cinemas }));
-    } catch (error) {
-      console.error("Error fetching catalogs", error);
-    }
-  };
+  }, [open, initialData, user?.cinemaId]);
 
   // Productos: catálogo GLOBAL (la tabla `products` no tiene columna `cinema`,
   // solo el stock se lleva por sucursal). No depende de la sucursal seleccionada.
