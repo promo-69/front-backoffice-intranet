@@ -48,6 +48,7 @@ const emptyForm = {
   endDate: "",
   startTime: "",
   endTime: "",
+  minLoyaltyLevel: "",
 };
 
 export default function PriceModifierModal({ open, onClose, initialData, onSave }) {
@@ -72,7 +73,70 @@ export default function PriceModifierModal({ open, onClose, initialData, onSave 
     movies: [],
     roomTypes: [],
     weekDays: [],
+    loyaltyLevels: [],
   });
+
+  const fetchCatalogs = async () => {
+    try {
+      const [
+        modifierScopes,
+        operationTypes,
+        currencies,
+        audienceCategories,
+        seatCategories,
+        projectionTypes,
+        productCategories,
+        productsRes,
+        cinemasRes,
+        lineTypes,
+        bookingTypes,
+        moviesRes,
+        roomTypes,
+        weekDays,
+        loyaltyLevels,
+      ] = await Promise.all([
+        getCatalogByName("modifier-scopes").catch(() => []),
+        getCatalogByName("operation-types").catch(() => []),
+        getCatalogByName("currencies").catch(() => []),
+        getCatalogByName("audience-categories").catch(() => []),
+        getCatalogByName("seat-categories").catch(() => []),
+        getCatalogByName("projection-types").catch(() => []),
+        getCatalogByName("product-categories").catch(() => []),
+        api.get("/concessions/products?limit=-1").catch(() => ({ data: { data: [] } })),
+        api.get("/cinemas?limit=-1").catch(() => ({ data: { data: [] } })),
+        getCatalogByName("line-types").catch(() => []),
+        getCatalogByName("booking-types").catch(() => []),
+        api.get("/movies?limit=-1").catch(() => ({ data: { data: [] } })),
+        getCatalogByName("room-types").catch(() => []),
+        getCatalogByName("week-days").catch(() => []),
+        getCatalogByName("loyalty-levels").catch(() => []),
+      ]);
+
+      const products = productsRes?.data?.data || productsRes?.data || [];
+      const movies = moviesRes?.data?.data || moviesRes?.data || [];
+      const cinemas = cinemasRes?.data?.data || cinemasRes?.data || [];
+
+      setCatalogs({
+        modifierScopes,
+        operationTypes,
+        currencies,
+        audienceCategories,
+        seatCategories,
+        projectionTypes,
+        productCategories,
+        products,
+        cinemas,
+        lineTypes,
+        bookingTypes,
+        movies,
+        roomTypes,
+        weekDays,
+        loyaltyLevels,
+      });
+    } catch (error) {
+      console.error("Error fetching catalogs", error);
+    }
+  };
 
   useEffect(() => {
     if (open) {
@@ -101,6 +165,7 @@ export default function PriceModifierModal({ open, onClose, initialData, onSave 
           endDate: initialData.endDate || initialData.end_date || "",
           startTime: initialData.startTime || initialData.start_time || "",
           endTime: initialData.endTime || initialData.end_time || "",
+          minLoyaltyLevel: initialData.minLoyaltyLevel || initialData.min_loyalty_level || "",
         });
       } else {
         setFormData(emptyForm);
@@ -109,65 +174,6 @@ export default function PriceModifierModal({ open, onClose, initialData, onSave 
       fetchCatalogs();
     }
   }, [open, initialData]);
-
-  const fetchCatalogs = async () => {
-    try {
-      const [
-        modifierScopes,
-        operationTypes,
-        currencies,
-        audienceCategories,
-        seatCategories,
-        projectionTypes,
-        productCategories,
-        productsRes,
-        cinemasRes,
-        lineTypes,
-        bookingTypes,
-        moviesRes,
-        roomTypes,
-        weekDays,
-      ] = await Promise.all([
-        getCatalogByName("modifier-scopes").catch(() => []),
-        getCatalogByName("operation-types").catch(() => []),
-        getCatalogByName("currencies").catch(() => []),
-        getCatalogByName("audience-categories").catch(() => []),
-        getCatalogByName("seat-categories").catch(() => []),
-        getCatalogByName("projection-types").catch(() => []),
-        getCatalogByName("product-categories").catch(() => []),
-        api.get("/concessions/products?limit=-1").catch(() => ({ data: { data: [] } })),
-        api.get("/cinemas?limit=-1").catch(() => ({ data: { data: [] } })),
-        getCatalogByName("line-types").catch(() => []),
-        getCatalogByName("booking-types").catch(() => []),
-        api.get("/movies?limit=-1").catch(() => ({ data: { data: [] } })),
-        getCatalogByName("room-types").catch(() => []),
-        getCatalogByName("week-days").catch(() => []),
-      ]);
-
-      const products = productsRes?.data?.data || productsRes?.data || [];
-      const movies = moviesRes?.data?.data || moviesRes?.data || [];
-      const cinemas = cinemasRes?.data?.data || cinemasRes?.data || [];
-
-      setCatalogs({
-        modifierScopes,
-        operationTypes,
-        currencies,
-        audienceCategories,
-        seatCategories,
-        projectionTypes,
-        productCategories,
-        products,
-        cinemas,
-        lineTypes,
-        bookingTypes,
-        movies,
-        roomTypes,
-        weekDays,
-      });
-    } catch (error) {
-      console.error("Error fetching catalogs", error);
-    }
-  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -180,9 +186,9 @@ export default function PriceModifierModal({ open, onClose, initialData, onSave 
 
   const mapBackendErrorToSpanish = (message) => {
     if (!message) return "Ocurrió un error inesperado al guardar.";
-    
+
     let translated = message;
-    
+
     const fieldTranslations = {
       modifierScope: "Ámbito (Scope)",
       operationType: "Tipo de Operación",
@@ -205,7 +211,8 @@ export default function PriceModifierModal({ open, onClose, initialData, onSave 
       endDate: "Fecha de Fin",
       startTime: "Hora de Inicio",
       endTime: "Hora de Fin",
-      description: "Descripción"
+      description: "Descripción",
+      minLoyaltyLevel: "Nivel de Fidelidad Mínimo",
     };
 
     Object.keys(fieldTranslations).forEach((key) => {
@@ -216,7 +223,7 @@ export default function PriceModifierModal({ open, onClose, initialData, onSave 
     if (translated.includes("Faltan campos requeridos")) {
       return "Por favor, completa todos los campos obligatorios del formulario.";
     }
-    
+
     return translated;
   };
 
@@ -251,19 +258,19 @@ export default function PriceModifierModal({ open, onClose, initialData, onSave 
     try {
       const payload = { ...formData };
       payload.value = parseFloat(formData.value);
-      
+
       const intFields = [
-        "modifierScope", "operationType", "currency", "audienceCategory", 
-        "weekDay", "seatCategory", "projectionType", "productCategory", 
-        "product", "cinema", "lineType", "bookingType", "movie", 
-        "roomType", "targetCurrency"
+        "modifierScope", "operationType", "currency", "audienceCategory",
+        "weekDay", "seatCategory", "projectionType", "productCategory",
+        "product", "cinema", "lineType", "bookingType", "movie",
+        "roomType", "targetCurrency", "minLoyaltyLevel"
       ];
       intFields.forEach(field => {
         if (payload[field]) {
           payload[field] = parseInt(payload[field], 10);
         }
       });
-      
+
       // Clean up empty strings to null for DB consistency
       Object.keys(payload).forEach((key) => {
         if (payload[key] === "") payload[key] = null;
@@ -436,7 +443,25 @@ export default function PriceModifierModal({ open, onClose, initialData, onSave 
                       ))}
                     </SelectForm>
                   </div>
-                  
+
+                  <div>
+                    <SelectForm
+                      label="Nivel de Fidelidad Mínimo"
+                      name="minLoyaltyLevel"
+                      value={formData.minLoyaltyLevel}
+                      onChange={handleChange}
+                      error={errors.minLoyaltyLevel}
+                    >
+                      <option value="">Sin restricción</option>
+                      {catalogs.loyaltyLevels.map((opt) => (
+                        <option key={opt.id} value={opt.id}>{opt.name}</option>
+                      ))}
+                    </SelectForm>
+                    <p className="text-[9px] text-slate-400 mt-1 ml-1">
+                      Si se indica, el descuento solo aplica a clientes con este nivel de fidelidad o superior.
+                    </p>
+                  </div>
+
                   {/* SCOPE 1: TICKETS */}
                   {(formData.modifierScope == 1) && (
                     <>

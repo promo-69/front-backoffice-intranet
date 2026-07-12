@@ -136,7 +136,7 @@ const CinemaSelector = ({
                 <p className="text-xs text-slate-400">No hay sucursales registradas</p>
               </div>
             ) : (
-              cinemas.map((cinema, idx) => {
+              cinemas.map((cinema) => {
                 const isSelected = String(cinema.id) === String(value);
                 return (
                   <button

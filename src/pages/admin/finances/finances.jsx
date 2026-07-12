@@ -40,6 +40,7 @@ import {
   updatePriceModifier,
   deletePriceModifier,
 } from "@/services/price-modifiers.service";
+import { getCatalogByName } from "@/services/catalog.service";
 
 function CurrenciesTab() {
   const { showLoader, hideLoader } = useLoading();
@@ -145,7 +146,7 @@ function CurrenciesTab() {
     try {
       showLoader();
       await updateCurrency(currency.id, { isBaseCurrency: checked });
-      
+
       // Notificación visual de éxito (opcional)
       setSuccessConfig({
         title: "¡Configuración Actualizada!",
@@ -638,6 +639,7 @@ function BankAccountsTab() {
 function PriceModifiersTab() {
   const { showLoader, hideLoader } = useLoading();
   const [modifiers, setModifiers] = useState([]);
+  const [loyaltyLevels, setLoyaltyLevels] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
 
   const [metadata, setMetadata] = useState({
@@ -676,6 +678,12 @@ function PriceModifiersTab() {
   useEffect(() => {
     fetchModifiersData();
   }, [currentPage]);
+
+  useEffect(() => {
+    getCatalogByName("loyalty-levels")
+      .then((list) => setLoyaltyLevels(Array.isArray(list) ? list : []))
+      .catch(() => setLoyaltyLevels([]));
+  }, []);
 
   const handleOpenEditModal = (modifier) => {
     setModifierToEdit(modifier);
@@ -754,6 +762,7 @@ function PriceModifiersTab() {
 
       <PriceModifierTable
         data={filteredModifiers}
+        loyaltyLevels={loyaltyLevels}
         onEdit={handleOpenEditModal}
         onDelete={(id) => {
           const m = modifiers.find((x) => x.id === id);

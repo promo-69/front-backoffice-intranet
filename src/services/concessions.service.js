@@ -3,28 +3,29 @@ import api from '../api/axios';
 function extractRows(resp) {
   const raw = resp?.data ?? resp;
   if (Array.isArray(raw)) return raw;
-  if (raw?.rows) return raw.rows;
+  if (Array.isArray(raw?.data)) return raw.data;
+  if (Array.isArray(raw?.rows)) return raw.rows;
   return [];
 }
 
 export const concessionsService = {
   getProducts: async () => {
-    const response = await api.get('/concessions/products');
+    const response = await api.get('/concessions/products?limit=-1');
     return extractRows(response.data);
   },
 
   getCombos: async () => {
-    const response = await api.get('/concessions/combos');
+    const response = await api.get('/concessions/combos?limit=-1');
     return extractRows(response.data);
   },
 
   getAvailableProducts: async (cinemaId) => {
-    const response = await api.get('/concessions/products/available', { params: { cinemaId } });
+    const response = await api.get('/concessions/products/available', { params: { cinemaId, limit: -1 } });
     return extractRows(response.data);
   },
 
   getAvailableCombos: async (cinemaId) => {
-    const response = await api.get('/concessions/combos/available', { params: { cinemaId } });
+    const response = await api.get('/concessions/combos/available', { params: { cinemaId, limit: -1 } });
     return extractRows(response.data);
   },
 

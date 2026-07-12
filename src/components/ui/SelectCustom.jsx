@@ -1,10 +1,10 @@
 import { useId, forwardRef } from 'react'
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from '@/components/ui/select'
 import { cn } from "@/lib/utils"
 
@@ -16,16 +16,16 @@ import { cn } from "@/lib/utils"
  * @param {string} error - Mensaje de error para validaciones
  * @param {function} onValueChange - Callback para capturar el valor
  */
-export const SelectCustom = forwardRef(({ 
-  label, 
-  placeholder, 
-  options = [], 
-  defaultValue, 
-  onValueChange, 
+export const SelectCustom = forwardRef(({
+  label,
+  placeholder,
+  options = [],
+  defaultValue,
+  onValueChange,
   value,
   error,
   className,
-  ...props 
+  ...props
 }, ref) => {
   const id = useId()
 
@@ -41,13 +41,13 @@ export const SelectCustom = forwardRef(({
         </label>
       )}
 
-      <Select 
-        defaultValue={defaultValue?.toString()} 
+      <Select
+        defaultValue={defaultValue?.toString()}
         onValueChange={onValueChange}
         value={value?.toString()}
         {...props}
       >
-        <SelectTrigger 
+        <SelectTrigger
           id={id}
           ref={ref}
           className={cn(
@@ -58,13 +58,13 @@ export const SelectCustom = forwardRef(({
         >
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
-        
-        <SelectContent className="bg-white z-[110] rounded-xl shadow-xl border-gray-100">
+
+        <SelectContent position="popper" className="bg-white z-[110] rounded-xl shadow-xl border-gray-100">
           {options.length > 0 ? (
             options.map((opt) => (
-              <SelectItem  
+              <SelectItem
                 key={opt.value}
-                value={opt.value.toString()} 
+                value={opt.value.toString()}
                 className="font-montserrat text-sm py-2.5 focus:bg-brand-primary/10 focus:text-brand-primary cursor-pointer"
               >
                 {opt.label}
