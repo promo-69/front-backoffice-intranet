@@ -25,3 +25,8 @@ export const deleteLoyaltyReward = async (id) => {
   const response = await api.delete(`/loyalty-rewards/${id}`);
   return response.data;
 };
+
+export const validateBlankTicket = async (code) => {
+  const response = await api.get(`/blank-tickets/${encodeURIComponent(code)}`);
+  return response.data?.data ?? response.data;
+};

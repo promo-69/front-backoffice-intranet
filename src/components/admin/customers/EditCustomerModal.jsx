@@ -13,9 +13,9 @@ import { updateCustomer } from "@/services/customers.service";
 
 const GENDERS = [
   { value: "none", label: "Sin especificar" },
-  { value: "M", label: "Masculino" },
-  { value: "F", label: "Femenino" },
-  { value: "O", label: "Otro" },
+  { value: "1", label: "Masculino" },
+  { value: "2", label: "Femenino" },
+  { value: "3", label: "Prefiero no decirlo" },
 ];
 
 function Field({ label, children }) {
@@ -51,7 +51,7 @@ export default function EditCustomerModal({ open, customer, onClose }) {
       document_number: p.document_number ?? "",
       phone_number: p.phone_number ?? "",
       personal_email: p.personal_email ?? "",
-      gender: p.gender || "none",
+      gender: p.gender != null ? String(p.gender) : "none",
       birth_date: p.birth_date ? p.birth_date.slice(0, 10) : "",
     });
     setError("");
@@ -75,7 +75,7 @@ export default function EditCustomerModal({ open, customer, onClose }) {
         lastName: form.last_name.trim(),
         phoneNumber: form.phone_number.trim() || null,
         email: form.personal_email.trim() || null,
-        gender: form.gender && form.gender !== "none" ? form.gender : null,
+        gender: form.gender && form.gender !== "none" ? Number(form.gender) : null,
         birthDate: form.birth_date || null,
       });
       onClose(true);

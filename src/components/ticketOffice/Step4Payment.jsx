@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { validateBlankTicket } from "@/services/loyalty-rewards.service";
 import {
   ArrowLeft,
   CheckCircle,
@@ -23,7 +24,6 @@ export default function Step4Payment({
   onNewSale,
   paymentMethods = [],
   bankAccountsByMethod = {},
-  vesCurrencyId = 2,
   customerInfo = null,
   exchangeRate = 600,
 }) {
@@ -53,7 +53,7 @@ export default function Step4Payment({
   // RF-20: cálculo de vuelto para pagos en efectivo.
   // Efectivo = método que no es fidelidad (5) ni con referencia (2,3,4).
   const [cashReceived, setCashReceived] = useState("");
-  const isCashMethod = (m) => m !== 5 && ![2, 3, 4].includes(m);
+  const isCashMethod = (m) => m !== 5 && m !== 6 && ![2, 3, 4].includes(m);
   const cashAppliedUsd = payments
     .filter((p) => isCashMethod(p.method))
     .reduce((s, p) => s + (Number(p.amountUsd) || 0), 0);
@@ -85,6 +85,26 @@ export default function Step4Payment({
     setPayments((prev) =>
       prev.map((p, i) => (i === index ? { ...p, ...patch } : p)),
     );
+  };
+
+  const setPaymentField = (index, key, value) => {
+    setPayments((prev) =>
+      prev.map((p, i) =>
+        i === index ? { ...p, fields: { ...p.fields, [key]: value } } : p,
+      ),
+    );
+  };
+
+  // Valida un boleto en blanco contra el backend y guarda su estado en el pago.
+  const validateBlank = async (index, code) => {
+    if (!code) return;
+    setPaymentField(index, "blankStatus", "checking");
+    try {
+      const info = await validateBlankTicket(code.trim());
+      setPaymentField(index, "blankStatus", info?.redeemable ? "valid" : (info?.status || "invalid"));
+    } catch {
+      setPaymentField(index, "blankStatus", "notfound");
+    }
   };
 
   const onAmountUsdChange = (index, usdAmount) => {
@@ -369,8 +389,8 @@ export default function Step4Payment({
           ) : (
             <div className="space-y-3">
               {payments.map((p, index) => {
-                const methodDef = paymentMethods.find((m) => m.id === p.method);
                 const isLoyalty = p.method === 5;
+                const isBlankTicket = p.method === 6;
                 const hasReference = [2, 3, 4].includes(p.method);
                 const bankAccounts = bankAccountsByMethod[p.method] || [];
                 return (
@@ -383,12 +403,22 @@ export default function Step4Payment({
                         value={p.method}
                         onChange={(e) => {
                           const newMethod = Number(e.target.value);
-                          updatePayment(index, {
-                            method: newMethod,
-                            amountVes: 0,
-                            amountUsd: 0,
-                            fields: {},
-                          });
+                          if (newMethod === 6) {
+                            // Boleto en blanco: cubre el total del boleto.
+                            updatePayment(index, {
+                              method: newMethod,
+                              amountUsd: grandTotal,
+                              amountVes: grandTotalVes,
+                              fields: {},
+                            });
+                          } else {
+                            updatePayment(index, {
+                              method: newMethod,
+                              amountVes: 0,
+                              amountUsd: 0,
+                              fields: {},
+                            });
+                          }
                         }}
                         className="flex-1 bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm font-bold text-[#3E2186] focus:outline-none focus:border-[#3E2186]"
                       >
@@ -491,6 +521,7 @@ export default function Step4Payment({
                           step="0.01"
                           min="0"
                           value={p.amountUsd || ""}
+                          disabled={isBlankTicket}
                           onChange={(e) =>
                             onAmountUsdChange(index, e.target.value)
                           }
@@ -506,6 +537,7 @@ export default function Step4Payment({
                           step="0.01"
                           min="0"
                           value={p.amountVes || ""}
+                          disabled={isBlankTicket}
                           onChange={(e) =>
                             onAmountVesChange(index, e.target.value)
                           }
@@ -533,6 +565,51 @@ export default function Step4Payment({
                           }
                           className="w-full bg-white border border-gray-200 rounded-xl px-3 pt-6 pb-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#3E2186]/60 transition-colors"
                         />
+                      </div>
+                    )}
+
+                    {isBlankTicket && (
+                      <div className="space-y-2">
+                        <div className="relative">
+                          <label className="absolute top-1 left-3 text-[10px] font-bold text-[#3E2186] uppercase tracking-wider">
+                            Código del vale
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="Escanear o teclear el código"
+                            value={p.fields?.blankCode || ""}
+                            onChange={(e) => {
+                              setPaymentField(index, "blankCode", e.target.value.toUpperCase());
+                              setPaymentField(index, "blankStatus", undefined);
+                            }}
+                            className="w-full bg-white border border-gray-200 rounded-xl px-3 pt-6 pb-2 text-sm font-mono tracking-widest text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#3E2186]/60 transition-colors"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => validateBlank(index, p.fields?.blankCode)}
+                            disabled={!p.fields?.blankCode || p.fields?.blankStatus === "checking"}
+                            className="px-3 py-1.5 text-[11px] font-bold rounded-lg border border-[#3E2186]/30 text-[#3E2186] bg-[#3E2186]/[0.04] hover:bg-[#3E2186]/[0.10] disabled:opacity-40"
+                          >
+                            {p.fields?.blankStatus === "checking" ? "Validando..." : "Validar"}
+                          </button>
+                          {p.fields?.blankStatus === "valid" && (
+                            <span className="text-[11px] font-bold text-green-600">Vale válido ✓</span>
+                          )}
+                          {p.fields?.blankStatus === "notfound" && (
+                            <span className="text-[11px] font-bold text-red-500">No existe</span>
+                          )}
+                          {p.fields?.blankStatus &&
+                            !["valid", "notfound", "checking"].includes(p.fields.blankStatus) && (
+                              <span className="text-[11px] font-bold text-red-500">
+                                No canjeable ({p.fields.blankStatus})
+                              </span>
+                            )}
+                        </div>
+                        <p className="text-[10px] text-slate-400">
+                          El vale cubre el total del boleto (cualquier función, sin diferencia de precio).
+                        </p>
                       </div>
                     )}
                   </div>
@@ -586,6 +663,7 @@ export default function Step4Payment({
               const needsReference =
                 methodDef?.requires_reference ?? [2, 3, 4].includes(p.method);
               if (needsReference && !p.fields?.Referencia) return true;
+              if (p.method === 6 && !p.fields?.blankCode) return true;
               const ba = bankAccountsByMethod[p.method] || [];
               if (ba.length > 0 && !p.fields?.Banco) return true;
               if (

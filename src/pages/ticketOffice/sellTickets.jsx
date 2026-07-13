@@ -438,6 +438,7 @@ export default function SellTickets() {
           amount: p.amountVes,
           currency: vesCurrencyId,
           reference_number: p.fields?.Referencia || undefined,
+          code: p.method === 6 ? (p.fields?.blankCode || undefined) : undefined,
           bank,
           bypass: [2, 3, 4].includes(p.method) ? true : undefined,
         };
