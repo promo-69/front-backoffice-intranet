@@ -188,6 +188,8 @@ export default function SellTickets() {
   const [bankAccountsByMethod, setBankAccountsByMethod] = useState({});
   const [vesCurrencyId, setVesCurrencyId] = useState(2);
   const [exchangeRate, setExchangeRate] = useState(600);
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
+  const [paymentResult, setPaymentResult] = useState(null);
   useEffect(() => {
     let cancelled = false;
     async function load() {
@@ -386,6 +388,32 @@ export default function SellTickets() {
         setTimeLeft(0);
       });
 
+      // Payment WebSocket events
+      socketService.off("payment_success");
+      socketService.on("payment_success", (data) => {
+        if (!paymentProcessing) return; // Ignorar durante pagos individuales
+        setPaymentProcessing(false);
+        setPaymentResult({ success: true, partial: true, remainingBalance: data.remaining_balance, message: data.message });
+      });
+      socketService.off("payment_completed");
+      socketService.on("payment_completed", (data) => {
+        if (!paymentProcessing) return;
+        setPaymentProcessing(false);
+        setPaymentResult({ success: true, ...data });
+      });
+      socketService.off("payment_failed");
+      socketService.on("payment_failed", (data) => {
+        if (!paymentProcessing) return;
+        setPaymentProcessing(false);
+        setPaymentResult({ success: false, ...data });
+      });
+      socketService.off("billing_required");
+      socketService.on("billing_required", (data) => {
+        if (!paymentProcessing) return;
+        setPaymentProcessing(false);
+        setPaymentResult({ success: true, billing: true, ...data });
+      });
+
       setStep(4);
     } catch (err) {
       console.error("Error al preparar la sesión de compra:", err);
@@ -423,7 +451,6 @@ export default function SellTickets() {
       combo: e.item.category === "Combo" ? e.item.id : undefined,
       quantity: e.qty,
     }));
-    const { data: checkoutData } = await ordersService.checkout(tickets, concessions);
     const allPayments = payments
       .filter(p => p.method !== 5)
       .map(p => {
@@ -441,6 +468,7 @@ export default function SellTickets() {
           code: p.method === 6 ? (p.fields?.blankCode || undefined) : undefined,
           bank,
           bypass: [2, 3, 4].includes(p.method) ? true : undefined,
+          _confirmed: p.confirmed || false,
         };
       });
     const ptsPayment = payments.find(p => p.method === 5);
@@ -451,12 +479,18 @@ export default function SellTickets() {
         currency: vesCurrencyId,
       });
     }
+    const unconfirmedPayments = allPayments.filter(p => !p._confirmed)
     console.log("[processOrder] allPayments:", JSON.stringify(allPayments, null, 2));
-    if (allPayments.length > 0) await ordersService.registerPayments(allPayments);
-    return checkoutData;
+    if (unconfirmedPayments.length > 0) {
+      const paymentResp = await ordersService.registerPayments(unconfirmedPayments);
+      if (paymentResp?.data?.message?.includes("Error") || paymentResp?.error) {
+        throw new Error(paymentResp?.data?.message || paymentResp?.error || "Error al registrar el pago");
+      }
+    }
+    return {};
   };
 
-  const handleStep3Next = ({ concessionItems, concessionTotal }) => {
+  const handleStep3Next = async ({ concessionItems, concessionTotal }) => {
     const concessionTotalVes = concessionItems.reduce((sum, ci) => {
       const ves = ci.item?.priceVes || (ci.item?.price * exchangeRate);
       return sum + ves * ci.qty;
@@ -467,6 +501,24 @@ export default function SellTickets() {
       concessionTotal,
       concessionTotalVes,
     }));
+
+    // Crear la orden antes de mostrar los pagos
+    try {
+      const tickets = saleData.selectedSeats.map((s) => ({
+        seatId: s.dbId,
+        booking: saleData.showtime.room_booking_id,
+        audienceCategoryId: s.audienceCategoryId || 1,
+      }));
+      const concessions = concessionItems.map((e) => ({
+        line_type: e.item.category === "Combo" ? 2 : 1,
+        product: e.item.category !== "Combo" ? e.item.id : undefined,
+        combo: e.item.category === "Combo" ? e.item.id : undefined,
+        quantity: e.qty,
+      }));
+      await ordersService.checkout(tickets, concessions);
+    } catch (err) {
+      console.warn("Checkout before payment failed:", err);
+    }
     setStep(6);
   };
 
@@ -485,6 +537,9 @@ export default function SellTickets() {
       }
     }
 
+    setPaymentProcessing(true);
+    setPaymentResult(null);
+
     try {
       await processOrder({
         selectedSeats: saleData.selectedSeats,
@@ -492,31 +547,17 @@ export default function SellTickets() {
         concessionItems: saleData.concessionItems,
         payments,
       });
+      // Si todos los pagos ya estaban confirmados, completar directo
+      const allConfirmed = payments.every(p => p.confirmed)
+      if (allConfirmed) {
+        setPaymentProcessing(false);
+        setPaymentResult({ success: true });
+      }
     } catch (err) {
-      console.warn("Backend order failed, falling back to localStorage:", err);
+      console.warn("Backend order failed:", err);
+      setPaymentProcessing(false);
+      setPaymentResult({ success: false, message: err?.response?.data?.message || "Error al procesar la orden" });
     }
-
-    saveSoldSeats(
-      saleData.showtime.id,
-      saleData.selectedSeats.map((s) => s.id)
-    );
-
-    saveOrder({
-      movie: saleData.movie,
-      showtime: saleData.showtime,
-      seats: saleData.selectedSeats.map((s) => s.id),
-      tickets: saleData.ticketsNeeded,
-      tickets_total: saleData.totalTickets,
-      concession_items: saleData.concessionItems.map((e) => ({
-        name: e.item.name,
-        qty: e.qty,
-        unit_price: e.item.price,
-        subtotal: e.item.price * e.qty,
-      })),
-      concession_total: saleData.concessionTotal,
-      payments: payments.map((p) => ({ method: p.method, amount: p.amountVes })),
-      grand_total: saleData.totalTickets + saleData.concessionTotal,
-    });
   };
 
   const handleNewSale = () => {
@@ -543,6 +584,8 @@ export default function SellTickets() {
       concessionItems: [],
       concessionTotal: 0,
     });
+    setPaymentProcessing(false);
+    setPaymentResult(null);
     setStep(1);
     setSessionExpired(false);
     setTimeLeft(null);
@@ -676,6 +719,9 @@ export default function SellTickets() {
               vesCurrencyId={vesCurrencyId}
               exchangeRate={exchangeRate}
               customerInfo={saleData.customer}
+              paymentProcessing={paymentProcessing}
+              paymentResult={paymentResult}
+              onNewSale={handleNewSale}
             />
           )}
         </div>
