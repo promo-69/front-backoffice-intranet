@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   ArrowLeft,
   CheckCircle,
+  XCircle,
   Ticket,
   ShoppingBag,
   DollarSign,
@@ -26,6 +27,8 @@ export default function Step4Payment({
   vesCurrencyId = 2,
   customerInfo = null,
   exchangeRate = 600,
+  paymentProcessing = false,
+  paymentResult = null,
 }) {
   const initAmount = (totalTickets || 0) + (concessionTotal || 0);
   const defaultMethod = paymentMethods[0]?.id || 1;
@@ -47,8 +50,8 @@ export default function Step4Payment({
     (s, p) => s + (Number(p.amountUsd) || 0),
     0,
   );
-  const isBalanced = Math.abs(paidByUser - grandTotal) < 0.01;
-  const isOverpaying = paidByUser > grandTotal;
+  const isBalanced = Math.abs(paidByUser - grandTotal) < 1.0;
+  const isOverpaying = paidByUser - grandTotal > 1.0;
 
   // RF-20: cálculo de vuelto para pagos en efectivo.
   // Efectivo = método que no es fidelidad (5) ni con referencia (2,3,4).
@@ -106,6 +109,96 @@ export default function Step4Payment({
   const removePayment = (index) => {
     setPayments((prev) => prev.filter((_, i) => i !== index));
   };
+
+  if (paymentProcessing) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 animate-in fade-in zoom-in-95">
+        <div className="relative mb-6">
+          <div className="absolute inset-0 bg-[#3E2186]/20 rounded-full scale-150 animate-ping" />
+          <div className="relative w-24 h-24 rounded-full bg-[#3E2186] flex items-center justify-center shadow-2xl shadow-[#3E2186]/40">
+            <div className="w-10 h-10 border-4 border-white border-t-transparent rounded-full animate-spin" />
+          </div>
+        </div>
+        <h2 className="text-2xl font-bold text-[#3E2186] mb-2">Procesando Pago</h2>
+        <p className="text-slate-600 text-center max-w-sm">
+          Esperando confirmación del sistema de pago...
+        </p>
+      </div>
+    );
+  }
+
+  if (paymentResult) {
+    if (paymentResult.success) {
+      if (paymentResult.partial) {
+        return (
+          <div className="flex flex-col items-center justify-center py-20 animate-in fade-in zoom-in-95">
+            <div className="relative mb-6">
+              <div className="relative w-24 h-24 rounded-full bg-amber-500 flex items-center justify-center shadow-2xl shadow-amber-500/40">
+                <DollarSign className="w-12 h-12 text-white" strokeWidth={2.5} />
+              </div>
+            </div>
+            <h2 className="text-2xl font-bold text-amber-600 mb-2">Pago Parcial</h2>
+            <p className="text-slate-600 text-center max-w-sm mb-2">
+              {paymentResult.message || "Pago parcial registrado exitosamente"}
+            </p>
+            {paymentResult.remainingBalance != null && (
+              <p className="text-lg font-bold text-red-500 mb-4">
+                Saldo pendiente: ${Number(paymentResult.remainingBalance).toFixed(2)}
+              </p>
+            )}
+            <div className="flex gap-3">
+              {onNewSale && (
+                <button onClick={onNewSale} className="px-6 py-3 bg-[#3E2186] text-white rounded-xl text-sm font-bold hover:brightness-110">Nueva Venta</button>
+              )}
+            </div>
+          </div>
+        );
+      }
+      return (
+        <div className="flex flex-col items-center justify-center py-20 animate-in fade-in zoom-in-95">
+          <div className="relative mb-6">
+            <div className="absolute inset-0 bg-[#3E2186]/20 rounded-full scale-150 animate-ping" />
+            <div className="relative w-24 h-24 rounded-full bg-[#3E2186] flex items-center justify-center shadow-2xl shadow-[#3E2186]/40">
+              <CheckCircle className="w-12 h-12 text-white" strokeWidth={2.5} />
+            </div>
+          </div>
+          <h2 className="text-3xl font-bold text-[#3E2186] mb-2 uppercase tracking-widest">¡Venta Exitosa!</h2>
+          <p className="text-slate-700 text-center max-w-sm">
+            {movie ? "Los boletos han sido registrados correctamente. Entrega los tiquetes al cliente." : "Los productos han sido registrados correctamente. Entrega el pedido al cliente."}
+          </p>
+          {paymentResult.billing && (
+            <p className="text-amber-600 text-sm mt-2 font-semibold">Recuerda completar la facturación.</p>
+          )}
+          <div className="mt-6 bg-gray-50 border border-[#3E2186]/30 rounded-2xl p-6 text-center w-full max-w-sm">
+            <p className="text-2xl font-bold text-[#3E2186] mt-2">${grandTotal.toFixed(2)}</p>
+            {grandTotalVes > 0 && <p className="text-sm text-slate-600">Bs. {grandTotalVes.toFixed(2)}</p>}
+          </div>
+          {onNewSale && (
+            <button onClick={onNewSale} className="mt-8 px-8 py-3 border border-[#3E2186]/40 text-[#3E2186] rounded-xl text-sm font-bold hover:bg-[#3E2186]/10 transition-all">+ Nueva Venta</button>
+          )}
+        </div>
+      );
+    } else {
+      return (
+        <div className="flex flex-col items-center justify-center py-20 animate-in fade-in zoom-in-95">
+          <div className="relative mb-6">
+            <div className="relative w-24 h-24 rounded-full bg-red-500 flex items-center justify-center shadow-2xl shadow-red-500/40">
+              <XCircle className="w-12 h-12 text-white" strokeWidth={2.5} />
+            </div>
+          </div>
+          <h2 className="text-2xl font-bold text-red-600 mb-2">Error en el Pago</h2>
+          <p className="text-slate-600 text-center max-w-sm mb-4">
+            {paymentResult.message || "El pago no pudo ser procesado."}
+          </p>
+          <div className="flex gap-3">
+            {onNewSale && (
+              <button onClick={onNewSale} className="px-6 py-3 bg-[#3E2186] text-white rounded-xl text-sm font-bold hover:brightness-110">Nueva Venta</button>
+            )}
+          </div>
+        </div>
+      );
+    }
+  }
 
   if (confirmed) {
     return (
