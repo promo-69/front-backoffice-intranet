@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
-import { Eye, Download, Search } from "lucide-react";
+import { Eye, Download, Search, FileText } from "lucide-react";
 import { useInvoices, useVoidInvoice } from "@/hooks/useInvoices";
 import { InvoiceDetailSheet } from "@/components/admin/invoices/InvoiceDetailSheet";
 import { VoidInvoiceModal } from "@/components/admin/invoices/VoidInvoiceModal";
+import { BillingModal } from "@/components/admin/invoices/BillingModal";
 import { CustomPagination } from "@/components/ui/CustomPagination";
 import { Button } from "@/components/ui/button";
 import { DatePickerCustom } from "@/components/ui/DatePickerCustom";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
 import { downloadInvoicePdf } from "@/services/invoices.service";
+import { ordersService } from "@/services/orders.service";
 import { getCinemas } from "@/services/cinema.service";
 import { toast } from "react-hot-toast";
 import { CustomToast } from "@/components/ui/CustomToast";
@@ -18,6 +20,7 @@ const STATUS_FILTERS = [
   { value: "all", label: "Todas" },
   { value: "active", label: "Activas" },
   { value: "voided", label: "Anuladas" },
+  { value: "pending_billing", label: "Pendientes" },
 ];
 
 function StatusBadge({ isVoided }) {
@@ -45,6 +48,9 @@ export default function InvoicesPage() {
   const [status, setStatus] = useState("all");
   const [page, setPage] = useState(1);
   const [cinemas, setCinemas] = useState([]);
+  const [pendingOrders, setPendingOrders] = useState([]);
+  const [pendingLoading, setPendingLoading] = useState(false);
+  const [billingTarget, setBillingTarget] = useState(null);
 
   useEffect(() => {
     if (!canViewAll) return;
@@ -53,12 +59,28 @@ export default function InvoicesPage() {
       .catch(() => {});
   }, [canViewAll]);
 
+  // Fetch orders filtered by status
+  useEffect(() => {
+    setPendingLoading(true)
+    const params = { page, limit: 20 }
+    if (search) params.search = search
+    if (cinemaId) params.cinemaId = cinemaId
+    ordersService.getPendingBilling(status, params)
+      .then(res => {
+        const data = res?.data ?? res ?? []
+        const orders = Array.isArray(data) ? data : (data?.rows || data?.orders || [])
+        setPendingOrders(orders)
+      })
+      .catch(() => setPendingOrders([]))
+      .finally(() => setPendingLoading(false))
+  }, [status, search, cinemaId, page])
+
   const { invoices, pagination, loading, refetch } = useInvoices({
     cinemaId,
     from: from || undefined,
     to: to || undefined,
     search: search || undefined,
-    status,
+    status: status === "pending_billing" ? "all" : status,
     page,
     limit: 20,
   });
@@ -220,7 +242,60 @@ export default function InvoicesPage() {
         </div>
       </div>
 
+      {/* ── ÓRDENES ── */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-amber-50 px-6 py-3 border-b border-amber-200">
+          <h4 className="text-sm font-bold text-amber-800">
+            {status === "pending_billing" ? "Órdenes Pendientes por Facturar" : status === "voided" ? "Órdenes Anuladas" : status === "active" ? "Órdenes Facturadas" : "Todas las Órdenes"}
+          </h4>
+        </div>
+        {pendingLoading ? (
+          <div className="py-12 text-center text-sm text-muted-foreground">Cargando...</div>
+        ) : pendingOrders.length === 0 ? (
+          <div className="py-12 text-center text-sm text-muted-foreground">No hay órdenes para este filtro.</div>
+        ) : (
+            <table className="w-full text-sm">
+              <thead className="bg-amber-50/50">
+                <tr>
+                  <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-amber-800">Orden #</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-amber-800">Cliente</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-amber-800">Documento</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-amber-800">Total</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-amber-800">Acción</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pendingOrders.map((order) => (
+                  <tr key={order.id} className="border-t border-amber-100 hover:bg-amber-50/30">
+                    <td className="px-4 py-3 font-medium">#{order.id}</td>
+                    <td className="px-4 py-3">{order.customer_name || order._Customers?._People?.first_name + " " + order._Customers?._People?.last_name || "—"}</td>
+                    <td className="px-4 py-3">{order.customer_document || order._Customers?._People?.document_number || "—"}</td>
+                    <td className="px-4 py-3 font-bold text-[#3E2186]">${order.total_amount_base_currency || order.total || "—"}</td>
+                    <td className="px-4 py-3">
+                      {status === "pending_billing" && (
+                        <Button
+                          size="sm"
+                          onClick={() => setBillingTarget({
+                            id: order.id,
+                            customer_name: order.customer_name || (order._Customers?._People?.first_name + " " + order._Customers?._People?.last_name),
+                            customer_document: order.customer_document || order._Customers?._People?.document_number,
+                            total_amount_base_currency: order.total_amount_base_currency || order.total,
+                          })}
+                          className="bg-amber-500 hover:bg-amber-600 text-white text-xs h-8"
+                        >
+                          <FileText className="w-3 h-3 mr-1" /> Facturar
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
       {/* ── TABLA ── */}
+      {status !== "pending_billing" && (
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
         {loading ? (
           <div className="py-12 text-center text-sm text-muted-foreground">
@@ -322,6 +397,7 @@ export default function InvoicesPage() {
           </table>
         )}
       </div>
+      )}
 
       {paginationMeta && (
         <CustomPagination
@@ -347,6 +423,19 @@ export default function InvoicesPage() {
         invoiceNumber={voidTarget?.invoice_number}
         loading={voiding}
       />
+
+      {billingTarget && (
+        <BillingModal
+          order={billingTarget}
+          onClose={() => setBillingTarget(null)}
+          onBilled={() => {
+            setBillingTarget(null)
+            // Refetch pending orders
+            setPendingOrders(prev => prev.filter(o => o.id !== billingTarget.id))
+            if (status !== "pending_billing") refetch?.()
+          }}
+        />
+      )}
     </div>
   );
 }

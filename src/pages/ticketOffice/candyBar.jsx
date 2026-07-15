@@ -9,8 +9,9 @@ import { ordersService } from "../../services/orders.service";
 import { paymentsService } from "../../services/payments.service";
 import StepIdentifyCustomer from "../../components/ticketOffice/StepIdentifyCustomer";
 import Step4Payment from "../../components/ticketOffice/Step4Payment";
+import socketService from "../../services/socket.service";
 
-const CATEGORIES = ["Todos", "Palomitas", "Bebidas", "Combos", "Dulces", "Promociones"];
+const CATEGORIES = ["Todos", "Popcorn", "Drinks", "Combos", "Candies", "Promociones"];
 
 export default function CandyBar() {
   const [step, setStep] = useState(1);
@@ -25,6 +26,8 @@ export default function CandyBar() {
   const [paymentMethods, setPaymentMethods] = useState([]);
   const [bankAccountsByMethod, setBankAccountsByMethod] = useState({});
   const [vesCurrencyId, setVesCurrencyId] = useState(2);
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
+  const [paymentResult, setPaymentResult] = useState(null);
 
   const handleCustomerIdentified = async (customerData) => {
     setCustomer(customerData);
@@ -47,6 +50,30 @@ export default function CandyBar() {
     ]);
     setApiProducts(products || []);
     setApiCombos(combos || []);
+
+    // Conectar socket para escuchar eventos de pago
+    socketService.connect();
+    socketService.off("payment_success");
+    socketService.on("payment_success", (data) => {
+      setPaymentProcessing(false);
+      setPaymentResult({ success: true, partial: true, remainingBalance: data.remaining_balance, message: data.message });
+    });
+    socketService.off("payment_completed");
+    socketService.on("payment_completed", (data) => {
+      setPaymentProcessing(false);
+      setPaymentResult({ success: true, ...data });
+    });
+    socketService.off("payment_failed");
+    socketService.on("payment_failed", (data) => {
+      setPaymentProcessing(false);
+      setPaymentResult({ success: false, ...data });
+    });
+    socketService.off("billing_required");
+    socketService.on("billing_required", (data) => {
+      setPaymentProcessing(false);
+      setPaymentResult({ success: true, billing: true, ...data });
+    });
+
     setLoading(false);
     setStep(2);
   };
@@ -181,6 +208,9 @@ export default function CandyBar() {
       };
     });
 
+    setPaymentProcessing(true);
+    setPaymentResult(null);
+
     try {
       await ordersService.cancelSession().catch(() => {});
       await ordersService.createQuote(cinemaId, customer?.customerId);
@@ -189,29 +219,35 @@ export default function CandyBar() {
         .filter(p => p.method !== 5)
         .map(p => ({
           payment_method: p.method,
-          amount: p.amount,
-          currency: [2, 3, 4].includes(p.method) ? vesCurrencyId : p.method === 1 ? (p.fields?.currency || 1) : 1,
+          amount: p.amountVes,
+          currency: vesCurrencyId,
           reference_number: p.fields?.Referencia || undefined,
           bank: p.fields?.Banco || undefined,
-          bypass: [2, 3, 4].includes(p.method) ? true : undefined,
         }));
       const ptsPayment = payments.find(p => p.method === 5);
-      if (ptsPayment && ptsPayment.amount > 0) {
+      if (ptsPayment && ptsPayment.amountVes > 0) {
         allPayments.push({
           payment_method: 5,
-          amount: ptsPayment.amount,
-          currency: 1,
+          amount: ptsPayment.amountVes,
+          currency: vesCurrencyId,
         });
       }
-      if (allPayments.length > 0) await ordersService.registerPayments(allPayments);
+      if (allPayments.length > 0) {
+        await ordersService.registerPayments(allPayments);
+      }
+      // El resultado llega por WebSocket (payment_completed / payment_failed / payment_success)
     } catch (err) {
-      console.warn("Backend order failed, saving locally:", err);
+      console.warn("Backend order failed:", err);
+      setPaymentProcessing(false);
+      setPaymentResult({ success: false, message: err?.response?.data?.message || "Error al procesar la orden" });
     }
   };
 
   const handleNewSale = () => {
     setCustomer(null);
     setCart([]);
+    setPaymentProcessing(false);
+    setPaymentResult(null);
     setStep(1);
   };
 
@@ -237,17 +273,21 @@ export default function CandyBar() {
     }, 0);
     return (
       <Step4Payment
+        key={`payment-${cartTotal}`}
         concessionItems={cart}
-        concessionTotal={cartTotal}
-        concessionTotalVes={cartTotalVes}
-        onConfirm={handleConfirm}
-        onBack={handleNewSale}
-        onNewSale={handleNewSale}
-        paymentMethods={paymentMethods}
-        bankAccountsByMethod={bankAccountsByMethod}
-        vesCurrencyId={vesCurrencyId}
-        customerInfo={customer}
-      />
+         concessionTotal={cartTotal}
+         concessionTotalVes={cartTotalVes}
+         onConfirm={handleConfirm}
+         onBack={handleNewSale}
+         onNewSale={handleNewSale}
+         paymentMethods={paymentMethods}
+         bankAccountsByMethod={bankAccountsByMethod}
+         vesCurrencyId={vesCurrencyId}
+         exchangeRate={exchangeRate}
+         customerInfo={customer}
+         paymentProcessing={paymentProcessing}
+         paymentResult={paymentResult}
+       />
     );
   }
 
