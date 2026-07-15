@@ -55,21 +55,25 @@ export default function CandyBar() {
     socketService.connect();
     socketService.off("payment_success");
     socketService.on("payment_success", (data) => {
+      if (!paymentProcessing) return;
       setPaymentProcessing(false);
       setPaymentResult({ success: true, partial: true, remainingBalance: data.remaining_balance, message: data.message });
     });
     socketService.off("payment_completed");
     socketService.on("payment_completed", (data) => {
+      if (!paymentProcessing) return;
       setPaymentProcessing(false);
       setPaymentResult({ success: true, ...data });
     });
     socketService.off("payment_failed");
     socketService.on("payment_failed", (data) => {
+      if (!paymentProcessing) return;
       setPaymentProcessing(false);
       setPaymentResult({ success: false, ...data });
     });
     socketService.off("billing_required");
     socketService.on("billing_required", (data) => {
+      if (!paymentProcessing) return;
       setPaymentProcessing(false);
       setPaymentResult({ success: true, billing: true, ...data });
     });
@@ -216,7 +220,7 @@ export default function CandyBar() {
       await ordersService.createQuote(cinemaId, customer?.customerId);
       await ordersService.checkout([], concessions);
       const allPayments = payments
-        .filter(p => p.method !== 5)
+        .filter(p => p.method !== 5 && !p.confirmed)
         .map(p => ({
           payment_method: p.method,
           amount: p.amountVes,
@@ -234,6 +238,11 @@ export default function CandyBar() {
       }
       if (allPayments.length > 0) {
         await ordersService.registerPayments(allPayments);
+      }
+      // Si todos los pagos ya estaban confirmados, completar directo
+      if (payments.every(p => p.confirmed || !p.amountVes || p.amountVes <= 0)) {
+        setPaymentProcessing(false);
+        setPaymentResult({ success: true });
       }
       // El resultado llega por WebSocket (payment_completed / payment_failed / payment_success)
     } catch (err) {
