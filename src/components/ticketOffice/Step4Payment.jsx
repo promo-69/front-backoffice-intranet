@@ -6,6 +6,7 @@ import {
   Ticket,
   ShoppingBag,
   DollarSign,
+  Lock,
 } from "lucide-react";
 import { AiOutlinePlus, AiOutlineDelete } from "react-icons/ai";
 
@@ -40,6 +41,9 @@ export default function Step4Payment({
       amountVes: initAmountVes,
       amountUsd: initAmountUsd,
       fields: {},
+      confirmed: false,
+      processing: false,
+      error: null,
     },
   ]);
   const [confirmed, setConfirmed] = useState(false);
@@ -68,6 +72,33 @@ export default function Step4Payment({
   const vueltoUsd = Math.max(0, receivedUsd - cashAppliedUsd);
   const vueltoVes = vueltoUsd * exchangeRate;
 
+  // ── Per-payment processing ──
+  const processPayment = async (index) => {
+    const p = payments[index]
+    if (!p || p.confirmed || p.processing) return
+    if (!p.amountVes || p.amountVes <= 0) return
+
+    updatePayment(index, { processing: true, error: null })
+    try {
+      const api = (await import("@/api/axios")).default
+      const payload = {
+        payment_method: p.method,
+        amount: p.amountVes,
+        currency: vesCurrencyId,
+        reference_number: p.fields?.Referencia || undefined,
+        bank: p.fields?.Banco || undefined,
+      }
+      await api.post('/orders/payments', [payload])
+      updatePayment(index, { confirmed: true, processing: false })
+    } catch (e) {
+      updatePayment(index, { processing: false, error: e?.response?.data?.message || 'Error al procesar' })
+    }
+  }
+
+  const allConfirmed = payments.every(p => p.confirmed || !p.amountVes || p.amountVes <= 0)
+  const confirmedTotal = payments.filter(p => p.confirmed).reduce((s, p) => s + (Number(p.amountUsd) || 0), 0)
+  const isFullyConfirmed = allConfirmed && Math.abs(confirmedTotal - grandTotal) < 1.0
+
   const handleConfirm = () => {
     setConfirmed(true);
     onConfirm({ payments });
@@ -80,7 +111,7 @@ export default function Step4Payment({
       paymentMethods[0];
     setPayments([
       ...payments,
-      { method: nextMethod?.id || 1, amountVes: 0, amountUsd: 0, fields: {} },
+      { method: nextMethod?.id || 1, amountVes: 0, amountUsd: 0, fields: {}, confirmed: false, processing: false, error: null },
     ]);
   };
 
@@ -469,11 +500,19 @@ export default function Step4Payment({
                 return (
                   <div
                     key={index}
-                    className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3"
+                    className={`rounded-xl p-4 space-y-3 border ${
+                      p.confirmed
+                        ? "bg-green-50 border-green-300"
+                        : p.error
+                          ? "bg-red-50 border-red-300"
+                          : "bg-gray-50 border-gray-200"
+                    }`}
                   >
                     <div className="flex items-center justify-between gap-2">
+                      {p.confirmed && <Lock className="w-4 h-4 text-green-600 shrink-0" />}
                       <select
                         value={p.method}
+                        disabled={p.confirmed}
                         onChange={(e) => {
                           const newMethod = Number(e.target.value);
                           updatePayment(index, {
@@ -498,14 +537,16 @@ export default function Step4Payment({
                           </option>
                         ))}
                       </select>
-                      {payments.length > 1 && (
+                      {p.confirmed ? (
+                        <Lock className="w-5 h-5 text-green-600" />
+                      ) : payments.length > 1 ? (
                         <button
                           onClick={() => removePayment(index)}
                           className="text-red-400 hover:text-red-500 p-1"
                         >
                           <AiOutlineDelete size={18} />
                         </button>
-                      )}
+                      ) : null}
                     </div>
 
                     {isLoyalty &&
@@ -587,7 +628,8 @@ export default function Step4Payment({
                           onChange={(e) =>
                             onAmountUsdChange(index, e.target.value)
                           }
-                          className="w-full bg-white border border-gray-200 rounded-xl px-3 pt-6 pb-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#3E2186]/60 transition-colors"
+                          disabled={p.confirmed}
+                          className="w-full bg-white border border-gray-200 rounded-xl px-3 pt-6 pb-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#3E2186]/60 transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
                         />
                       </div>
                       <div className="relative flex-1">
@@ -602,7 +644,8 @@ export default function Step4Payment({
                           onChange={(e) =>
                             onAmountVesChange(index, e.target.value)
                           }
-                          className="w-full bg-white border border-gray-200 rounded-xl px-3 pt-6 pb-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#3E2186]/60 transition-colors"
+                          disabled={p.confirmed}
+                          className="w-full bg-white border border-gray-200 rounded-xl px-3 pt-6 pb-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#3E2186]/60 transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
                         />
                       </div>
                     </div>
@@ -626,6 +669,27 @@ export default function Step4Payment({
                           }
                           className="w-full bg-white border border-gray-200 rounded-xl px-3 pt-6 pb-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#3E2186]/60 transition-colors"
                         />
+                      </div>
+                    )}
+                    {!p.confirmed && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => processPayment(index)}
+                          disabled={p.processing || !p.amountVes || p.amountVes <= 0}
+                          className="flex-1 bg-[#3E2186] text-white font-bold py-2 rounded-xl text-xs uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {p.processing ? "Procesando..." : "Procesar Pago"}
+                        </button>
+                        {p.error && (
+                          <p className="text-xs text-red-500">{p.error}</p>
+                        )}
+                      </div>
+                    )}
+                    {p.confirmed && (
+                      <div className="flex items-center gap-2 text-green-600 text-xs font-semibold">
+                        <CheckCircle className="w-4 h-4" />
+                        Pago confirmado
                       </div>
                     )}
                   </div>
@@ -672,8 +736,9 @@ export default function Step4Payment({
         <button
           onClick={handleConfirm}
           disabled={
-            !isBalanced ||
+            !isFullyConfirmed ||
             payments.some((p) => {
+              if (p.confirmed) return false;
               if (!p.amountVes || p.amountVes <= 0) return true;
               const methodDef = paymentMethods.find((m) => m.id === p.method);
               const needsReference =
@@ -700,6 +765,13 @@ export default function Step4Payment({
         >
           Confirmar Venta · ${grandTotal.toFixed(2)}
         </button>
+        {!isFullyConfirmed && (
+          <p className="text-xs text-center text-amber-600 font-medium mt-2">
+            {!allConfirmed
+              ? `Falta procesar ${payments.filter(p => !p.confirmed && p.amountVes > 0).length} método(s) de pago.`
+              : `Los montos confirmados ($${confirmedTotal.toFixed(2)}) no coinciden con el total ($${grandTotal.toFixed(2)}).`}
+          </p>
+        )}
       </div>
     </div>
   );
