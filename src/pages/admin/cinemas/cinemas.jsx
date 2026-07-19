@@ -11,7 +11,7 @@ import DeleteConfirmModal from "../../../components/ui/DialogConfirmModal";
 import SuccessModal from "../../../components/ui/SuccessModal";
 
 const CinemaPage = () => {
-  // ⭐ ESTADO LOCAL DE CARGA
+  // ESTADO LOCAL DE CARGA
   const [loading, setLoading] = useState(true);
   
   const [branches, setBranches] = useState([]);

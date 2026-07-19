@@ -9,14 +9,13 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useLoading } from "../../../context/LoadingContext";
-import api from '../../../api/axios';
 import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
+import { InputForm } from "@/components/ui/inputForm";
+import { createCinema, updateCinema } from "@/services/cinema.service"; 
 
 function ErrorMessage({ message }) {
   return message ? <p className="text-[10px] text-red-500 mt-1 ml-1 font-medium italic">{message}</p> : null;
 }
-
-import { InputForm } from "@/components/ui/inputForm";
 
 const emptyBranchForm = { 
   name: "", 
@@ -145,9 +144,11 @@ export default function BranchModal({ open, onClose, initialData }) {
       };
 
       if (isEdit) {
-        await api.patch(`/cinemas/${initialData.id}`, payload);
+        // Se reemplazó api.patch por la función del servicio
+        await updateCinema(initialData.id, payload);
       } else {
-        await api.post('/cinemas', payload);
+        // Se reemplazó api.post por la función del servicio
+        await createCinema(payload);
       }
       onClose(true);
     } catch (error) {
@@ -173,7 +174,7 @@ export default function BranchModal({ open, onClose, initialData }) {
     useEffect(() => {
       const handleClickOutside = (event) => {
         if (containerRef.current && !containerRef.current.contains(event.target)) {
-          setIsOpen(false);
+          isOpen(false);
         }
       };
       document.addEventListener("mousedown", handleClickOutside);
