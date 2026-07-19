@@ -12,7 +12,6 @@ import { useLoading } from "@/context/LoadingContext";
 import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
 import { InputForm } from "@/components/ui/inputForm";
 import { Upload, X } from "lucide-react";
-
 import { createCinema, updateCinema } from "@/services/cinema.service";
 
 function ErrorMessage({ message }) {
@@ -25,17 +24,21 @@ const emptyBranchForm = {
   phone: "", 
   openingTime: "", 
   closingTime: "",
-  facade_url: "" // Agregado al estado inicial base
+  facade: null
 };
+
+const BACKEND_FILE_FIELD = "image"; 
 
 const HOURS_12 = Array.from({ length: 12 }, (_, i) => String(i === 0 ? 12 : i).padStart(2, "0"));
 const MINUTES = ["00", "15", "30", "45"]; 
 
 export default function BranchModal({ open, onClose, initialData }) {
   const isEdit = !!initialData;
+  const fileInputRef = useRef(null);
   const { showLoader, hideLoader } = useLoading();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState(emptyBranchForm);
+  const [facadePreview, setFacadePreview] = useState(null); 
   const [errors, setErrors] = useState({});
 
   const [opening, setOpening] = useState({ hour: "", minute: "", ampm: "AM" });
@@ -71,6 +74,7 @@ export default function BranchModal({ open, onClose, initialData }) {
       if (initialData) {
         const opTime = initialData.openingTime || initialData.opening_time || "";
         const clTime = initialData.closingTime || initialData.closing_time || "";
+        const savedUrl = initialData.facade_url || initialData.facadeUrl || initialData.image || "";
 
         setFormData({
           name: initialData.name || "",
@@ -78,13 +82,15 @@ export default function BranchModal({ open, onClose, initialData }) {
           phone: initialData.phone || "",
           openingTime: opTime,
           closingTime: clTime,
-          facade_url: initialData.facade_url || initialData.facadeUrl || "", // Captura de la URL si existe en BD
+          facade: savedUrl,
         });
 
+        setFacadePreview(savedUrl);
         setOpening(parse24to12(opTime));
         setClosing(parse24to12(clTime));
       } else {
         setFormData(emptyBranchForm);
+        setFacadePreview(null);
         setOpening({ hour: "", minute: "", ampm: "AM" });
         setClosing({ hour: "", minute: "", ampm: "PM" });
       }
@@ -106,6 +112,31 @@ export default function BranchModal({ open, onClose, initialData }) {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        setErrors(prev => ({ ...prev, facade: "La imagen excede los 2MB." }));
+        return;
+      }
+      if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+        setErrors(prev => ({ ...prev, facade: "Solo se permite JPG, PNG o WebP." }));
+        return;
+      }
+
+      setErrors(prev => ({ ...prev, facade: null }));
+      setFormData(prev => ({ ...prev, facade: file }));
+      setFacadePreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleRemoveFacade = (e) => {
+    e.stopPropagation();
+    setFacadePreview(null);
+    setFormData(prev => ({ ...prev, facade: null }));
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   const validateField = (name, value) => {
     let error = "";
     if (name === "phone") {
@@ -119,12 +150,15 @@ export default function BranchModal({ open, onClose, initialData }) {
   
   const handleSubmit = async () => {
     const newErrors = {};
+    
     Object.keys(emptyBranchForm).forEach((key) => {
-      const value = formData[key]?.toString().trim(); 
-      if (!value) {
+      const value = formData[key]; 
+      if (!value && key !== "facade") {
         newErrors[key] = "Este campo es obligatorio.";
-      } else {
-        const fieldError = validateField(key, value);
+      } else if (key === "facade" && !facadePreview) {
+        newErrors[key] = "La fachada de la sucursal es obligatoria.";
+      } else if (value && key !== "facade") {
+        const fieldError = validateField(key, value.toString().trim());
         if (fieldError) newErrors[key] = fieldError;
       }
     });
@@ -138,20 +172,23 @@ export default function BranchModal({ open, onClose, initialData }) {
     showLoader();
 
     try {
-      const payload = {
-        name: formData.name.trim(),
-        address: formData.address.trim(),
-        phone: formData.phone.trim(),
-        openingTime: formData.openingTime, 
-        closingTime: formData.closingTime, 
-        facade_url: formData.facade_url.trim(), // Inyección del campo de texto en el JSON
-        status: 1 
-      };
+      const dataPayload = new FormData();
+      dataPayload.append("name", formData.name.trim());
+      dataPayload.append("address", formData.address.trim());
+      dataPayload.append("phone", formData.phone.trim());
+      dataPayload.append("openingTime", formData.openingTime);
+      dataPayload.append("closingTime", formData.closingTime);
+      dataPayload.append("status", 1);
+
+      // SOLUCIÓN MULTER: Se envía la clave esperada por el backend ('image')
+      if (formData.facade && formData.facade instanceof File) {
+        dataPayload.append(BACKEND_FILE_FIELD, formData.facade);
+      }
 
       if (isEdit) {
-        await updateCinema(initialData.id, payload);
+        await updateCinema(initialData.id, dataPayload);
       } else {
-        await createCinema(payload);
+        await createCinema(dataPayload);
       }
       onClose(true);
     } catch (error) {
@@ -169,7 +206,6 @@ export default function BranchModal({ open, onClose, initialData }) {
     }
   };
 
-  // Subcomponente Dropdown estilizado con Scroll limitado estricto
   const CustomDropdown = ({ value, placeholder, options, onChange }) => {
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef(null);
@@ -177,7 +213,7 @@ export default function BranchModal({ open, onClose, initialData }) {
     useEffect(() => {
       const handleClickOutside = (event) => {
         if (containerRef.current && !containerRef.current.contains(event.target)) {
-          setIsOpen(false); // Corrección de error tipográfico del base (estaba isOpen(false))
+          setIsOpen(false);
         }
       };
       document.addEventListener("mousedown", handleClickOutside);
@@ -223,21 +259,18 @@ export default function BranchModal({ open, onClose, initialData }) {
     <div className="flex flex-col gap-1.5">
       <label className="text-xs font-semibold text-slate-700">{label}</label>
       <div className="flex gap-1">
-        
         <CustomDropdown 
           value={state.hour} 
           placeholder="Hora" 
           options={HOURS_12} 
           onChange={(val) => setState(prev => ({ ...prev, hour: val }))} 
         />
-
         <CustomDropdown 
           value={state.minute} 
           placeholder="Min" 
           options={MINUTES} 
           onChange={(val) => setState(prev => ({ ...prev, minute: val }))} 
         />
-
         <CustomDropdown 
           value={state.ampm} 
           placeholder="AM/PM" 
@@ -292,42 +325,31 @@ export default function BranchModal({ open, onClose, initialData }) {
             />
           </div>
 
-          {/* SECCIÓN INTERACTIVA DE FACHADA DE SUCURSAL (ESTILO MOVIEMODAL) */}
           <div className="space-y-1.5 text-left">
             <label className="text-[12px] font-bold uppercase text-brand-primary">
               Fachada de la Sucursal
             </label>
             <div
-              onClick={() => {
-                if (isSubmitting) return;
-                const url = prompt("Introduce la URL de la imagen de la fachada:");
-                if (url !== null) {
-                  setFormData(prev => ({ ...prev, facade_url: url }));
-                  setErrors(prev => ({ ...prev, facade_url: null }));
-                }
-              }}
+              onClick={() => !isSubmitting && fileInputRef.current?.click()}
               className={`relative aspect-[16/6] w-full rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer overflow-hidden transition-all ${
-                errors.facade_url
+                errors.facade
                   ? "border-red-500 bg-red-50"
-                  : formData.facade_url
+                  : facadePreview
                     ? "border-brand-primary"
                     : "border-gray-200 bg-gray-50 hover:bg-gray-100"
               } ${isSubmitting ? "opacity-60 cursor-not-allowed" : ""}`}
             >
-              {formData.facade_url ? (
+              {facadePreview ? (
                 <div className="relative h-full w-full group">
                   <img
-                    src={formData.facade_url}
+                    src={facadePreview}
                     alt="Previsualización de la Fachada"
                     className="h-full w-full object-cover"
                   />
 
                   <button
                     type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setFormData(prev => ({ ...prev, facade_url: "" }));
-                    }}
+                    onClick={handleRemoveFacade}
                     disabled={isSubmitting}
                     className="absolute top-3 right-3 p-1.5 bg-red-600 text-white rounded-full shadow-md hover:bg-red-700 transition-all z-20 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 disabled:hidden"
                     title="Remover imagen"
@@ -345,20 +367,29 @@ export default function BranchModal({ open, onClose, initialData }) {
               ) : (
                 <div className="text-center p-4">
                   <Upload
-                    className={`h-6 w-6 mx-auto mb-1 ${errors.facade_url ? "text-red-400" : "text-gray-300"}`}
+                    className={`h-6 w-6 mx-auto mb-1 ${errors.facade ? "text-red-400" : "text-gray-300"}`}
                   />
                   <p
-                    className={`text-[10px] font-bold ${errors.facade_url ? "text-red-500" : "text-gray-400"}`}
+                    className={`text-[10px] font-bold ${errors.facade ? "text-red-500" : "text-gray-400"}`}
                   >
-                    ASIGNAR URL DE IMAGEN
+                    SUBIR IMAGEN DESDE PC
                   </p>
                 </div>
               )}
             </div>
 
-            {errors.facade_url && (
+            <input
+              type="file"
+              className="hidden"
+              disabled={isSubmitting}
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handleImageChange}
+              ref={fileInputRef}
+            />
+
+            {errors.facade && (
               <p className="text-[10px] text-red-500 font-bold uppercase mt-1 italic">
-                * {errors.facade_url}
+                * {errors.facade}
               </p>
             )}
           </div>
