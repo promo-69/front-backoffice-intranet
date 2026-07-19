@@ -8,10 +8,12 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { useLoading } from "../../../context/LoadingContext";
+import { useLoading } from "@/context/LoadingContext";
 import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
 import { InputForm } from "@/components/ui/inputForm";
-import { createCinema, updateCinema } from "@/services/cinema.service"; 
+import { Upload, X } from "lucide-react";
+
+import { createCinema, updateCinema } from "@/services/cinema.service";
 
 function ErrorMessage({ message }) {
   return message ? <p className="text-[10px] text-red-500 mt-1 ml-1 font-medium italic">{message}</p> : null;
@@ -22,7 +24,8 @@ const emptyBranchForm = {
   address: "", 
   phone: "", 
   openingTime: "", 
-  closingTime: "" 
+  closingTime: "",
+  facade_url: "" // Agregado al estado inicial base
 };
 
 const HOURS_12 = Array.from({ length: 12 }, (_, i) => String(i === 0 ? 12 : i).padStart(2, "0"));
@@ -75,6 +78,7 @@ export default function BranchModal({ open, onClose, initialData }) {
           phone: initialData.phone || "",
           openingTime: opTime,
           closingTime: clTime,
+          facade_url: initialData.facade_url || initialData.facadeUrl || "", // Captura de la URL si existe en BD
         });
 
         setOpening(parse24to12(opTime));
@@ -140,14 +144,13 @@ export default function BranchModal({ open, onClose, initialData }) {
         phone: formData.phone.trim(),
         openingTime: formData.openingTime, 
         closingTime: formData.closingTime, 
+        facade_url: formData.facade_url.trim(), // Inyección del campo de texto en el JSON
         status: 1 
       };
 
       if (isEdit) {
-        // Se reemplazó api.patch por la función del servicio
         await updateCinema(initialData.id, payload);
       } else {
-        // Se reemplazó api.post por la función del servicio
         await createCinema(payload);
       }
       onClose(true);
@@ -174,7 +177,7 @@ export default function BranchModal({ open, onClose, initialData }) {
     useEffect(() => {
       const handleClickOutside = (event) => {
         if (containerRef.current && !containerRef.current.contains(event.target)) {
-          isOpen(false);
+          setIsOpen(false); // Corrección de error tipográfico del base (estaba isOpen(false))
         }
       };
       document.addEventListener("mousedown", handleClickOutside);
@@ -247,7 +250,7 @@ export default function BranchModal({ open, onClose, initialData }) {
   );
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose(false)}>
+    <Dialog open={open} onOpenChange={isSubmitting ? null : () => onClose(false)}>
       <DialogContent className="max-w-md bg-white rounded-cineflix p-6 shadow-2xl border-none">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-brand-primary">
@@ -288,6 +291,77 @@ export default function BranchModal({ open, onClose, initialData }) {
               error={errors.closingTime} 
             />
           </div>
+
+          {/* SECCIÓN INTERACTIVA DE FACHADA DE SUCURSAL (ESTILO MOVIEMODAL) */}
+          <div className="space-y-1.5 text-left">
+            <label className="text-[12px] font-bold uppercase text-brand-primary">
+              Fachada de la Sucursal
+            </label>
+            <div
+              onClick={() => {
+                if (isSubmitting) return;
+                const url = prompt("Introduce la URL de la imagen de la fachada:");
+                if (url !== null) {
+                  setFormData(prev => ({ ...prev, facade_url: url }));
+                  setErrors(prev => ({ ...prev, facade_url: null }));
+                }
+              }}
+              className={`relative aspect-[16/6] w-full rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer overflow-hidden transition-all ${
+                errors.facade_url
+                  ? "border-red-500 bg-red-50"
+                  : formData.facade_url
+                    ? "border-brand-primary"
+                    : "border-gray-200 bg-gray-50 hover:bg-gray-100"
+              } ${isSubmitting ? "opacity-60 cursor-not-allowed" : ""}`}
+            >
+              {formData.facade_url ? (
+                <div className="relative h-full w-full group">
+                  <img
+                    src={formData.facade_url}
+                    alt="Previsualización de la Fachada"
+                    className="h-full w-full object-cover"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFormData(prev => ({ ...prev, facade_url: "" }));
+                    }}
+                    disabled={isSubmitting}
+                    className="absolute top-3 right-3 p-1.5 bg-red-600 text-white rounded-full shadow-md hover:bg-red-700 transition-all z-20 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 disabled:hidden"
+                    title="Remover imagen"
+                  >
+                    <X className="h-4 w-4" strokeWidth={3} />
+                  </button>
+
+                  <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                    <Upload className="h-6 w-6 text-white mb-1" />
+                    <p className="text-[9px] font-bold text-white uppercase">
+                      Cambiar Imagen
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center p-4">
+                  <Upload
+                    className={`h-6 w-6 mx-auto mb-1 ${errors.facade_url ? "text-red-400" : "text-gray-300"}`}
+                  />
+                  <p
+                    className={`text-[10px] font-bold ${errors.facade_url ? "text-red-500" : "text-gray-400"}`}
+                  >
+                    ASIGNAR URL DE IMAGEN
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {errors.facade_url && (
+              <p className="text-[10px] text-red-500 font-bold uppercase mt-1 italic">
+                * {errors.facade_url}
+              </p>
+            )}
+          </div>
           
           {errors.general && (
             <p className="text-red-500 text-xs text-center font-bold mt-2">
@@ -297,7 +371,7 @@ export default function BranchModal({ open, onClose, initialData }) {
         </div>
 
         <DialogFooter className="mt-8 flex gap-3">
-          <Button variant="outline" onClick={() => onClose(false)} className="flex-1">Cancelar</Button>
+          <Button variant="outline" onClick={() => onClose(false)} disabled={isSubmitting} className="flex-1">Cancelar</Button>
           <DisableIfNoPermission permission={isEdit ? "CRUD:UPDATE:CINEMAS" : "CRUD:CREATE:CINEMAS"} title="No tienes permiso para guardar sucursales">
             <Button 
               onClick={handleSubmit} 
