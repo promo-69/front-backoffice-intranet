@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from "react";
-import api from "@/api/axios";
-
 import { Plus, ChevronLeft, ChevronRight } from "lucide-react"; 
 import { getCinemas, deleteCinema } from "../../../services/cinema.service";
 import CinemaSearch from "../../../components/admin/cinemas/SearchBar";
@@ -11,22 +9,21 @@ import DeleteConfirmModal from "../../../components/ui/DialogConfirmModal";
 import SuccessModal from "../../../components/ui/SuccessModal";
 
 const CinemaPage = () => {
-  // ESTADO LOCAL DE CARGA
   const [loading, setLoading] = useState(true);
-  
   const [branches, setBranches] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
+
   const [metadata, setMetadata] = useState({
     total: 0,
-    per_page: 10,
+    per_page: ITEMS_PER_PAGE,
     current_page: 1,
     total_pages: 1,
     next_page: null,
     prev_page: null
   });
-  const [currentPage, setCurrentPage] = useState(1);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [branchToEdit, setBranchToEdit] = useState(null);
@@ -34,33 +31,60 @@ const CinemaPage = () => {
   const [itemToDelete, setItemToDelete] = useState(null);
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
   const [successConfig, setSuccessConfig] = useState({ title: "", message: "" });
-  
   const [isAddingRoom, setIsAddingRoom] = useState(false);
 
-  const fetchBranches = async (params) => {
+  const fetchBranches = async () => {
     try {
-      setLoading(true); // Activa el esqueleto de la tabla
+      setLoading(true);
+
+      const params = searchTerm.trim() !== "" 
+        ? { limit: 100, page: 1, search: searchTerm } 
+        : { page: currentPage, limit: ITEMS_PER_PAGE };
+
       const data = await getCinemas(params);
-      setBranches(data.data);
-      setMetadata(data.metadata);
+      
+      const list = data.data || [];
+      setBranches(list);
+
+      if (data.metadata && !searchTerm.trim()) {
+        setMetadata(data.metadata);
+      }
     } catch (error) {
       console.error("Error al cargar sucursales:", error);
       setBranches([]);
     } finally {
-      setLoading(false); // Desactiva el esqueleto
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchBranches({ page: currentPage });
-  }, [currentPage]); 
+    fetchBranches();
+  }, [currentPage, searchTerm]);
 
-  const branchesFiltradas = branches.filter((b) =>
-    b.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  // 1. Filtrado de la lista global
+  const filteredBranches = branches.filter((b) =>
+    b.name?.toLowerCase().includes(searchTerm.toLowerCase().trim())
   );
 
+  // 2. Si estamos buscando, recalculamos la paginación localmente sobre los resultados filtrados
+  const isSearching = searchTerm.trim() !== "";
+  
+  const totalItems = isSearching ? filteredBranches.length : (metadata.total || filteredBranches.length);
+  const totalPages = isSearching ? Math.ceil(totalItems / ITEMS_PER_PAGE) || 1 : (metadata.total_pages || 1);
+
+  // Paginamos el array filtrado para renderizar sólo los 10 de la página visible
+  const displayedBranches = isSearching 
+    ? filteredBranches.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+    : filteredBranches;
+
+  const handleSearchChange = (e) => {
+    const val = typeof e === "string" ? e : e.target.value;
+    setSearchTerm(val);
+    setCurrentPage(1);
+  };
+
   const handlePageChange = (newPage) => {
-    if (newPage >= 1 && newPage <= metadata.total_pages) {
+    if (newPage >= 1 && newPage <= totalPages) {
       setCurrentPage(newPage);
     }
   };
@@ -78,7 +102,7 @@ const CinemaPage = () => {
   const handleCloseModal = (shouldRefresh) => {
     setIsModalOpen(false);
     if (shouldRefresh) {
-      fetchBranches({ page: currentPage });
+      fetchBranches();
       setSuccessConfig({
         title: branchToEdit ? "¡Cambios Guardados!" : "¡Registro Exitoso!",
         message: branchToEdit 
@@ -102,7 +126,7 @@ const CinemaPage = () => {
         message: `Se ha removido "${itemToDelete.name}" exitosamente.`
       });
       setIsSuccessOpen(true);
-      fetchBranches({ page: currentPage });
+      fetchBranches();
     } catch (error) {
       console.error("Error al eliminar:", error);
       setLoading(false);
@@ -122,16 +146,17 @@ const CinemaPage = () => {
           <h3 className="text-lg font-montserrat font-bold text-brand-primary">Listado de Sucursales</h3>
           <p className="text-xs text-muted-foreground">Administra las sucursales de Cineflix.</p>
         </div>
+        
+        {/* Pasamos el evento handleSearchChange */}
         <CinemaSearch 
           searchTerm={searchTerm} 
-          setSearchTerm={setSearchTerm} 
+          setSearchTerm={handleSearchChange} 
           onAddClick={() => { setBranchToEdit(null); setIsModalOpen(true); }} 
         />
       </div>
 
-      {/* PASAMOS LOADING A LA TABLA */}
       <CinemaTable
-        data={branchesFiltradas} 
+        data={displayedBranches} 
         isLoading={loading}
         selectedId={selectedId}
         onSelectBranch={(id) => { setSelectedId(id); setIsAddingRoom(false); }}
@@ -143,18 +168,34 @@ const CinemaPage = () => {
         }}
       />
 
-      {/* PAGINACIÓN */}
-      {!loading && (
+      {/* PAGINACIÓN DINÁMICA */}
+      {!loading && totalItems > 0 && (
         <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6 rounded-b-xl shadow-sm animate-in fade-in">
            <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
             <p className="text-sm text-gray-700">
-              Mostrando <span className="font-medium">{(currentPage - 1) * metadata.per_page + 1}</span> a{" "}
-              <span className="font-medium">{Math.min(currentPage * metadata.per_page, metadata.total)}</span> de <span className="font-medium">{metadata.total}</span> resultados
+              Mostrando <span className="font-medium">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> a{" "}
+              <span className="font-medium">{Math.min(currentPage * ITEMS_PER_PAGE, totalItems)}</span> de <span className="font-medium">{totalItems}</span> resultados
             </p>
             <nav className="inline-flex -space-x-px rounded-md shadow-sm">
-              <button onClick={() => handlePageChange(metadata.prev_page)} disabled={!metadata.prev_page} className="relative inline-flex items-center px-2 py-2 text-gray-400 border border-gray-300 bg-white disabled:opacity-50"><ChevronLeft className="h-5 w-5"/></button>
-              <div className="px-4 py-2 text-sm font-semibold text-brand-primary border border-gray-300 bg-white">Página {metadata.current_page} de {metadata.total_pages}</div>
-              <button onClick={() => handlePageChange(metadata.next_page)} disabled={!metadata.next_page} className="relative inline-flex items-center px-2 py-2 text-gray-400 border border-gray-300 bg-white disabled:opacity-50"><ChevronRight className="h-5 w-5"/></button>
+              <button 
+                onClick={() => handlePageChange(currentPage - 1)} 
+                disabled={currentPage === 1} 
+                className="relative inline-flex items-center px-2 py-2 text-gray-400 border border-gray-300 bg-white disabled:opacity-50 rounded-l-md"
+              >
+                <ChevronLeft className="h-5 w-5"/>
+              </button>
+
+              <div className="px-4 py-2 text-sm font-semibold text-brand-primary border border-gray-300 bg-white">
+                Página {currentPage} de {totalPages}
+              </div>
+
+              <button 
+                onClick={() => handlePageChange(currentPage + 1)} 
+                disabled={currentPage === totalPages} 
+                className="relative inline-flex items-center px-2 py-2 text-gray-400 border border-gray-300 bg-white disabled:opacity-50 rounded-r-md"
+              >
+                <ChevronRight className="h-5 w-5"/>
+              </button>
             </nav>
           </div>
         </div>
