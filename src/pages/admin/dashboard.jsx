@@ -11,7 +11,7 @@ import {
   AlertTriangle,
   ArrowRight,
   Clock,
-  Ticket,
+  BookOpen,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getCinemas } from "@/services/cinema.service";
@@ -269,8 +269,8 @@ function SuperAdminDashboard({ cinemas, counts, loading }) {
             />
             <QuickLink
               to="/admin/catalogo"
-              icon={Ticket}
-              label="Funciones"
+              icon={BookOpen}
+              label="Maestros"
               color="bg-amber-500"
             />
             <QuickLink
@@ -433,7 +433,7 @@ function BranchDashboard({ user }) {
           />
           <QuickLink
             to="/admin/catalogo"
-            icon={Ticket}
+            icon={BookOpen}
             label="Funciones"
             color="bg-amber-500"
           />

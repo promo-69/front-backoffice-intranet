@@ -34,6 +34,7 @@ const CinemaPage = () => {
   const [itemToDelete, setItemToDelete] = useState(null);
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
   const [successConfig, setSuccessConfig] = useState({ title: "", message: "" });
+  const [deleteError, setDeleteError] = useState(null);
   
   const [isAddingRoom, setIsAddingRoom] = useState(false);
 
@@ -90,13 +91,29 @@ const CinemaPage = () => {
     setBranchToEdit(null);
   };
 
+  const openDeleteModal = (branch) => {
+    setDeleteError(null);
+    setItemToDelete(branch);
+    setIsDeleteModalOpen(true);
+  };
+
+  const closeDeleteModal = () => {
+    setIsDeleteModalOpen(false);
+    setDeleteError(null);
+    setItemToDelete(null);
+  };
+
   const handleConfirmDelete = async () => {
+    if (!itemToDelete?.id) return;
+
     try {
       setLoading(true);
+      setDeleteError(null);
       await deleteCinema(itemToDelete.id);
       if (selectedId === itemToDelete.id) setSelectedId(null);
       
       setIsDeleteModalOpen(false);
+      setItemToDelete(null);
       setSuccessConfig({
         title: "¡Sucursal Eliminada!",
         message: `Se ha removido "${itemToDelete.name}" exitosamente.`
@@ -104,10 +121,20 @@ const CinemaPage = () => {
       setIsSuccessOpen(true);
       fetchBranches({ page: currentPage });
     } catch (error) {
+      const status = error?.response?.status;
+      const errorData = error?.response?.data || {};
+      const errorMessage =
+        status === 409
+          ? errorData.message || errorData.error ||
+            "No se puede eliminar esta sucursal porque tiene funciones activas."
+          : errorData.message || errorData.error || error.message ||
+            "Ocurrió un error al intentar eliminar la sucursal.";
+
       console.error("Error al eliminar:", error);
-      setLoading(false);
+      setDeleteError(errorMessage);
+      setIsDeleteModalOpen(true);
     } finally {
-      setItemToDelete(null);
+      setLoading(false);
     }
   };
 
@@ -136,11 +163,7 @@ const CinemaPage = () => {
         selectedId={selectedId}
         onSelectBranch={(id) => { setSelectedId(id); setIsAddingRoom(false); }}
         onEdit={handleOpenEditModal}
-        onDelete={(id) => {
-          const branch = branches.find(b => b.id === id);
-          setItemToDelete(branch);
-          setIsDeleteModalOpen(true);
-        }}
+        onDelete={openDeleteModal}
       />
 
       {/* PAGINACIÓN */}
@@ -161,7 +184,17 @@ const CinemaPage = () => {
       )}
 
       {/* MODALES */}
-      <DeleteConfirmModal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} onConfirm={handleConfirmDelete} itemName={itemToDelete?.name} />
+      <DeleteConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setItemToDelete(null);
+          setDeleteError(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        itemName={itemToDelete?.name || "esta sucursal"}
+        errorMessage={deleteError}
+      />
       <SuccessModal isOpen={isSuccessOpen} onClose={() => setIsSuccessOpen(false)} title={successConfig.title} message={successConfig.message} />
       <BranchModal open={isModalOpen} onClose={handleCloseModal} initialData={branchToEdit} />
 
