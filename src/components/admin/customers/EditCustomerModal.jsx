@@ -7,8 +7,11 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { InputForm } from "@/components/ui/inputForm";
+import { SelectForm } from "@/components/ui/SelectForm";
 import { DatePickerCustom } from "@/components/ui/DatePickerCustom";
-import { SelectCustom } from "@/components/ui/SelectCustom";
+import { Loader2 } from "lucide-react";
+
 import { updateCustomer } from "@/services/customers.service";
 
 const GENDERS = [
@@ -17,17 +20,6 @@ const GENDERS = [
   { value: "2", label: "Femenino" },
   { value: "3", label: "Prefiero no decirlo" },
 ];
-
-function Field({ label, children }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <label className="text-xs font-black uppercase tracking-widest text-slate-500">
-        {label}
-      </label>
-      {children}
-    </div>
-  );
-}
 
 export default function EditCustomerModal({ open, customer, onClose }) {
   const [form, setForm] = useState({
@@ -44,7 +36,7 @@ export default function EditCustomerModal({ open, customer, onClose }) {
 
   useEffect(() => {
     if (!customer) return;
-    const p = customer.person;
+    const p = customer.person || {};
     setForm({
       first_name: p.first_name ?? "",
       last_name: p.last_name ?? "",
@@ -55,7 +47,7 @@ export default function EditCustomerModal({ open, customer, onClose }) {
       birth_date: p.birth_date ? p.birth_date.slice(0, 10) : "",
     });
     setError("");
-  }, [customer]);
+  }, [customer, open]);
 
   const handle = (field) => (e) =>
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
@@ -68,8 +60,7 @@ export default function EditCustomerModal({ open, customer, onClose }) {
     try {
       setLoading(true);
       setError("");
-      // El backend espera el body PLANO y en camelCase
-      // (firstName, lastName, phoneNumber, email, birthDate, gender).
+
       await updateCustomer(customer.customer.id, {
         firstName: form.first_name.trim(),
         lastName: form.last_name.trim(),
@@ -78,117 +69,130 @@ export default function EditCustomerModal({ open, customer, onClose }) {
         gender: form.gender && form.gender !== "none" ? Number(form.gender) : null,
         birthDate: form.birth_date || null,
       });
+
       onClose(true);
     } catch (err) {
       setError(
         err?.response?.data?.message ||
-          "Ocurrió un error al actualizar el cliente.",
+          "Ocurrió un error al actualizar el cliente."
       );
     } finally {
       setLoading(false);
     }
   };
 
-  const inputClass =
-    "w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-brand-primary/20 outline-none transition-all";
+  if (!customer) return null;
 
   return (
     <Dialog open={open} onOpenChange={() => onClose(false)}>
-      <DialogContent className="sm:max-w-[480px] font-montserrat">
+      <DialogContent className="max-w-lg bg-white rounded-cineflix p-6 shadow-2xl font-montserrat">
         <DialogHeader>
-          <DialogTitle className="text-base font-black uppercase tracking-widest text-brand-primary">
+          <DialogTitle className="text-xl font-bold text-brand-primary uppercase">
             Editar Cliente
           </DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 gap-4 py-2">
-          <Field label="Nombre">
-            <input
+        <div className="space-y-4 mt-4 text-left">
+          <div className="grid grid-cols-2 gap-4">
+            {/* NOMBRE */}
+            <InputForm
+              label="Nombre"
               value={form.first_name}
               onChange={handle("first_name")}
-              className={inputClass}
+              disabled={loading}
               placeholder="Nombre"
             />
-          </Field>
-          <Field label="Apellido">
-            <input
+
+            {/* APELLIDO */}
+            <InputForm
+              label="Apellido"
               value={form.last_name}
               onChange={handle("last_name")}
-              className={inputClass}
+              disabled={loading}
               placeholder="Apellido"
             />
-          </Field>
 
-          <Field label="Nro. Documento">
-            <input
+            {/* DOCUMENTO (Deshabilitado) */}
+            <InputForm
+              label="Nro. Documento"
               value={form.document_number}
               disabled
-              className={`${inputClass} bg-gray-50 text-gray-400 cursor-not-allowed`}
-              title="El documento no puede modificarse"
             />
-          </Field>
 
-          <SelectCustom
-            label="Género"
-            placeholder="Sin especificar"
-            options={GENDERS}
-            value={form.gender}
-            onValueChange={(val) =>
-              setForm((prev) => ({ ...prev, gender: val }))
-            }
-          />
+            {/* GÉNERO */}
+            <SelectForm
+              label="Género"
+              value={form.gender}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, gender: e.target.value }))
+              }
+              disabled={loading}
+            >
+              {GENDERS.map((g) => (
+                <option key={g.value} value={g.value}>
+                  {g.label}
+                </option>
+              ))}
+            </SelectForm>
 
-          <Field label="Teléfono">
-            <input
+            {/* TELÉFONO */}
+            <InputForm
+              label="Teléfono"
               value={form.phone_number}
               onChange={handle("phone_number")}
-              className={inputClass}
+              disabled={loading}
               placeholder="Ej: 04XX-XXXXXXX"
             />
-          </Field>
 
-          <DatePickerCustom
-            label="Fecha de Nacimiento"
-            value={form.birth_date}
-            onChange={(iso) =>
-              setForm((prev) => ({ ...prev, birth_date: iso }))
-            }
+            {/* FECHA DE NACIMIENTO */}
+            <DatePickerCustom
+              label="Fecha de Nacimiento"
+              value={form.birth_date}
+              onChange={(iso) =>
+                setForm((prev) => ({ ...prev, birth_date: iso }))
+              }
+              disabled={loading}
+            />
+          </div>
+
+          {/* CORREO PERSONAL */}
+          <InputForm
+            label="Correo Personal"
+            type="email"
+            value={form.personal_email}
+            onChange={handle("personal_email")}
+            disabled={loading}
+            placeholder="correo@ejemplo.com"
           />
 
-          <div className="col-span-2">
-            <Field label="Correo Personal">
-              <input
-                type="email"
-                value={form.personal_email}
-                onChange={handle("personal_email")}
-                className={inputClass}
-                placeholder="correo@ejemplo.com"
-              />
-            </Field>
-          </div>
+          {error && (
+            <p className="text-red-500 text-xs text-center font-bold uppercase italic mt-2">
+              * {error}
+            </p>
+          )}
         </div>
 
-        {error && (
-          <p className="text-xs text-red-500 font-medium text-center">
-            {error}
-          </p>
-        )}
-
-        <DialogFooter className="gap-2 pt-2">
+        <DialogFooter className="pt-4 border-t flex gap-2 justify-end mt-4">
           <Button
             variant="outline"
             onClick={() => onClose(false)}
             disabled={loading}
-            className="rounded-xl text-xs font-bold uppercase tracking-widest"
           >
             Cancelar
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={loading}
-            className="bg-brand-primary hover:brightness-110 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-md"
+            className="bg-brand-primary text-white font-bold px-6 flex items-center gap-2"
           >
-            {loading ? "Guardando..." : "Guardar Cambios"}
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Guardando...
+              </>
+            ) : (
+              "Guardar Cambios"
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

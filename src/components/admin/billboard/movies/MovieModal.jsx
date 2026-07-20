@@ -25,9 +25,9 @@ export default function MovieModal({
   onClose,
   onSuccess,
   initialData,
-  lifecycleStatesList,
+  lifecycleStatesList = [],
   genresList = [],
-  ageClassificationsList,
+  ageClassificationsList = [],
   languagesList = [],
   projectionTypesList = [],
 }) {
@@ -37,7 +37,6 @@ export default function MovieModal({
   const [posterPreview, setPosterPreview] = useState(null);
   const [bannerPreview, setBannerPreview] = useState(null);
 
-  // 1. Extraemos isSubmitting del formState
   const {
     register,
     handleSubmit,
@@ -81,7 +80,7 @@ export default function MovieModal({
                 item.description?.toLowerCase() ===
                   fieldData.description?.toLowerCase() ||
                 item.name?.toLowerCase() ===
-                  fieldData.description?.toLowerCase(),
+                  fieldData.description?.toLowerCase()
             );
             return found ? found.id : "";
           }
@@ -90,28 +89,28 @@ export default function MovieModal({
       };
 
       const formattedData = {
-        title: initialData.title,
-        synopsis: initialData.synopsis,
-        durationMinutes: initialData.duration_minutes,
-        releaseDate: initialData.release_date?.split("T")[0],
+        title: initialData.title || "",
+        synopsis: initialData.synopsis || "",
+        durationMinutes: initialData.duration_minutes || "",
+        releaseDate: initialData.release_date?.split("T")[0] || "",
         ageClassification: getNormalizedId(
           ageClassificationsList,
-          initialData.age_classification,
+          initialData.age_classification
         ),
         lifecycleState: getNormalizedId(
           lifecycleStatesList,
-          initialData.lifecycle_state,
+          initialData.lifecycle_state
         ),
         poster: initialData.poster_url,
         banner: initialData.banner_url,
-        trailerUrl: initialData.trailer_url,
+        trailerUrl: initialData.trailer_url || "",
         genres:
           (initialData.genres || initialData._MovieGenres)?.map((g) =>
-            (g.genre || g.id).toString(),
+            (g.genre || g.id).toString()
           ) || [],
         languages:
           (initialData.languages || initialData._MovieLanguages)?.map((lang) =>
-            (lang.language || lang.id).toString(),
+            (lang.language || lang.id).toString()
           ) || [],
         projectionTypes:
           (
@@ -120,8 +119,8 @@ export default function MovieModal({
           [],
       };
       reset(formattedData);
-      setBannerPreview(initialData.banner_url);
-      setPosterPreview(initialData.poster_url);
+      setBannerPreview(initialData.banner_url || null);
+      setPosterPreview(initialData.poster_url || null);
     } else if (open) {
       reset({
         title: "",
@@ -186,7 +185,7 @@ export default function MovieModal({
       formData.append("languages", JSON.stringify(data.languages.map(Number)));
       formData.append(
         "projectionTypes",
-        JSON.stringify(data.projectionTypes.map(Number)),
+        JSON.stringify(data.projectionTypes.map(Number))
       );
 
       if (data.poster && data.poster instanceof FileList && data.poster[0]) {
@@ -207,7 +206,7 @@ export default function MovieModal({
       } else {
         await createMovie(formData);
         onSuccess(
-          `"${data.title}" se ha registrado exitosamente en la cartelera.`,
+          `"${data.title}" se ha registrado exitosamente en la cartelera.`
         );
       }
     } catch (error) {
@@ -258,256 +257,115 @@ export default function MovieModal({
   });
 
   return (
-    // 2. Deshabilitamos cerrar el modal con click afuera mientras se procesa la petición
     <Dialog open={open} onOpenChange={isSubmitting ? null : onClose}>
-      <DialogContent className="max-w-4xl bg-white rounded-cineflix p-8 shadow-2xl overflow-y-auto max-h-[90vh] font-montserrat">
-        {/* 3. Deshabilitamos el botón de cerrar de la esquina superior */}
-        <button
-          type="button"
-          onClick={onClose}
-          disabled={isSubmitting}
-          className="absolute top-4 right-4 text-gray-400 hover:text-brand-primary z-10 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <X className="h-5 w-5" />
-        </button>
-
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-brand-primary uppercase">
+      <DialogContent className="max-w-5xl bg-white rounded-cineflix p-6 shadow-2xl max-h-[92vh] overflow-hidden font-montserrat flex flex-col">
+        {/* ENCABEZADO FIJO CON SEPARACIÓN BORDER-B */}
+        <DialogHeader className="p-0 pb-3 border-b flex-shrink-0">
+          <DialogTitle className="text-lg font-bold text-brand-primary uppercase leading-none">
             {isEdit ? "Editar Película" : "Nueva Película"}
           </DialogTitle>
-          <DialogDescription className="text-xs text-slate-500">
+          <DialogDescription className="text-[11px] text-slate-500 mt-1">
             {isEdit
               ? "Modifica los datos de la película seleccionada."
-              : "Registra una nueva película."}
+              : "Registra una nueva película en el catálogo."}
           </DialogDescription>
         </DialogHeader>
 
-        {/* 4. Opción UX avanzada (opcional): se puede deshabilitar interacciones completas del form con un fieldset */}
+        {/* CONTENEDOR CON SCROLL Y PADDING TOP PARA EVITAR CORTES */}
         <form
           onSubmit={handleSubmit(onSubmit)}
-          className="grid grid-cols-1 md:grid-cols-12 space-y-4 mt-6 gap-6"
+          className="flex-1 overflow-y-auto pt-3 pb-2 pr-2 grid grid-cols-1 md:grid-cols-12 gap-4 text-left"
         >
-          {/* SECCIÓN PORTADA / PÓSTER */}
-          <div className="md:col-span-4">
-            <label className="text-[10px] font-bold uppercase text-brand-primary">
-              Póster Oficial
-            </label>
-            <div
-              onClick={() => !isSubmitting && fileInputRef.current?.click()}
-              className={`relative aspect-[2/3] w-full rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer overflow-hidden transition-all ${
-                errors.poster
-                  ? "border-red-500 bg-red-50"
-                  : posterPreview
+          {/* SECCIÓN IZQUIERDA: PÓSTER Y BANNER */}
+          <div className="md:col-span-3 flex flex-col gap-3">
+            {/* PÓSTER */}
+            <div className="flex flex-col gap-1">
+              <Label className="text-[11px] font-bold text-brand-primary uppercase">
+                Póster Oficial
+              </Label>
+              <div
+                onClick={() => !isSubmitting && fileInputRef.current?.click()}
+                className={`relative aspect-[3/4] w-full rounded-cineflix border-2 border-dashed flex flex-col items-center justify-center cursor-pointer overflow-hidden transition-all ${
+                  errors.poster
+                    ? "border-red-500 bg-red-50"
+                    : posterPreview
                     ? "border-brand-primary"
-                    : "border-gray-200 bg-gray-50"
-              } ${isSubmitting ? "opacity-60 cursor-not-allowed" : ""}`}
-            >
-              {posterPreview ? (
-                <div className="relative h-full w-full group">
-                  <img
-                    src={posterPreview}
-                    alt="Preview"
-                    className="h-full w-full object-cover"
-                  />
-
-                  <button
-                    type="button"
-                    onClick={handleRemovePoster}
-                    disabled={isSubmitting}
-                    className="absolute top-3 right-3 p-1.5 bg-red-600 text-white rounded-full shadow-md hover:bg-red-700 transition-all z-20 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 disabled:hidden"
-                    title="Remover imagen"
-                  >
-                    <X className="h-4 w-4" strokeWidth={3} />
-                  </button>
-
-                  <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-                    <Upload className="h-6 w-6 text-white mb-1" />
-                    <p className="text-[9px] font-bold text-white uppercase">
-                      Cambiar Póster
+                    : "border-slate-200 bg-slate-50 hover:bg-slate-100"
+                } ${isSubmitting ? "opacity-60 cursor-not-allowed" : ""}`}
+              >
+                {posterPreview ? (
+                  <div className="relative h-full w-full group">
+                    <img
+                      src={posterPreview}
+                      alt="Póster"
+                      className="h-full w-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRemovePoster}
+                      disabled={isSubmitting}
+                      className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded-full shadow-md hover:bg-red-700 transition-all z-20 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 disabled:hidden"
+                      title="Remover imagen"
+                    >
+                      <X className="h-3.5 w-3.5" strokeWidth={3} />
+                    </button>
+                    <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                      <Upload className="h-5 w-5 text-white mb-1" />
+                      <p className="text-[9px] font-bold text-white uppercase">
+                        Cambiar
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center p-2">
+                    <Upload
+                      className={`h-6 w-6 mx-auto mb-1 ${
+                        errors.poster ? "text-red-400" : "text-slate-300"
+                      }`}
+                    />
+                    <p
+                      className={`text-[10px] font-bold uppercase ${
+                        errors.poster ? "text-red-500" : "text-slate-400"
+                      }`}
+                    >
+                      Subir Póster
                     </p>
                   </div>
-                </div>
-              ) : (
-                <div className="text-center p-4">
-                  <Upload
-                    className={`h-8 w-8 mx-auto mb-2 ${errors.poster ? "text-red-400" : "text-gray-300"}`}
-                  />
-                  <p
-                    className={`text-[10px] font-bold ${errors.poster ? "text-red-500" : "text-gray-400"}`}
-                  >
-                    SUBIR IMAGEN
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {errors.poster && (
-              <p className="text-[10px] text-red-500 font-bold uppercase mt-1 italic">
-                * {errors.poster.message}
-              </p>
-            )}
-
-            <input
-              type="file"
-              className="hidden"
-              disabled={isSubmitting}
-              accept="image/jpeg,image/png,image/webp"
-              name={posterRegister.name}
-              onChange={posterRegister.onChange}
-              onBlur={posterRegister.onBlur}
-              ref={(e) => {
-                posterRegister.ref(e);
-                fileInputRef.current = e;
-              }}
-            />
-          </div>
-
-          {/* CAMPOS DEL FORMULARIO */}
-          <div className="md:col-span-8 space-y-4">
-            <InputForm
-              label="Título"
-              disabled={isSubmitting}
-              {...register("title", { required: "Este campo es obligatorio" })}
-              error={errors.title?.message}
-            />
-
-            <div className="grid grid-cols-2 gap-4">
-              <SelectForm
-                label="Clasificación"
-                disabled={isSubmitting}
-                {...register("ageClassification", {
-                  required: "Este campo es obligatorio",
-                  valueAsNumber: true,
-                })}
-                error={errors.ageClassification?.message}
-              >
-                <option value="">Seleccionar...</option>
-                {ageClassificationsList.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name || item.description}
-                  </option>
-                ))}
-              </SelectForm>
-
-              <Controller
-                name="releaseDate"
-                control={control}
-                rules={{ required: "Este campo es obligatorio" }}
-                render={({ field }) => (
-                  <DatePickerCustom
-                    label="Estreno"
-                    value={field.value || ""}
-                    onChange={(iso) => field.onChange(iso)}
-                  />
                 )}
-              />
-              {errors.releaseDate?.message && (
-                <p className="text-[10px] text-red-500 font-bold mt-1 ml-2 uppercase">
-                  {errors.releaseDate.message}
+              </div>
+              {errors.poster && (
+                <p className="text-red-500 text-[10px] font-bold uppercase italic mt-0.5">
+                  * {errors.poster.message}
                 </p>
               )}
-            </div>
-
-            <ChipsSelectorForm
-              label="Idiomas"
-              options={languagesList}
-              selectedValues={selectedLanguages}
-              disabled={isSubmitting}
-              registerProps={register("languages", {
-                validate: (value) =>
-                  value.length > 0 || "Este campo es obligatorio",
-              })}
-              error={errors.languages?.message}
-            />
-
-            <ChipsSelectorForm
-              label="Proyecciones"
-              options={projectionTypesList}
-              selectedValues={selectedProjectionTypes}
-              disabled={isSubmitting}
-              registerProps={register("projectionTypes", {
-                validate: (value) =>
-                  value.length > 0 || "Este campo es obligatorio",
-              })}
-              error={errors.projectionTypes?.message}
-            />
-
-            <ChipsSelectorForm
-              label="Géneros"
-              options={genresList}
-              selectedValues={selectedGenres}
-              disabled={isSubmitting}
-              registerProps={register("genres", {
-                validate: (value) =>
-                  value.length > 0 || "Este campo es obligatorio",
-              })}
-              error={errors.genres?.message}
-            />
-
-            <div className="grid grid-cols-2 gap-4">
-              <InputForm
-                label="Duración (min)"
+              <input
+                type="file"
+                className="hidden"
                 disabled={isSubmitting}
-                onKeyDown={(e) => {
-                  if (["-", "e", "E", ".", ","].includes(e.key))
-                    e.preventDefault();
+                accept="image/jpeg,image/png,image/webp"
+                name={posterRegister.name}
+                onChange={posterRegister.onChange}
+                onBlur={posterRegister.onBlur}
+                ref={(e) => {
+                  posterRegister.ref(e);
+                  fileInputRef.current = e;
                 }}
-                type="number"
-                {...register("durationMinutes", {
-                  required: "Este campo es obligatorio",
-                  valueAsNumber: true,
-                })}
-                error={errors.durationMinutes?.message}
               />
-
-              <SelectForm
-                label="Estado en Ciclo"
-                disabled={isSubmitting}
-                {...register("lifecycleState", {
-                  required: "Este campo es obligatorio",
-                  valueAsNumber: true,
-                })}
-                error={errors.lifecycleState?.message}
-              >
-                <option value="">Seleccionar...</option>
-                {lifecycleStatesList.map((state) => (
-                  <option key={state.id} value={state.id}>
-                    {state.name || state.description}
-                  </option>
-                ))}
-              </SelectForm>
             </div>
 
-            <TextAreaCustom
-              label="Sinopsis"
-              rows={3}
-              disabled={isSubmitting}
-              {...register("synopsis", {
-                required: "Este campo es obligatorio",
-              })}
-              error={errors.synopsis?.message}
-            />
-
-            <InputForm
-              label="URL Trailer"
-              disabled={isSubmitting}
-              {...register("trailerUrl")}
-              placeholder="https://youtube.com/..."
-            />
-
-            {/* SECCIÓN BANNER */}
-            <div className="md:col-span-12 space-y-2 text-left">
-              <Label className="text-[12px] font-bold uppercase text-brand-primary">
-                Banner de Fondo
+            {/* BANNER HORIZONTAL */}
+            <div className="flex flex-col gap-1">
+              <Label className="text-[11px] font-bold uppercase text-brand-primary">
+                Banner Horizontal
               </Label>
               <div
                 onClick={() => !isSubmitting && bannerInputRef.current?.click()}
-                className={`relative aspect-[16/5] w-full rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer overflow-hidden transition-all ${
+                className={`relative aspect-[16/7] w-full rounded-cineflix border-2 border-dashed flex flex-col items-center justify-center cursor-pointer overflow-hidden transition-all ${
                   errors.banner
                     ? "border-red-500 bg-red-50"
                     : bannerPreview
-                      ? "border-brand-primary"
-                      : "border-gray-200 bg-gray-50"
+                    ? "border-brand-primary"
+                    : "border-slate-200 bg-slate-50 hover:bg-slate-100"
                 } ${isSubmitting ? "opacity-60 cursor-not-allowed" : ""}`}
               >
                 {bannerPreview ? (
@@ -517,44 +375,44 @@ export default function MovieModal({
                       alt="Banner Preview"
                       className="h-full w-full object-cover"
                     />
-
                     <button
                       type="button"
                       onClick={handleRemoveBanner}
                       disabled={isSubmitting}
-                      className="absolute top-3 right-3 p-1.5 bg-red-600 text-white rounded-full shadow-md hover:bg-red-700 transition-all z-20 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 disabled:hidden"
+                      className="absolute top-1.5 right-1.5 p-1 bg-red-600 text-white rounded-full shadow-md hover:bg-red-700 transition-all z-20 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 disabled:hidden"
                       title="Remover banner"
                     >
-                      <X className="h-4 w-4" strokeWidth={3} />
+                      <X className="h-3.5 w-3.5" strokeWidth={3} />
                     </button>
-
                     <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-                      <Upload className="h-5 w-5 text-white mb-1" />
+                      <Upload className="h-4 w-4 text-white mb-0.5" />
                       <p className="text-[9px] font-bold text-white uppercase">
-                        Cambiar Banner
+                        Cambiar
                       </p>
                     </div>
                   </div>
                 ) : (
-                  <div className="text-center p-4">
+                  <div className="text-center p-2">
                     <Upload
-                      className={`h-6 w-6 mx-auto mb-1 ${errors.banner ? "text-red-400" : "text-gray-300"}`}
+                      className={`h-5 w-5 mx-auto mb-0.5 ${
+                        errors.banner ? "text-red-400" : "text-slate-300"
+                      }`}
                     />
                     <p
-                      className={`text-[10px] font-bold ${errors.banner ? "text-red-500" : "text-gray-400"}`}
+                      className={`text-[9px] font-bold uppercase ${
+                        errors.banner ? "text-red-500" : "text-slate-400"
+                      }`}
                     >
-                      SUBIR BANNER HORIZONTAL
+                      Subir Banner
                     </p>
                   </div>
                 )}
               </div>
-
               {errors.banner && (
-                <p className="text-[10px] text-red-500 font-bold uppercase mt-1 italic">
+                <p className="text-red-500 text-[10px] font-bold uppercase italic mt-0.5">
                   * {errors.banner.message}
                 </p>
               )}
-
               <input
                 type="file"
                 className="hidden"
@@ -569,14 +427,159 @@ export default function MovieModal({
                 }}
               />
             </div>
+          </div>
 
-            {/* MODIFICACIÓN EN EL DIALOG FOOTER */}
-            <DialogFooter className="pt-6 border-t flex gap-2 justify-end">
+          {/* CAMPOS DEL FORMULARIO (DERECHA) */}
+          <div className="md:col-span-9 space-y-3">
+            {/* Título y Trailer en 2 Columnas */}
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
+              <div className="sm:col-span-7">
+                <InputForm
+                  label="Título"
+                  disabled={isSubmitting}
+                  {...register("title", { required: "Campo obligatorio" })}
+                  error={errors.title?.message}
+                />
+              </div>
+              <div className="sm:col-span-5">
+                <InputForm
+                  label="URL Trailer"
+                  disabled={isSubmitting}
+                  {...register("trailerUrl")}
+                  placeholder="https://youtube.com/..."
+                />
+              </div>
+            </div>
+
+            {/* Clasificación, Duración y Estado en 3 Columnas */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              <SelectForm
+                label="Clasificación"
+                disabled={isSubmitting}
+                {...register("ageClassification", {
+                  required: "Campo obligatorio",
+                  valueAsNumber: true,
+                })}
+                error={errors.ageClassification?.message}
+              >
+                <option value="">Seleccionar...</option>
+                {ageClassificationsList.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name || item.description}
+                  </option>
+                ))}
+              </SelectForm>
+
+              <InputForm
+                label="Duración (min)"
+                disabled={isSubmitting}
+                onKeyDown={(e) => {
+                  if (["-", "e", "E", ".", ","].includes(e.key))
+                    e.preventDefault();
+                }}
+                type="number"
+                {...register("durationMinutes", {
+                  required: "Campo obligatorio",
+                  valueAsNumber: true,
+                })}
+                error={errors.durationMinutes?.message}
+              />
+
+              <SelectForm
+                label="Estado en Ciclo"
+                disabled={isSubmitting}
+                {...register("lifecycleState", {
+                  required: "Campo obligatorio",
+                  valueAsNumber: true,
+                })}
+                error={errors.lifecycleState?.message}
+              >
+                <option value="">Seleccionar...</option>
+                {lifecycleStatesList.map((state) => (
+                  <option key={state.id} value={state.id}>
+                    {state.name || state.description}
+                  </option>
+                ))}
+              </SelectForm>
+            </div>
+
+            {/* Fecha Estreno */}
+            <div className="w-1/3 pr-1.5">
+              <Controller
+                name="releaseDate"
+                control={control}
+                rules={{ required: "Campo obligatorio" }}
+                render={({ field }) => (
+                  <DatePickerCustom
+                    label="Estreno"
+                    value={field.value || ""}
+                    onChange={(iso) => field.onChange(iso)}
+                    disabled={isSubmitting}
+                  />
+                )}
+              />
+            </div>
+
+            {/* ChipsSelectors */}
+            <div className="space-y-2">
+              <ChipsSelectorForm
+                label="Idiomas"
+                options={languagesList}
+                selectedValues={selectedLanguages}
+                disabled={isSubmitting}
+                registerProps={register("languages", {
+                  validate: (value) =>
+                    value.length > 0 || "Campo obligatorio",
+                })}
+                error={errors.languages?.message}
+              />
+
+              <ChipsSelectorForm
+                label="Proyecciones"
+                options={projectionTypesList}
+                selectedValues={selectedProjectionTypes}
+                disabled={isSubmitting}
+                registerProps={register("projectionTypes", {
+                  validate: (value) =>
+                    value.length > 0 || "Campo obligatorio",
+                })}
+                error={errors.projectionTypes?.message}
+              />
+
+              <ChipsSelectorForm
+                label="Géneros"
+                options={genresList}
+                selectedValues={selectedGenres}
+                disabled={isSubmitting}
+                registerProps={register("genres", {
+                  validate: (value) =>
+                    value.length > 0 || "Campo obligatorio",
+                })}
+                error={errors.genres?.message}
+              />
+            </div>
+
+            {/* Sinopsis */}
+            <TextAreaCustom
+              label="Sinopsis"
+              rows={2}
+              disabled={isSubmitting}
+              {...register("synopsis", {
+                required: "Campo obligatorio",
+              })}
+              error={errors.synopsis?.message}
+            />
+          </div>
+
+          {/* FOOTER INTERNO INTEGRADO */}
+          <div className="md:col-span-12 pt-3 border-t mt-2">
+            <DialogFooter className="flex gap-2 justify-end">
               <Button
                 type="button"
                 variant="outline"
+                size="sm"
                 onClick={onClose}
-                disabled={isSubmitting} // Deshabilitar si se está enviando
+                disabled={isSubmitting}
               >
                 Cancelar
               </Button>
@@ -586,10 +589,10 @@ export default function MovieModal({
                 }
                 title="No tienes permiso para guardar películas"
               >
-                {/* 5. Loader reactivo en el botón de submit */}
                 <Button
                   type="submit"
-                  className="bg-brand-primary text-white font-bold px-6 flex items-center gap-2"
+                  size="sm"
+                  className="bg-brand-primary text-white font-bold px-5 flex items-center gap-2"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? (
