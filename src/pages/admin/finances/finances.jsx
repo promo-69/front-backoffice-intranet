@@ -83,6 +83,7 @@ function CurrenciesTab() {
 
   useEffect(() => {
     fetchCurrenciesData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage]);
 
   const handleOpenEditModal = (currency) => {
@@ -322,6 +323,7 @@ function RatesTab() {
 
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage]);
 
   const handleCloseModal = (shouldRefresh) => {
@@ -479,6 +481,7 @@ function BankAccountsTab() {
 
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage]);
 
   const handleOpenEditModal = (account) => {
@@ -677,6 +680,7 @@ function PriceModifiersTab() {
 
   useEffect(() => {
     fetchModifiersData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage]);
 
   useEffect(() => {
