@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,10 +9,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { InputForm } from "@/components/ui/inputForm";
 import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
-import { SelectForm } from "@/components/ui/SelectForm";
-import { SelectCustom } from "@/components/ui/SelectCustom";
 import { DatePickerCustom } from "@/components/ui/DatePickerCustom";
 import { TabsCustom } from "@/components/ui/TabsCustom";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Loader2, Check, ChevronsUpDown, Search } from "lucide-react";
+
+import { cn as combineClassNames } from "@/lib/utils";
 
 import {
   changeEmployeePosition,
@@ -66,26 +68,64 @@ function ErrorMsg({ message }) {
 export default function EmployeeUpdateModal({ open, onClose, employee }) {
   const [activeTab, setActiveTab] = useState("personal");
   const [cinemas, setCinemas] = useState([]);
+  const [loadingCinemas, setLoadingCinemas] = useState(false);
 
   const [personalForm, setPersonalForm] = useState(emptyPersonalForm);
   const [positionForm, setPositionForm] = useState(emptyPositionForm);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-    console.log(employee);
-  const loadCinemas = async () => {
+
+  // Estados Popovers y Buscadores
+  const [openGender, setOpenGender] = useState(false);
+  const [searchGender, setSearchGender] = useState("");
+
+  const [openPosition, setOpenPosition] = useState(false);
+  const [searchPosition, setSearchPosition] = useState("");
+
+  const [openCinema, setOpenCinema] = useState(false);
+  const [searchCinema, setSearchCinema] = useState("");
+
+  // Búsqueda en API global sin límite de paginación
+  const fetchCinemasFromAPI = useCallback(async (query = "") => {
+    setLoadingCinemas(true);
     try {
-      const data = await getCinemas();
-      setCinemas(data.data || []);
+      const response = await getCinemas({ 
+        search: query.trim(),
+        limit: 1000,
+        page: 1,
+        all: true 
+      });
+
+      const list = Array.isArray(response) 
+        ? response 
+        : response?.data || response?.cinemas || response?.results || [];
+
+      const formattedCinemas = list.map((c) => ({
+        id: String(c.id),
+        name: c.name || c.nombre || `Sucursal ${c.id}`,
+      }));
+
+      setCinemas(formattedCinemas);
     } catch (error) {
-      console.error("Error cargando sucursales:", error);
+      console.error("Error consultando sucursales:", error);
       setCinemas([]);
+    } finally {
+      setLoadingCinemas(false);
     }
-  };
+  }, []);
 
+  // Carga inicial de sucursales al abrir el modal o escribir en el buscador
   useEffect(() => {
-    if (open) loadCinemas();
-  }, [open]);
+    if (!open) return;
 
+    const timer = setTimeout(() => {
+      fetchCinemasFromAPI(searchCinema);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchCinema, open, fetchCinemasFromAPI]);
+
+  // Carga inicial y reset al abrir el modal
   useEffect(() => {
     if (!open) return;
 
@@ -106,10 +146,12 @@ export default function EmployeeUpdateModal({ open, onClose, employee }) {
         gender: String(employee.people?.gender ?? employee.person?.gender ?? ""),
       });
 
+      const rawCinemaId = typeof employee.cinema === "object" ? employee.cinema?.id : employee.cinema;
+
       setPositionForm({
-        jobPosition: employee.job_position || employee.jobPosition || "",
-        cinema: employee.cinema || "",
-        salaryBase: employee.salary_base || employee.salaryBase || "",
+        jobPosition: String(employee.job_position || employee.jobPosition || ""),
+        cinema: rawCinemaId ? String(rawCinemaId) : "",
+        salaryBase: String(employee.salary_base || employee.salaryBase || ""),
         startDate:
           (employee.start_date || employee.startDate || "").split("T")[0],
       });
@@ -120,6 +162,9 @@ export default function EmployeeUpdateModal({ open, onClose, employee }) {
 
     setErrors({});
     setActiveTab("personal");
+    setSearchGender("");
+    setSearchPosition("");
+    setSearchCinema("");
   }, [open, employee]);
 
   const handlePersonalChange = (name, value) => {
@@ -130,6 +175,44 @@ export default function EmployeeUpdateModal({ open, onClose, employee }) {
   const handlePositionChange = (name, value) => {
     setPositionForm((prev) => ({ ...prev, [name]: value }));
     setErrors((prev) => ({ ...prev, [name]: null, general: null }));
+  };
+
+  // --- FILTROS LOCALES ---
+  const filteredGenders = useMemo(() => {
+    return GENDERS.filter((g) =>
+      g.label.toLowerCase().includes(searchGender.toLowerCase())
+    );
+  }, [searchGender]);
+
+  const filteredPositions = useMemo(() => {
+    return JOB_POSITIONS.filter((p) =>
+      p.label.toLowerCase().includes(searchPosition.toLowerCase())
+    );
+  }, [searchPosition]);
+
+  // Se añade filtro local para sucursales para respuesta inmediata en la UI
+  const filteredCinemas = useMemo(() => {
+    return cinemas.filter((c) =>
+      c.name.toLowerCase().includes(searchCinema.toLowerCase())
+    );
+  }, [cinemas, searchCinema]);
+
+  // Helper Labels
+  const getSelectedGenderLabel = () => {
+    const found = GENDERS.find((g) => String(g.value) === String(personalForm.gender));
+    return found ? found.label : "Seleccione género...";
+  };
+
+  const getSelectedPositionLabel = () => {
+    const found = JOB_POSITIONS.find((p) => String(p.value) === String(positionForm.jobPosition));
+    return found ? found.label : "Seleccione cargo...";
+  };
+
+  const getSelectedCinemaLabel = () => {
+    const found = cinemas.find((c) => String(c.id) === String(positionForm.cinema));
+    if (found) return found.name;
+    if (positionForm.cinema) return `Sucursal (${positionForm.cinema})`;
+    return "Seleccione sucursal...";
   };
 
   const validateField = (section, name, value) => {
@@ -225,9 +308,11 @@ export default function EmployeeUpdateModal({ open, onClose, employee }) {
 
   const hasPositionChanges = () => {
     if (!employee) return false;
+    const rawCinemaId = typeof employee.cinema === "object" ? employee.cinema?.id : employee.cinema;
+
     return (
-      positionForm.jobPosition !== (employee.job_position || employee.jobPosition || "") ||
-      String(positionForm.cinema) !== String(employee.cinema || "") ||
+      positionForm.jobPosition !== String(employee.job_position || employee.jobPosition || "") ||
+      String(positionForm.cinema) !== String(rawCinemaId || "") ||
       String(positionForm.salaryBase) !== String(employee.salary_base || employee.salaryBase || "") ||
       positionForm.startDate !== (employee.start_date || employee.startDate || "").split("T")[0]
     );
@@ -316,6 +401,7 @@ export default function EmployeeUpdateModal({ open, onClose, employee }) {
                 value={personalForm.documentNumber}
                 onChange={(e) => handlePersonalChange("documentNumber", e.target.value)}
                 placeholder="Ej: V-12345678"
+                disabled={isSubmitting}
               />
               <ErrorMsg message={errors.documentNumber} />
 
@@ -327,6 +413,7 @@ export default function EmployeeUpdateModal({ open, onClose, employee }) {
                     value={personalForm.employeeCode}
                     onChange={(e) => handlePersonalChange("employeeCode", e.target.value)}
                     placeholder="Ej: EMP-1234"
+                    disabled={isSubmitting}
                   />
                   <ErrorMsg message={errors.employeeCode} />
                 </div>
@@ -338,6 +425,7 @@ export default function EmployeeUpdateModal({ open, onClose, employee }) {
                     value={personalForm.personalEmail}
                     onChange={(e) => handlePersonalChange("personalEmail", e.target.value)}
                     placeholder="Ej: usuario@personal.com"
+                    disabled={isSubmitting}
                   />
                   <ErrorMsg message={errors.personalEmail} />
                 </div>
@@ -351,6 +439,7 @@ export default function EmployeeUpdateModal({ open, onClose, employee }) {
                     value={personalForm.firstName}
                     onChange={(e) => handlePersonalChange("firstName", e.target.value)}
                     placeholder="Ej: Maria"
+                    disabled={isSubmitting}
                   />
                   <ErrorMsg message={errors.firstName} />
                 </div>
@@ -362,6 +451,7 @@ export default function EmployeeUpdateModal({ open, onClose, employee }) {
                     value={personalForm.lastName}
                     onChange={(e) => handlePersonalChange("lastName", e.target.value)}
                     placeholder="Ej: Pérez"
+                    disabled={isSubmitting}
                   />
                   <ErrorMsg message={errors.lastName} />
                 </div>
@@ -373,53 +463,243 @@ export default function EmployeeUpdateModal({ open, onClose, employee }) {
                 value={personalForm.phoneNumber}
                 onChange={(e) => handlePersonalChange("phoneNumber", e.target.value)}
                 placeholder="Ej: 04XX-XXXXXXX"
+                disabled={isSubmitting}
               />
 
               <div className="grid grid-cols-2 gap-4">
-                <SelectCustom
-                  label="Género"
-                  placeholder="Seleccione..."
-                  value={personalForm.gender}
-                  onValueChange={(val) => handlePersonalChange("gender", val)}
-                  options={GENDERS}
-                />
+                {/* COMBOBOX GÉNERO */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-bold text-brand-primary uppercase">
+                    Género
+                  </label>
+                  <Popover open={openGender} onOpenChange={setOpenGender}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        role="combobox"
+                        disabled={isSubmitting}
+                        aria-expanded={openGender}
+                        className="w-full justify-between bg-white border border-slate-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-brand-primary h-10 font-normal text-left"
+                      >
+                        <span className="truncate">
+                          {getSelectedGenderLabel()}
+                        </span>
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+
+                    <PopoverContent
+                      className="w-[220px] p-2 bg-white shadow-xl rounded-md border flex flex-col gap-2 z-[9999]"
+                      align="start"
+                    >
+                      <div className="flex items-center gap-2 border border-slate-200 rounded-md px-2 py-1 bg-slate-50">
+                        <Search className="h-4 w-4 text-slate-400" />
+                        <input
+                          type="text"
+                          placeholder="Buscar..."
+                          className="w-full bg-transparent text-sm focus:outline-none py-1 text-slate-700"
+                          value={searchGender}
+                          onChange={(e) => setSearchGender(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="max-h-[180px] overflow-y-auto flex flex-col">
+                        {filteredGenders.length === 0 ? (
+                          <span className="p-2 text-xs text-slate-400 text-center">
+                            Sin resultados.
+                          </span>
+                        ) : (
+                          filteredGenders.map((g) => (
+                            <button
+                              type="button"
+                              key={g.value}
+                              onClick={() => {
+                                handlePersonalChange("gender", g.value);
+                                setOpenGender(false);
+                              }}
+                              className="w-full text-left cursor-pointer hover:bg-slate-100 p-2 text-sm flex items-center justify-between rounded-md transition-colors"
+                            >
+                              <span className="truncate text-slate-700">
+                                {g.label}
+                              </span>
+                              <Check
+                                className={combineClassNames(
+                                  "ml-2 h-4 w-4 text-brand-primary",
+                                  String(personalForm.gender) === String(g.value)
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                  <ErrorMsg message={errors.gender} />
+                </div>
 
                 <DatePickerCustom
                   label="Fecha de Nacimiento"
                   value={personalForm.birthDate}
                   clearable={false}
                   onChange={(iso) => handlePersonalChange("birthDate", iso)}
+                  disabled={isSubmitting}
                 />
               </div>
             </>
           ) : (
             <>
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <SelectCustom
-                    label="Cargo"
-                    placeholder="Seleccione..."
-                    value={positionForm.jobPosition}
-                    onValueChange={(val) => handlePositionChange("jobPosition", val)}
-                    options={JOB_POSITIONS}
-                  />
+                {/* COMBOBOX CARGO */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-bold text-brand-primary uppercase">
+                    Cargo
+                  </label>
+                  <Popover open={openPosition} onOpenChange={setOpenPosition}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        role="combobox"
+                        disabled={isSubmitting}
+                        aria-expanded={openPosition}
+                        className="w-full justify-between bg-white border border-slate-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-brand-primary h-10 font-normal text-left"
+                      >
+                        <span className="truncate">
+                          {getSelectedPositionLabel()}
+                        </span>
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+
+                    <PopoverContent
+                      className="w-[220px] p-2 bg-white shadow-xl rounded-md border flex flex-col gap-2 z-[9999]"
+                      align="start"
+                    >
+                      <div className="flex items-center gap-2 border border-slate-200 rounded-md px-2 py-1 bg-slate-50">
+                        <Search className="h-4 w-4 text-slate-400" />
+                        <input
+                          type="text"
+                          placeholder="Buscar..."
+                          className="w-full bg-transparent text-sm focus:outline-none py-1 text-slate-700"
+                          value={searchPosition}
+                          onChange={(e) => setSearchPosition(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="max-h-[180px] overflow-y-auto flex flex-col">
+                        {filteredPositions.length === 0 ? (
+                          <span className="p-2 text-xs text-slate-400 text-center">
+                            Sin resultados.
+                          </span>
+                        ) : (
+                          filteredPositions.map((p) => (
+                            <button
+                              type="button"
+                              key={p.value}
+                              onClick={() => {
+                                handlePositionChange("jobPosition", p.value);
+                                setOpenPosition(false);
+                              }}
+                              className="w-full text-left cursor-pointer hover:bg-slate-100 p-2 text-sm flex items-center justify-between rounded-md transition-colors"
+                            >
+                              <span className="truncate text-slate-700">
+                                {p.label}
+                              </span>
+                              <Check
+                                className={combineClassNames(
+                                  "ml-2 h-4 w-4 text-brand-primary",
+                                  String(positionForm.jobPosition) === String(p.value)
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                   <ErrorMsg message={errors.jobPosition} />
                 </div>
 
-                <div>
-                  <SelectForm
-                    label="Sucursal"
-                    name="cinema"
-                    value={positionForm.cinema}
-                    onChange={(e) => handlePositionChange("cinema", e.target.value)}
-                  >
-                    <option value="">Seleccione...</option>
-                    {cinemas.map((c) => (
-                      <option key={c.id} value={String(c.id)}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </SelectForm>
+                {/* COMBOBOX SUCURSAL */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-bold text-brand-primary uppercase">
+                    Sucursal
+                  </label>
+                  <Popover open={openCinema} onOpenChange={setOpenCinema}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        role="combobox"
+                        disabled={isSubmitting}
+                        aria-expanded={openCinema}
+                        className="w-full justify-between bg-white border border-slate-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-brand-primary h-10 font-normal text-left"
+                      >
+                        <span className="truncate flex items-center gap-2">
+                          {getSelectedCinemaLabel()}
+                        </span>
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+
+                    <PopoverContent
+                      className="w-[220px] p-2 bg-white shadow-xl rounded-md border flex flex-col gap-2 z-[9999]"
+                      align="start"
+                    >
+                      <div className="flex items-center gap-2 border border-slate-200 rounded-md px-2 py-1 bg-slate-50">
+                        <Search className="h-4 w-4 text-slate-400" />
+                        <input
+                          type="text"
+                          placeholder="Buscar sucursal..."
+                          className="w-full bg-transparent text-sm focus:outline-none py-1 text-slate-700"
+                          value={searchCinema}
+                          onChange={(e) => setSearchCinema(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="max-h-[180px] overflow-y-auto flex flex-col">
+                        {loadingCinemas ? (
+                          <div className="p-4 text-center flex justify-center items-center gap-2 text-xs text-slate-400">
+                            <Loader2 className="h-4 w-4 animate-spin text-brand-primary" />
+                            Cargando...
+                          </div>
+                        ) : filteredCinemas.length === 0 ? (
+                          <span className="p-2 text-xs text-slate-400 text-center">
+                            Sin resultados.
+                          </span>
+                        ) : (
+                          filteredCinemas.map((c) => (
+                            <button
+                              type="button"
+                              key={c.id}
+                              onClick={() => {
+                                handlePositionChange("cinema", String(c.id));
+                                setOpenCinema(false);
+                              }}
+                              className="w-full text-left cursor-pointer hover:bg-slate-100 p-2 text-sm flex items-center justify-between rounded-md transition-colors"
+                            >
+                              <span className="truncate text-slate-700">
+                                {c.name}
+                              </span>
+                              <Check
+                                className={combineClassNames(
+                                  "ml-2 h-4 w-4 text-brand-primary",
+                                  String(positionForm.cinema) === String(c.id)
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                   <ErrorMsg message={errors.cinema} />
                 </div>
               </div>
@@ -431,6 +711,7 @@ export default function EmployeeUpdateModal({ open, onClose, employee }) {
                 value={positionForm.salaryBase}
                 onChange={(e) => handlePositionChange("salaryBase", e.target.value)}
                 placeholder="Ej: 1200"
+                disabled={isSubmitting}
               />
               <ErrorMsg message={errors.salaryBase} />
 
@@ -439,6 +720,7 @@ export default function EmployeeUpdateModal({ open, onClose, employee }) {
                 value={positionForm.startDate}
                 clearable={false}
                 onChange={(iso) => handlePositionChange("startDate", iso)}
+                disabled={isSubmitting}
               />
               <ErrorMsg message={errors.startDate} />
             </>
@@ -452,7 +734,12 @@ export default function EmployeeUpdateModal({ open, onClose, employee }) {
         </div>
 
         <DialogFooter className="mt-8 flex gap-3">
-          <Button variant="outline" onClick={() => onClose(false)} className="flex-1">
+          <Button
+            variant="outline"
+            onClick={() => onClose(false)}
+            className="flex-1"
+            disabled={isSubmitting}
+          >
             Cancelar
           </Button>
           <DisableIfNoPermission
@@ -462,9 +749,16 @@ export default function EmployeeUpdateModal({ open, onClose, employee }) {
             <Button
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="flex-1 bg-brand-primary text-white font-bold hover:bg-brand-primary/90"
+              className="flex-1 bg-brand-primary text-white font-bold hover:bg-brand-primary/90 flex items-center justify-center gap-2"
             >
-              {isSubmitting ? "Guardando..." : "Guardar cambios"}
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Guardando...
+                </>
+              ) : (
+                "Guardar cambios"
+              )}
             </Button>
           </DisableIfNoPermission>
         </DialogFooter>
