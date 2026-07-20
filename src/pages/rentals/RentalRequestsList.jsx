@@ -124,11 +124,8 @@ export default function RentalRequestsList() {
                         r.event_type?.description ||
                         "—"}
                     </td>
-                    <td className="p-4">{r.room?.name || "—"}</td>
-                    <td className="p-4">
-                      {r.customer?.people?.first_name}{" "}
-                      {r.customer?.people?.last_name}
-                    </td>
+                    <td className="p-4">{r.room_name || "—"}</td>
+                    <td className="p-4">{r.customer_name || "—"}</td>
                     <td className="p-4">
                       {formatDate(r.requested_start_time)}
                     </td>
