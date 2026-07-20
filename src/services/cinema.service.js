@@ -1,10 +1,8 @@
 import api from "@/api/axios";
 
 // Obtener todas las sucursales - Mary
-export const getCinemas = async (params = { page: 1 }) => {
-  const response = await api.get('/cinemas', {
-    params: params 
-  });
+export const getCinemas = async (params) => {
+  const response = await api.get('/cinemas', { params });
   return response.data;
 };
 
