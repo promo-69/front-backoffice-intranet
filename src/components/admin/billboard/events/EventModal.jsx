@@ -45,7 +45,6 @@ export default function EventModal({
     }
   });
 
-  // --- Manejo de imágenes ---
   const handleImageChange = (e, setPreview) => {
     const file = e.target.files[0];
     if (file) {
@@ -118,7 +117,6 @@ export default function EventModal({
     }
   }, [initialData, open, reset, ageClassificationsList, lifecycleStatesList]);
 
-  // Esta función SOLO se ejecuta si la validación es 100% exitosa
   const onSubmit = async (data) => {
     try {
       const formData = new FormData();
@@ -156,7 +154,6 @@ export default function EventModal({
     }
   };
 
-  // NUEVA: Esta función se ejecuta si el formulario intenta enviarse pero falla la validación
   const onInvalidSubmit = (errors) => {
     console.warn("Validación del formulario falló:", errors);
     toast.error("Por favor, rellena todos los campos obligatorios requeridos.");
@@ -191,7 +188,7 @@ export default function EventModal({
 
   return (
     <Dialog open={open} onOpenChange={isSubmitting ? null : onClose}>
-      <DialogContent className="max-w-4xl bg-white rounded-cineflix p-8 shadow-2xl overflow-y-auto max-h-[90vh] font-montserrat">
+      <DialogContent className="max-w-4xl bg-white rounded-cineflix p-5 shadow-2xl overflow-hidden font-montserrat">
         
         <button 
           type="button" 
@@ -202,163 +199,157 @@ export default function EventModal({
           <X className="h-5 w-5" />
         </button>
 
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-brand-primary uppercase">
+        <DialogHeader className="mb-2">
+          <DialogTitle className="text-xl font-bold text-brand-primary uppercase">
             {isEdit ? "Editar Evento" : "Nuevo Evento Especial"}
           </DialogTitle>
-          <DialogDescription className="text-xs text-slate-500">
-            {isEdit ? "Modifica los detalles y configuraciones de la función especial." : "Configura un nuevo evento exclusivo para las salas de cine."}
+          <DialogDescription className="text-[11px] text-slate-500">
+            {isEdit ? "Modifica los detalles del evento especial." : "Configura un nuevo evento exclusivo para las salas de cine."}
           </DialogDescription>
         </DialogHeader>
 
-        {/* Pasamos onInvalidSubmit como segundo parámetro a handleSubmit */}
-        <form onSubmit={handleSubmit(onSubmit, onInvalidSubmit)} className="grid grid-cols-1 md:grid-cols-12 space-y-4 mt-6 gap-6">
+        <form onSubmit={handleSubmit(onSubmit, onInvalidSubmit)} className="space-y-3">
           
-          {/* SECCIÓN PORTADA / PÓSTER */}
-          <div className="md:col-span-4">
-            <label className="text-[10px] font-bold uppercase text-brand-primary">Póster del Evento</label>
-            <div 
-              onClick={() => !isSubmitting && fileInputRef.current?.click()}
-              className={`relative aspect-[2/3] w-full rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer overflow-hidden transition-all ${
-                errors.poster ? 'border-red-500 bg-red-50' : posterPreview ? 'border-brand-primary' : 'border-gray-200 bg-gray-50'
-              } ${isSubmitting ? 'opacity-60 cursor-not-allowed' : ''}`}
-            >
-              {posterPreview ? (
-                <div className="relative h-full w-full group">
-                  <img src={posterPreview} alt="Preview" className="h-full w-full object-cover" />
-                  <button
-                    type="button"
-                    onClick={handleRemovePoster}
-                    disabled={isSubmitting}
-                    className="absolute top-3 right-3 p-1.5 bg-red-600 text-white rounded-full shadow-md hover:bg-red-700 transition-all z-20 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 disabled:hidden"
-                  >
-                    <X className="h-4 w-4" strokeWidth={3} />
-                  </button>
-                  <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-                    <Upload className="h-6 w-6 text-white mb-1" />
-                    <p className="text-[9px] font-bold text-white uppercase">Cambiar Imagen</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center p-4">
-                  <Upload className={`h-8 w-8 mx-auto mb-2 ${errors.poster ? 'text-red-400' : 'text-gray-300'}`} />
-                  <p className={`text-[10px] font-bold ${errors.poster ? 'text-red-500' : 'text-gray-400'}`}>SUBIR PÓSTER</p>
-                </div>
-              )}
-            </div>
-            {errors.poster && <p className="text-[10px] text-red-500 font-bold uppercase mt-1 italic">* {errors.poster.message}</p>}
+          {/* BLOQUE SUPERIOR */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
             
-            <input 
-              type="file" 
-              className="hidden" 
-              disabled={isSubmitting}
-              accept="image/jpeg,image/png,image/webp"
-              name={posterRegister.name}
-              onBlur={posterRegister.onBlur}
-              onChange={(e) => {
-                posterRegister.onChange(e);
-                handleImageChange(e, setPosterPreview);
-              }}
-              ref={(e) => {
-                posterRegister.ref(e);
-                fileInputRef.current = e;
-              }}
-            />
+            {/* PÓSTER VERTICAL (3 COLS) */}
+            <div className="md:col-span-3 flex flex-col justify-start">
+              <Label className="text-[10px] font-bold uppercase text-brand-primary mb-1 block">Póster</Label>
+              <div 
+                onClick={() => !isSubmitting && fileInputRef.current?.click()}
+                className={`relative aspect-[3/4] w-full rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer overflow-hidden transition-all ${
+                  errors.poster ? 'border-red-500 bg-red-50' : posterPreview ? 'border-brand-primary' : 'border-gray-200 bg-gray-50'
+                } ${isSubmitting ? 'opacity-60 cursor-not-allowed' : ''}`}
+              >
+                {posterPreview ? (
+                  <div className="relative h-full w-full group">
+                    <img src={posterPreview} alt="Preview" className="h-full w-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={handleRemovePoster}
+                      disabled={isSubmitting}
+                      className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded-full shadow-md hover:bg-red-700 transition-all z-20"
+                    >
+                      <X className="h-3 w-3" strokeWidth={3} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="text-center p-2">
+                    <Upload className={`h-6 w-6 mx-auto mb-1 ${errors.poster ? 'text-red-400' : 'text-gray-300'}`} />
+                    <p className={`text-[9px] font-bold ${errors.poster ? 'text-red-500' : 'text-gray-400'}`}>SUBIR PÓSTER</p>
+                  </div>
+                )}
+              </div>
+              {errors.poster && <p className="text-[9px] text-red-500 font-bold uppercase mt-1 italic">* {errors.poster.message}</p>}
+              
+              <input 
+                type="file" 
+                className="hidden" 
+                disabled={isSubmitting}
+                accept="image/jpeg,image/png,image/webp"
+                name={posterRegister.name}
+                onBlur={posterRegister.onBlur}
+                onChange={(e) => {
+                  posterRegister.onChange(e);
+                  handleImageChange(e, setPosterPreview);
+                }}
+                ref={(e) => {
+                  posterRegister.ref(e);
+                  fileInputRef.current = e;
+                }}
+              />
+            </div>
+
+            {/* CAMPOS DE FORMULARIO (9 COLS) */}
+            <div className="md:col-span-9 space-y-2">
+              <InputForm
+                label="Nombre del Evento"
+                disabled={isSubmitting}
+                {...register("title", { required: "Este campo es obligatorio" })}
+                error={errors.title?.message}
+              />
+
+              <div className="grid grid-cols-2 gap-3">
+                <InputForm 
+                  label="Fecha de Ejecución" 
+                  type="date" 
+                  disabled={isSubmitting}
+                  {...register("releaseDate", { required: "Este campo es obligatorio"})}
+                  error={errors.releaseDate?.message}
+                />
+                <InputForm 
+                  label="Duración Estimada (min)" 
+                  disabled={isSubmitting}
+                  onKeyDown={(e) => {
+                    if (["-", "e", "E", ".", ","].includes(e.key)) e.preventDefault();
+                  }}
+                  type="number" 
+                  {...register("durationMinutes", { 
+                    required: "Este campo es obligatorio",
+                    valueAsNumber: true
+                  })} 
+                  error={errors.durationMinutes?.message}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <SelectForm 
+                  label="Clasificación por Edad" 
+                  disabled={isSubmitting}
+                  {...register("ageClassification", { required: "Este campo es obligatorio", valueAsNumber: true })}
+                  error={errors.ageClassification?.message}
+                >
+                  <option value="">Seleccionar Clasificación...</option>
+                  {ageClassificationsList.map(item => (
+                    <option key={item.id} value={item.id}>
+                      {item.description || item.name || `Clasificación ${item.id}`}
+                    </option>
+                  ))}
+                </SelectForm>
+
+                <SelectForm 
+                  label="Estado en Cartelera" 
+                  disabled={isSubmitting}
+                  {...register("lifecycleState", { required: "Este campo es obligatorio", valueAsNumber: true })}
+                  error={errors.lifecycleState?.message}
+                >
+                  <option value="">Seleccionar Estado...</option>
+                  {lifecycleStatesList.map(item => (
+                    <option key={item.id} value={item.id}>
+                      {item.description || item.name || `Estado ${item.id}`}
+                    </option>
+                  ))}
+                </SelectForm>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <InputForm 
+                  label="URL Trailer (Opcional)" 
+                  type="url" 
+                  disabled={isSubmitting}
+                  {...register("trailerUrl")}
+                  error={errors.trailerUrl?.message}
+                />
+                <InputForm 
+                  label="Fecha Finalización (Opcional)" 
+                  type="date" 
+                  disabled={isSubmitting}
+                  {...register("endDate")}
+                  error={errors.endDate?.message}
+                />
+              </div>
+            </div>
+
           </div>
 
-          {/* CAMPOS DEL FORMULARIO */}
-          <div className="md:col-span-8 space-y-4">
-            <InputForm
-              label="Nombre del Evento"
-              disabled={isSubmitting}
-              {...register("title", { required: "Este campo es obligatorio" })}
-              error={errors.title?.message}
-            />
-
-            <div className="grid grid-cols-2 gap-4">
-              <InputForm 
-                label="Fecha de Ejecución" 
-                type="date" 
-                disabled={isSubmitting}
-                {...register("releaseDate", { required: "Este campo es obligatorio"})}
-                error={errors.releaseDate?.message}
-              />
-              <InputForm 
-                label="Duración Estimada (min)" 
-                disabled={isSubmitting}
-                onKeyDown={(e) => {
-                  if (["-", "e", "E", ".", ","].includes(e.key)) e.preventDefault();
-                }}
-                type="number" 
-                {...register("durationMinutes", { 
-                  required: "Este campo es obligatorio",
-                  valueAsNumber: true
-                })} 
-                error={errors.durationMinutes?.message}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <SelectForm 
-                label="Clasificación por Edad" 
-                disabled={isSubmitting}
-                {...register("ageClassification", { required: "Este campo es obligatorio", valueAsNumber: true })}
-                error={errors.ageClassification?.message}
-              >
-                <option value="">Seleccionar Clasificación...</option>
-                {ageClassificationsList.map(item => (
-                  <option key={item.id} value={item.id}>
-                    {item.description || item.name || `Clasificación ${item.id}`}
-                  </option>
-                ))}
-              </SelectForm>
-
-              <SelectForm 
-                label="Estado en Cartelera" 
-                disabled={isSubmitting}
-                {...register("lifecycleState", { required: "Este campo es obligatorio", valueAsNumber: true })}
-                error={errors.lifecycleState?.message}
-              >
-                <option value="">Seleccionar Estado...</option>
-                {lifecycleStatesList.map(item => (
-                  <option key={item.id} value={item.id}>
-                    {item.description || item.name || `Estado ${item.id}`}
-                  </option>
-                ))}
-              </SelectForm>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <InputForm 
-                label="URL del Trailer (Opcional)" 
-                type="url" 
-                disabled={isSubmitting}
-                {...register("trailerUrl")}
-                error={errors.trailerUrl?.message}
-              />
-              <InputForm 
-                label="Fecha de Finalización (Opcional)" 
-                type="date" 
-                disabled={isSubmitting}
-                {...register("endDate")}
-                error={errors.endDate?.message}
-              />
-            </div>
-
-            <TextAreaCustom 
-              label="Descripción / Detalles Especiales"
-              rows={3}
-              disabled={isSubmitting}
-              {...register("description", { required: "Este campo es obligatorio" })}
-              error={errors.description?.message}
-            />
-
-            {/* SECCIÓN BANNER */}
-            <div className="md:col-span-12 space-y-2 text-left">
-              <Label className="text-[12px] font-bold uppercase text-brand-primary">Banner Promocional (Fondo)</Label>
+          {/* BLOQUE INFERIOR: BANNER + DESCRIPCIÓN LADO A LADO */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start pt-1">
+            <div className="md:col-span-6 space-y-1">
+              <Label className="text-[10px] font-bold uppercase text-brand-primary">Banner Horizontal</Label>
               <div 
                 onClick={() => !isSubmitting && bannerInputRef.current?.click()}
-                className={`relative aspect-[16/5] w-full rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer overflow-hidden transition-all ${
+                className={`relative aspect-[16/5] w-full rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer overflow-hidden transition-all ${
                   errors.banner ? 'border-red-500 bg-red-50' : bannerPreview ? 'border-brand-primary' : 'border-gray-200 bg-gray-50'
                 } ${isSubmitting ? 'opacity-60 cursor-not-allowed' : ''}`}
               >
@@ -369,23 +360,19 @@ export default function EventModal({
                       type="button"
                       onClick={handleRemoveBanner}
                       disabled={isSubmitting}
-                      className="absolute top-3 right-3 p-1.5 bg-red-600 text-white rounded-full shadow-md hover:bg-red-700 transition-all z-20 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 disabled:hidden"
+                      className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded-full shadow-md hover:bg-red-700 transition-all z-20"
                     >
-                      <X className="h-4 w-4" strokeWidth={3} />
+                      <X className="h-3 w-3" strokeWidth={3} />
                     </button>
-                    <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-                      <Upload className="h-5 w-5 text-white mb-1" />
-                      <p className="text-[9px] font-bold text-white uppercase">Cambiar Banner</p>
-                    </div>
                   </div>
                 ) : (
-                  <div className="text-center p-4">
-                    <Upload className={`h-6 w-6 mx-auto mb-1 ${errors.banner ? 'text-red-400' : 'text-gray-300'}`} />
-                    <p className={`text-[10px] font-bold ${errors.banner ? 'text-red-500' : 'text-gray-400'}`}>SUBIR BANNER HORIZONTAL</p>
+                  <div className="text-center p-2">
+                    <Upload className={`h-5 w-5 mx-auto mb-1 ${errors.banner ? 'text-red-400' : 'text-gray-300'}`} />
+                    <p className={`text-[9px] font-bold ${errors.banner ? 'text-red-500' : 'text-gray-400'}`}>SUBIR BANNER</p>
                   </div>
                 )}
               </div>
-              {errors.banner && <p className="text-[10px] text-red-500 font-bold uppercase mt-1 italic">* {errors.banner.message}</p>}
+              {errors.banner && <p className="text-[9px] text-red-500 font-bold uppercase mt-1 italic">* {errors.banner.message}</p>}
 
               <input 
                 type="file" 
@@ -405,34 +392,47 @@ export default function EventModal({
               />
             </div>
 
-            <DialogFooter className="pt-6 border-t flex gap-2 justify-end">
-              <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
-                Cancelar
-              </Button>
-              
-              <DisableIfNoPermission 
-                permission={isEdit ? "CRUD:UPDATE:SPECIAL_EVENTS" : "CRUD:CREATE:SPECIAL_EVENTS"} 
-                title="No tienes permiso para guardar eventos"
-              >
-                <Button 
-                  type="submit" 
-                  className="bg-brand-primary text-white font-bold px-6 flex items-center gap-2"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Guardando...
-                    </>
-                  ) : isEdit ? (
-                    "Guardar Cambios"
-                  ) : (
-                    "Registrar Evento"
-                  )}
-                </Button>
-              </DisableIfNoPermission>
-            </DialogFooter>
+            <div className="md:col-span-6">
+              <TextAreaCustom 
+                label="Descripción / Detalles Especiales"
+                rows={2}
+                disabled={isSubmitting}
+                {...register("description", { required: "Este campo es obligatorio" })}
+                error={errors.description?.message}
+              />
+            </div>
           </div>
+
+          {/* FOOTER */}
+          <DialogFooter className="pt-2 border-t flex gap-2 justify-end">
+            <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isSubmitting}>
+              Cancelar
+            </Button>
+            
+            <DisableIfNoPermission 
+              permission={isEdit ? "CRUD:UPDATE:SPECIAL_EVENTS" : "CRUD:CREATE:SPECIAL_EVENTS"} 
+              title="No tienes permiso para guardar eventos"
+            >
+              <Button 
+                type="submit" 
+                size="sm"
+                className="bg-brand-primary text-white font-bold px-5 flex items-center gap-2"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Guardando...
+                  </>
+                ) : isEdit ? (
+                  "Guardar Cambios"
+                ) : (
+                  "Registrar Evento"
+                )}
+              </Button>
+            </DisableIfNoPermission>
+          </DialogFooter>
+
         </form>
       </DialogContent>
     </Dialog>
