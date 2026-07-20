@@ -82,7 +82,23 @@ export default function CandyBar() {
     setStep(2);
   };
 
-  const handleGoToPayment = () => {
+  const handleGoToPayment = async () => {
+    // Crear la orden antes de mostrar los pagos individuales
+    try {
+      const concessions = cart.map((item) => {
+        const isCombo = item.category === "Combos";
+        const rawId = Number(item.id.replace(/^(prod|combo)_/, ""));
+        return {
+          line_type: isCombo ? 2 : 1,
+          product: isCombo ? undefined : rawId,
+          combo: isCombo ? rawId : undefined,
+          quantity: item.quantity,
+        };
+      });
+      await ordersService.checkout([], concessions);
+    } catch (err) {
+      console.warn("Checkout before payment failed:", err);
+    }
     setStep(3);
   };
 
@@ -198,27 +214,11 @@ export default function CandyBar() {
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   const handleConfirm = async ({ payments }) => {
-    const userData = JSON.parse(localStorage.getItem("user") || "{}");
-    const cinemaId = userData.cinemaId || 1;
-
-    const concessions = cart.map((item) => {
-      const isCombo = item.category === "Combos";
-      const rawId = Number(item.id.replace(/^(prod|combo)_/, ""));
-      return {
-        line_type: isCombo ? 2 : 1,
-        product: isCombo ? undefined : rawId,
-        combo: isCombo ? rawId : undefined,
-        quantity: item.quantity,
-      };
-    });
-
     setPaymentProcessing(true);
     setPaymentResult(null);
 
     try {
-      await ordersService.cancelSession().catch(() => {});
-      await ordersService.createQuote(cinemaId, customer?.customerId);
-      await ordersService.checkout([], concessions);
+      // El checkout ya fue llamado en handleGoToPayment. Solo procesar pagos pendientes.
       const allPayments = payments
         .filter(p => p.method !== 5 && !p.confirmed)
         .map(p => ({

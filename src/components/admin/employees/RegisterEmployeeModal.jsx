@@ -61,7 +61,7 @@ export default function RegisterEmployeeModal({ open, onClose, initialData }) {
   const loadCinemas = async () => {
     try {
       const data = await getCinemas();
-      setCinemas(data.data || []);
+      setCinemas(data?.data?.rows ?? data?.data ?? []);
     } catch (error) {
       console.error("Error cargando sucursales:", error);
     }
@@ -428,7 +428,7 @@ export default function RegisterEmployeeModal({ open, onClose, initialData }) {
               {isSubmitting
                 ? "Guardando..."
                 : isEdit
-                  ? "Actualizar Cargo"
+                  ? "Actualizar"
                   : "Registrar Empleado"}
             </Button>
           </DisableIfNoPermission>

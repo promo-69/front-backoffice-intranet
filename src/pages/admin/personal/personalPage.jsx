@@ -18,6 +18,7 @@ export default function PersonalPage() {
   const initialTab =
     searchParams.get("tab") === "roles" ? "roles" : "employees";
   const [activeTab, setActiveTab] = useState(initialTab);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [search, setSearch] = useState("");
 
   // ── Filtro de sucursal (solo superadmin, solo pestaña Empleados) ──
@@ -130,13 +131,16 @@ export default function PersonalPage() {
 
       {/* CONTENIDO DINÁMICO */}
       {activeTab === "employees" && (
-        <Employees search={search} cinemaId={cinemaId || undefined} />
+        <Employees key={refreshKey} search={search} cinemaId={cinemaId || undefined} />
       )}
       {activeTab === "roles" && <Roles search={search} />}
 
       {/* MODALES */}
       {modal.isOpen && modal.type === "employeeForm" && (
-        <RegisterEmployeeModal open={true} onClose={closeModal} />
+        <RegisterEmployeeModal open={true} onClose={(shouldRefresh) => {
+          closeModal();
+          if (shouldRefresh) setRefreshKey(k => k + 1);
+        }} />
       )}
     </div>
   );
