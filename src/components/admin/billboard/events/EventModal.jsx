@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import {
   Dialog,
   DialogContent,
@@ -13,6 +13,7 @@ import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
 import { Upload, X, Loader2 } from "lucide-react"; 
 import { InputForm } from "@/components/ui/inputForm"; 
 import { SelectForm } from "@/components/ui/SelectForm";
+import { DatePickerCustom } from "@/components/ui/DatePickerCustom";
 import { TextAreaCustom } from "@/components/ui/TextAreaCustom";
 import { Label } from "@/components/ui/label";
 import { createEvent, updateEvent } from "@/services/events.service";
@@ -32,7 +33,7 @@ export default function EventModal({
   const [posterPreview, setPosterPreview] = useState(null);
   const [bannerPreview, setBannerPreview] = useState(null);
 
-  const { register, handleSubmit, reset, setValue, formState: { errors, isSubmitting } } = useForm({
+  const { register, handleSubmit, reset, setValue, control, formState: { errors, isSubmitting } } = useForm({
     defaultValues: {
       title: "",
       description: "",
@@ -271,13 +272,22 @@ export default function EventModal({
               />
 
               <div className="grid grid-cols-2 gap-3">
-                <InputForm 
-                  label="Fecha de Ejecución" 
-                  type="date" 
-                  disabled={isSubmitting}
-                  {...register("releaseDate", { required: "Este campo es obligatorio"})}
-                  error={errors.releaseDate?.message}
+                {/* FECHA DE EJECUCIÓN CON DATEPICKERCUSTOM */}
+                <Controller
+                  name="releaseDate"
+                  control={control}
+                  rules={{ required: "Este campo es obligatorio" }}
+                  render={({ field }) => (
+                    <DatePickerCustom
+                      label="Fecha de Ejecución"
+                      value={field.value}
+                      onChange={(iso) => field.onChange(iso)}
+                      disabled={isSubmitting}
+                      error={errors.releaseDate?.message}
+                    />
+                  )}
                 />
+
                 <InputForm 
                   label="Duración Estimada (min)" 
                   disabled={isSubmitting}
@@ -331,19 +341,27 @@ export default function EventModal({
                   {...register("trailerUrl")}
                   error={errors.trailerUrl?.message}
                 />
-                <InputForm 
-                  label="Fecha Finalización (Opcional)" 
-                  type="date" 
-                  disabled={isSubmitting}
-                  {...register("endDate")}
-                  error={errors.endDate?.message}
+
+                {/* FECHA FINALIZACIÓN CON DATEPICKERCUSTOM */}
+                <Controller
+                  name="endDate"
+                  control={control}
+                  render={({ field }) => (
+                    <DatePickerCustom
+                      label="Fecha Finalización (Opcional)"
+                      value={field.value}
+                      onChange={(iso) => field.onChange(iso)}
+                      disabled={isSubmitting}
+                      error={errors.endDate?.message}
+                    />
+                  )}
                 />
               </div>
             </div>
 
           </div>
 
-          {/* BLOQUE INFERIOR: BANNER + DESCRIPCIÓN LADO A LADO */}
+          {/* BLOQUE INFERIOR: BANNER + DESCRIPCIÓN */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start pt-1">
             <div className="md:col-span-6 space-y-1">
               <Label className="text-[10px] font-bold uppercase text-brand-primary">Banner Horizontal</Label>
