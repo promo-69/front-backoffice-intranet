@@ -88,7 +88,7 @@ export const getAvailableCatalogs = async (page = 1, perPage = 10) => {
 // Obtener los registros de un catálogo específico
 export const getCatalogRecords = async (catalogName, page = 1) => {
   if (hasSpecialRoute(catalogName)) {
-    const response = await api.get(getRoute(catalogName));
+    const response = await api.get(getRoute(catalogName) + `?limit=-1`);
 
     // Handle: array | { data: [] } | { rows: [], count: N }
     let list;
