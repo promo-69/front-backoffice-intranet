@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 
 import EmployeeTable from "@/pages/admin/employees/employeeTable";
-import RegisterEmployeeModal from "@/components/admin/employees/RegisterEmployeeModal";
+import EmployeeUpdateModal from "@/components/admin/employees/EmployeeUpdateModal";
 import EditUserModal from "@/components/admin/users/EditUserModal";
 import DeleteConfirmModal from "@/components/ui/DialogConfirmModal";
 import SuccessModal from "@/components/ui/SuccessModal";
@@ -18,7 +18,7 @@ export default function Employees({ search, cinemaId }) {
   const [employees, setEmployees] = useState([]);
   const [subTab, setSubTab] = useState("active");
 
-  const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
   const [employeeToEdit, setEmployeeToEdit] = useState(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
@@ -90,7 +90,7 @@ export default function Employees({ search, cinemaId }) {
   // ── Handlers ──────────────────────────────────────────────────────────────
   const handleEditClick = (emp) => {
     setEmployeeToEdit(emp);
-    setIsRegisterOpen(true);
+    setIsEditOpen(true);
   };
   const handleAccountClick = (emp) => {
     if (!emp?._User?.id) return;
@@ -216,18 +216,16 @@ export default function Employees({ search, cinemaId }) {
         message={successMessage}
       />
 
-      <RegisterEmployeeModal
-        open={isRegisterOpen}
-        initialData={employeeToEdit}
+      <EmployeeUpdateModal
+        open={isEditOpen}
+        employee={employeeToEdit}
         onClose={(shouldRefresh) => {
-          setIsRegisterOpen(false);
+          setIsEditOpen(false);
           setEmployeeToEdit(null);
           if (shouldRefresh) {
             refreshEmployees(
-              employeeToEdit ? "Empleado Actualizado" : "Empleado Registrado",
-              employeeToEdit
-                ? "Los datos del empleado han sido modificados correctamente."
-                : "El empleado ha sido registrado exitosamente.",
+              "Empleado Actualizado",
+              "Los datos del empleado han sido modificados correctamente.",
             );
           }
         }}

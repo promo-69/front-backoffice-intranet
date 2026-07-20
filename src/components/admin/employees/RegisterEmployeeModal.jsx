@@ -297,24 +297,20 @@ export default function RegisterEmployeeModal({ open, onClose, initialData }) {
             </div>
 
             <div>
-              <SelectCustom
+              <SelectForm
                 label="Sucursal"
-                placeholder="Seleccione..."
+                name="cinema"
                 value={employeeData.cinema}
-                onValueChange={(val) => {
-                  setEmployeeData((prev) => ({ ...prev, cinema: val }));
-                  setErrors((prev) => ({
-                    ...prev,
-                    cinema: null,
-                    general: null,
-                  }));
-                }}
-                options={cinemas.map((c) => ({
-                  value: String(c.id),
-                  label: c.name,
-                }))}
+                onChange={handleChange}
                 error={errors.cinema}
-              />
+              >
+                <option value="">Seleccione...</option>
+                {cinemas.map((c) => (
+                  <option key={c.id} value={String(c.id)}>
+                    {c.name}
+                  </option>
+                ))}
+              </SelectForm>
             </div>
           </div>
 

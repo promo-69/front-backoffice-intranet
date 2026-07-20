@@ -2,7 +2,7 @@ import { AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./dialog"
 
-export default function DeleteConfirmModal({ isOpen, onClose, onConfirm, itemName }) {
+export default function DeleteConfirmModal({ isOpen, onClose, onConfirm, itemName, errorMessage = null }) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[400px] p-8 text-center border-none shadow-2xl bg-white">
@@ -22,11 +22,18 @@ export default function DeleteConfirmModal({ isOpen, onClose, onConfirm, itemNam
             </DialogDescription>
         </DialogHeader>
 
+        {errorMessage && (
+          <div role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 text-left">
+            <strong className="block font-semibold mb-1">No se pudo eliminar</strong>
+            <span>{errorMessage}</span>
+          </div>
+        )}
+
         <div className="flex gap-3 mt-8">
-          <Button variant="ghost" onClick={onClose} className="flex-1 rounded-xl font-bold text-slate-400">
+          <Button type="button" variant="ghost" onClick={(e) => { e.stopPropagation(); onClose(); }} className="flex-1 rounded-xl font-bold text-slate-400">
             CANCELAR
           </Button>
-          <Button onClick={onConfirm} className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl shadow-lg shadow-red-200">
+          <Button type="button" onClick={(e) => { e.stopPropagation(); onConfirm(); }} className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl shadow-lg shadow-red-200">
             ELIMINAR
           </Button>
         </div>

@@ -44,8 +44,15 @@ function normalizeEmployee(emp) {
   };
 }
 
-export const getEmployees = async () => {
-  const res = await api.get("/employees", { params: { _t: Date.now() } });
+export const getEmployees = async (params = {}) => {
+  const defaultParams = { _t: Date.now() };
+  if (params.limit === undefined && params.page === undefined) {
+    defaultParams.limit = -1;
+  }
+  const res = await api.get("/employees", {
+    params: { ...defaultParams, ...params },
+  });
+
   const data = res.data.data;
   const rows = Array.isArray(data) ? data : (data?.rows ?? []);
   return rows.map(normalizeEmployee);
@@ -54,6 +61,11 @@ export const getEmployees = async () => {
 export const getEmployeeById = async (id) => {
   const res = await api.get(`/employees/${id}`);
   return res.data.data;
+};
+
+export const updateEmployee = async (id, payload) => {
+  const res = await api.patch(`/employees/${id}`, payload);
+  return res.data;
 };
 
 export const changeEmployeePosition = async (id, payload) => {
