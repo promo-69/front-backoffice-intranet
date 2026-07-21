@@ -10,7 +10,7 @@ function extractRows(resp) {
 
 export const cinemasService = {
   getAll: async () => {
-    const response = await api.get('/cinemas?limit=-1');
+    const response = await api.get('/cinemas?limit=200');
     return extractRows(response.data);
   },
 };

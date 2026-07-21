@@ -272,7 +272,13 @@ export default function InvoicesPage() {
                     <td className="px-4 py-3">{order.customer_document || order._Customers?._People?.document_number || "—"}</td>
                     <td className="px-4 py-3 font-bold text-[#3E2186]">${order.total_amount_base_currency || order.total || "—"}</td>
                     <td className="px-4 py-3">
-                      {status === "pending_billing" && (
+                      {/* La acción depende del estado de LA FILA, no del filtro
+                          de la página: con "Todas" también deben poder
+                          facturarse las órdenes pendientes. */}
+                      {(status === "pending_billing" ||
+                        order.order_status === 2 ||
+                        order.status === 2 ||
+                        order._Statuses?.id === 2) ? (
                         <Button
                           size="sm"
                           onClick={() => setBillingTarget({
@@ -285,6 +291,8 @@ export default function InvoicesPage() {
                         >
                           <FileText className="w-3 h-3 mr-1" /> Facturar
                         </Button>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
                       )}
                     </td>
                   </tr>
