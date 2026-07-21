@@ -1,20 +1,12 @@
 import axios from "axios";
-import { nanoid } from "nanoid";
 
 const baseURL = import.meta.env.VITE_API_URL;
-
-let deviceId = localStorage.getItem("device_id");
-if (!deviceId) {
-  deviceId = nanoid();
-  localStorage.setItem("device_id", deviceId);
-}
 
 const api = axios.create({
   baseURL,
   withCredentials: true,
   headers: {
     "x-client-channel": "web",
-    "x-device-id": deviceId,
   },
 });
 
@@ -70,11 +62,7 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    const isLoginRequest =
-      originalRequest.url?.includes('/login') ||
-      originalRequest.url?.includes('/auth/login');
-
-    if (error.response?.status === 401 && !originalRequest._retry && !isLoginRequest) {
+    if (error.response?.status === 401 && !originalRequest._retry) {
       if (originalRequest.url.includes("/auth/refresh")) {
         return Promise.reject(error);
       }

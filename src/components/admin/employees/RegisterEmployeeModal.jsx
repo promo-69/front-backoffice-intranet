@@ -11,10 +11,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { InputForm } from "@/components/ui/inputForm";
 import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
+import { SelectForm } from "@/components/ui/SelectForm";
+import { SelectCustom } from "@/components/ui/SelectCustom";
 import { DatePickerCustom } from "@/components/ui/DatePickerCustom";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { X, Loader2, Check, ChevronsUpDown, Search } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 import {
   createEmployee,
@@ -23,11 +22,12 @@ import {
 import { getCinemas } from "@/services/cinema.service";
 import { getRoles } from "@/services/roles.service";
 import { AiFillEye, AiFillEyeInvisible } from "react-icons/ai";
+import { useLoading } from "@/context/LoadingContext";
 
 function ErrorMsg({ message }) {
   return message ? (
-    <p className="text-[10px] text-red-500 mt-1 ml-1 font-bold uppercase italic">
-      * {message}
+    <p className="text-[10px] text-red-500 mt-1 ml-1 font-medium italic">
+      {message}
     </p>
   ) : null;
 }
@@ -45,117 +45,79 @@ const emptyEmployeeForm = {
   role: "",
 };
 
-const jobPositions = [
-  { id: "1", name: "Administrador" },
-  { id: "2", name: "Gerente" },
-  { id: "3", name: "Cajero" },
-  { id: "4", name: "Operador" },
-];
-
 export default function RegisterEmployeeModal({ open, onClose, initialData }) {
   const isEdit = !!initialData;
-
-  // Listas de datos remotos
   const [cinemas, setCinemas] = useState([]);
   const [roles, setRoles] = useState([]);
+  const { showLoader, hideLoader } = useLoading();
 
-  // Estados del formulario y UI
   const [employeeData, setEmployeeData] = useState(emptyEmployeeForm);
+
   const [showPassword, setShowPassword] = useState(false);
+
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Estados de control de Popovers
-  const [openJobPosition, setOpenJobPosition] = useState(false);
-  const [openCinema, setOpenCinema] = useState(false);
-  const [openRole, setOpenRole] = useState(false);
-
-  // Estados de búsqueda
-  const [searchJobPosition, setSearchJobPosition] = useState("");
-  const [searchCinema, setSearchCinema] = useState("");
-  const [searchRole, setSearchRole] = useState("");
-
-  // Estados de carga individual para las búsquedas remotas
-  const [loadingCinema, setLoadingCinema] = useState(false);
-  const [loadingRole, setLoadingRole] = useState(false);
-
-  // --- BÚSQUEDA DINÁMICA CON LA API (DEBOUNCE) ---
-
-  const fetchCinemas = async (query = "") => {
-    setLoadingCinema(true);
+  const loadCinemas = async () => {
     try {
-      const data = await getCinemas({ search: query, limit: 50 });
-      setCinemas(data.data || []);
+      const data = await getCinemas();
+      setCinemas(data?.data?.rows ?? data?.data ?? []);
     } catch (error) {
-      console.error("Error al buscar sucursales:", error);
-    } finally {
-      setLoadingCinema(false);
+      console.error("Error cargando sucursales:", error);
     }
   };
 
-  const fetchRoles = async (query = "") => {
-    setLoadingRole(true);
-    try {
-      const data = await getRoles({ search: query, limit: 50 });
-      setRoles(data || []);
-    } catch (error) {
-      console.error("Error al buscar roles:", error);
-      setRoles([]);
-    } finally {
-      setLoadingRole(false);
+  // Cargar sucursales al abrir
+  useEffect(() => {
+    if (open) loadCinemas();
+  }, [open]);
+
+  //cargar roles
+  useEffect(() => {
+    async function loadRolesData() {
+      try {
+        const data = await getRoles();
+        setRoles(data || []);
+      } catch (err) {
+        console.error(
+          "Error al cargar los roles en el modal de empleados:",
+          err,
+        );
+        setRoles([]);
+      }
     }
-  };
 
-  // Debounce para Sucursales
-  useEffect(() => {
-    if (!open) return;
-    const timer = setTimeout(() => {
-      fetchCinemas(searchCinema);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchCinema, open]);
+    loadRolesData();
+  }, []);
 
-  // Debounce para Roles
-  useEffect(() => {
-    if (!open) return;
-    const timer = setTimeout(() => {
-      fetchRoles(searchRole);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchRole, open]);
-
-  // Reset del formulario e inicialización
   useEffect(() => {
     if (open) {
       if (initialData) {
+        // Mapeamos los datos basándonos en tu función normalizeEmployee
         setEmployeeData({
           documentNumber: initialData.people?.document_number || "",
           firstName: initialData.people?.first_name || "",
           lastName: initialData.people?.last_name || "",
-          jobPosition: String(initialData.job_position || ""),
-          cinema: String(initialData.cinema || ""),
+          jobPosition: initialData.job_position || "",
+          cinema: initialData.cinema || "",
           startDate: initialData.start_date
             ? initialData.start_date.split("T")[0]
             : "",
           salaryBase: initialData.salary_base || "",
           email: initialData._User?.email || "",
-          password: "",
-          role:
-            initialData._User?._Roles?.code === "ADMINISTRADOR"
-              ? "1"
-              : String(initialData._User?._Roles?.id || "2"),
+          password: "", // La contraseña no se precarga por seguridad
+          role: initialData._User?._Roles?.code === "ADMINISTRADOR" ? "1" : "2", // Ajusta según tu mapeo de roles
         });
       } else {
         setEmployeeData(emptyEmployeeForm);
       }
       setErrors({});
-      setSearchJobPosition("");
-      setSearchCinema("");
-      setSearchRole("");
     }
   }, [open, initialData]);
 
+  // Validaciones
   const validateField = (name, value) => {
+    // Si estamos editando, la contraseña puede ir vacía
     if (isEdit && name === "password" && !value) return "";
 
     if (!value || value.toString().trim() === "")
@@ -186,11 +148,6 @@ export default function RegisterEmployeeModal({ open, onClose, initialData }) {
     setErrors((prev) => ({ ...prev, [name]: null, general: null }));
   };
 
-  const handleSelectChange = (name, value) => {
-    setEmployeeData((prev) => ({ ...prev, [name]: value }));
-    setErrors((prev) => ({ ...prev, [name]: null, general: null }));
-  };
-
   const validateAll = () => {
     const newErrors = {};
     Object.keys(employeeData).forEach((key) => {
@@ -201,14 +158,15 @@ export default function RegisterEmployeeModal({ open, onClose, initialData }) {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     if (!validateAll()) return;
 
     setIsSubmitting(true);
+    showLoader();
 
     try {
       if (isEdit) {
+        // Payload específico para cambiar de posición (PATCH /employees/:id/position)
         const patchPayload = {
           jobPosition: Number(employeeData.jobPosition),
           cinema: Number(employeeData.cinema),
@@ -218,6 +176,7 @@ export default function RegisterEmployeeModal({ open, onClose, initialData }) {
 
         await changeEmployeePosition(initialData.id, patchPayload);
       } else {
+        // Payload de creación
         const postPayload = {
           documentNumber: employeeData.documentNumber,
           firstName: employeeData.firstName.trim(),
@@ -237,7 +196,7 @@ export default function RegisterEmployeeModal({ open, onClose, initialData }) {
         await createEmployee(postPayload);
       }
 
-      onClose(true);
+      onClose(true); // Cierra informando al padre para detonar el SuccessModal
     } catch (error) {
       console.error("Error procesando empleado:", error);
       const status = error.response?.status;
@@ -253,39 +212,16 @@ export default function RegisterEmployeeModal({ open, onClose, initialData }) {
         }));
       }
     } finally {
+      hideLoader();
       setIsSubmitting(false);
     }
   };
 
-  // --- FILTROS DE CLIENTE SOBRE LOS RESULTADOS DE LA LISTA ---
-  const filteredPositions = jobPositions.filter((pos) =>
-    pos.name.toLowerCase().includes(searchJobPosition.toLowerCase())
-  );
-
-  const filteredCinemas = cinemas.filter((item) => {
-    const text = (item.name || item.description || "").toLowerCase();
-    return text.includes(searchCinema.toLowerCase());
-  });
-
-  const filteredRoles = roles.filter((r) => {
-    const text = (r.name || r.code || "").toLowerCase();
-    return text.includes(searchRole.toLowerCase());
-  });
-
   return (
-    <Dialog open={open} onOpenChange={isSubmitting ? null : () => onClose(false)}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto bg-white rounded-cineflix p-8 shadow-2xl font-montserrat">
-        <button
-          type="button"
-          onClick={() => onClose(false)}
-          disabled={isSubmitting}
-          className="absolute top-4 right-4 text-gray-400 hover:text-brand-primary z-10 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <X className="h-5 w-5" />
-        </button>
-
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose(false)}>
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto bg-white rounded-cineflix p-6 shadow-2xl border-none">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-brand-primary uppercase">
+          <DialogTitle className="text-xl font-bold text-brand-primary">
             {isEdit ? "Editar Cargo de Empleado" : "Registrar Empleado"}
           </DialogTitle>
           <DialogDescription className="text-xs text-slate-500">
@@ -295,19 +231,18 @@ export default function RegisterEmployeeModal({ open, onClose, initialData }) {
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 mt-4 text-left">
+        {/* FORMULARIO */}
+        <div className="space-y-4 mt-4">
           {/* DOCUMENTO */}
-          <div>
-            <InputForm
-              label="Cédula"
-              name="documentNumber"
-              value={employeeData.documentNumber}
-              onChange={handleChange}
-              placeholder="Ej: 123456789"
-              disabled={isEdit || isSubmitting}
-              error={errors.documentNumber}
-            />
-          </div>
+          <InputForm
+            label="Cédula"
+            name="documentNumber"
+            value={employeeData.documentNumber}
+            onChange={handleChange}
+            placeholder="Ej: 123456789"
+            disabled={isEdit}
+          />
+          <ErrorMsg message={errors.documentNumber} />
 
           {/* NOMBRE Y APELLIDO */}
           <div className="grid grid-cols-2 gap-4">
@@ -317,10 +252,10 @@ export default function RegisterEmployeeModal({ open, onClose, initialData }) {
                 name="firstName"
                 value={employeeData.firstName}
                 onChange={handleChange}
-                placeholder="Ej: María"
-                disabled={isEdit || isSubmitting}
-                error={errors.firstName}
+                placeholder="Ej: Maria"
+                disabled={isEdit}
               />
+              <ErrorMsg message={errors.firstName} />
             </div>
 
             <div>
@@ -330,303 +265,102 @@ export default function RegisterEmployeeModal({ open, onClose, initialData }) {
                 value={employeeData.lastName}
                 onChange={handleChange}
                 placeholder="Ej: Pérez"
-                disabled={isEdit || isSubmitting}
-                error={errors.lastName}
+                disabled={isEdit}
               />
+              <ErrorMsg message={errors.lastName} />
             </div>
           </div>
 
           {/* CARGO Y SUCURSAL */}
           <div className="grid grid-cols-2 gap-4">
-            {/* CARGO */}
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-bold text-brand-primary uppercase">
-                Cargo
-              </label>
-              <Popover open={openJobPosition} onOpenChange={setOpenJobPosition}>
-                <PopoverTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    role="combobox"
-                    disabled={isSubmitting}
-                    aria-expanded={openJobPosition}
-                    className="w-full justify-between bg-white border border-slate-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-brand-primary h-10 font-normal text-left"
-                  >
-                    <span className="truncate">
-                      {employeeData.jobPosition
-                        ? jobPositions.find(
-                            (pos) => String(pos.id) === String(employeeData.jobPosition)
-                          )?.name
-                        : "Seleccionar..."}
-                    </span>
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent
-                  className="w-[190px] p-2 bg-white shadow-xl rounded-md border flex flex-col gap-2"
-                  align="start"
-                >
-                  <div className="flex items-center gap-2 border border-slate-200 rounded-md px-2 py-1 bg-slate-50">
-                    <Search className="h-4 w-4 text-slate-400" />
-                    <input
-                      type="text"
-                      placeholder="Buscar cargo..."
-                      className="w-full bg-transparent text-sm focus:outline-none py-1 text-slate-700"
-                      value={searchJobPosition}
-                      onChange={(e) => setSearchJobPosition(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="max-h-[180px] overflow-y-auto flex flex-col">
-                    {filteredPositions.length === 0 ? (
-                      <span className="p-2 text-xs text-slate-400 text-center">
-                        Sin resultados.
-                      </span>
-                    ) : (
-                      filteredPositions.map((pos) => (
-                        <button
-                          type="button"
-                          key={pos.id}
-                          onClick={() => {
-                            handleSelectChange("jobPosition", String(pos.id));
-                            setOpenJobPosition(false);
-                          }}
-                          className="w-full text-left cursor-pointer hover:bg-slate-100 p-2 text-sm flex items-center justify-between rounded-md transition-colors"
-                        >
-                          <span className="truncate text-slate-700">{pos.name}</span>
-                          <Check
-                            className={cn(
-                              "ml-2 h-4 w-4 text-brand-primary",
-                              String(employeeData.jobPosition) === String(pos.id)
-                                ? "opacity-100"
-                                : "opacity-0"
-                            )}
-                          />
-                        </button>
-                      ))
-                    )}
-                  </div>
-                </PopoverContent>
-              </Popover>
-              <ErrorMsg message={errors.jobPosition} />
-            </div>
-
-            {/* SUCURSAL */}
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-bold text-brand-primary uppercase">
-                Sucursal
-              </label>
-              <Popover open={openCinema} onOpenChange={setOpenCinema}>
-                <PopoverTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    role="combobox"
-                    disabled={isSubmitting}
-                    aria-expanded={openCinema}
-                    className="w-full justify-between bg-white border border-slate-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-brand-primary h-10 font-normal text-left"
-                  >
-                    <span className="truncate">
-                      {employeeData.cinema
-                        ? cinemas.find(
-                            (c) => String(c.id) === String(employeeData.cinema)
-                          )?.name ||
-                          cinemas.find(
-                            (c) => String(c.id) === String(employeeData.cinema)
-                          )?.description
-                        : "Seleccionar..."}
-                    </span>
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent
-                  className="w-[190px] p-2 bg-white shadow-xl rounded-md border flex flex-col gap-2"
-                  align="start"
-                >
-                  <div className="flex items-center gap-2 border border-slate-200 rounded-md px-2 py-1 bg-slate-50">
-                    <Search className="h-4 w-4 text-slate-400" />
-                    <input
-                      type="text"
-                      placeholder="Buscar sucursal..."
-                      className="w-full bg-transparent text-sm focus:outline-none py-1 text-slate-700"
-                      value={searchCinema}
-                      onChange={(e) => setSearchCinema(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="max-h-[180px] overflow-y-auto flex flex-col">
-                    {loadingCinema ? (
-                      <div className="p-4 text-center flex justify-center items-center">
-                        <Loader2 className="h-4 w-4 animate-spin text-brand-primary" />
-                      </div>
-                    ) : filteredCinemas.length === 0 ? (
-                      <span className="p-2 text-xs text-slate-400 text-center">
-                        Sin resultados.
-                      </span>
-                    ) : (
-                      filteredCinemas.map((item) => (
-                        <button
-                          type="button"
-                          key={item.id}
-                          onClick={() => {
-                            handleSelectChange("cinema", String(item.id));
-                            setOpenCinema(false);
-                          }}
-                          className="w-full text-left cursor-pointer hover:bg-slate-100 p-2 text-sm flex items-center justify-between rounded-md transition-colors"
-                        >
-                          <span className="truncate text-slate-700">
-                            {item.name || item.description}
-                          </span>
-                          <Check
-                            className={cn(
-                              "ml-2 h-4 w-4 text-brand-primary",
-                              String(employeeData.cinema) === String(item.id)
-                                ? "opacity-100"
-                                : "opacity-0"
-                            )}
-                          />
-                        </button>
-                      ))
-                    )}
-                  </div>
-                </PopoverContent>
-              </Popover>
-              <ErrorMsg message={errors.cinema} />
-            </div>
-          </div>
-
-          {/* FECHA INICIO Y SALARIO BASE */}
-          <div className="grid grid-cols-2 gap-4">
             <div>
-              <DatePickerCustom
-                label="Fecha de Inicio"
-                value={employeeData.startDate}
-                onChange={(iso) => {
-                  setEmployeeData((prev) => ({ ...prev, startDate: iso }));
-                  setErrors((prev) => ({ ...prev, startDate: null }));
+              <SelectCustom
+                label="Cargo"
+                placeholder="Seleccione..."
+                value={employeeData.jobPosition}
+                onValueChange={(val) => {
+                  setEmployeeData((prev) => ({ ...prev, jobPosition: val }));
+                  setErrors((prev) => ({
+                    ...prev,
+                    jobPosition: null,
+                    general: null,
+                  }));
                 }}
-                disabled={isSubmitting}
+                options={[
+                  { value: "1", label: "Administrador" },
+                  { value: "2", label: "Gerente" },
+                  { value: "3", label: "Cajero" },
+                  { value: "4", label: "Operador" },
+                ]}
+                error={errors.jobPosition}
               />
-              <ErrorMsg message={errors.startDate} />
             </div>
 
             <div>
-              <InputForm
-                label="Salario Base ($)"
-                name="salaryBase"
-                type="number"
-                value={employeeData.salaryBase}
-                onChange={handleChange}
-                placeholder="0.00"
-                disabled={isSubmitting}
-                error={errors.salaryBase}
+              <SelectCustom
+                label="Sucursal"
+                placeholder="Seleccione..."
+                value={employeeData.cinema}
+                onValueChange={(val) => {
+                  setEmployeeData((prev) => ({ ...prev, cinema: val }));
+                  setErrors((prev) => ({
+                    ...prev,
+                    cinema: null,
+                    general: null,
+                  }));
+                }}
+                options={cinemas.map((c) => ({
+                  value: String(c.id),
+                  label: c.name,
+                }))}
+                error={errors.cinema}
               />
             </div>
           </div>
 
-          {/* CORREO Y ROL */}
+          {/* FECHA DE INICIO */}
+          <div>
+            <DatePickerCustom
+              label="Fecha de Inicio"
+              value={employeeData.startDate}
+              clearable={false}
+              onChange={(iso) => {
+                setEmployeeData((prev) => ({ ...prev, startDate: iso }));
+                setErrors((prev) => ({
+                  ...prev,
+                  startDate: null,
+                  general: null,
+                }));
+              }}
+            />
+            <ErrorMsg message={errors.startDate} />
+          </div>
+
+          {/* SALARIO */}
+          <InputForm
+            label="Salario Base"
+            name="salaryBase"
+            type="number"
+            value={employeeData.salaryBase}
+            onChange={handleChange}
+            placeholder="Ej: 1200"
+          />
+          <ErrorMsg message={errors.salaryBase} />
+
+          {/* OCULTAR / DESHABILITAR SECCIONES DE AUTENTICACIÓN SI ES EDICIÓN */}
           {!isEdit && (
             <>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <InputForm
-                    label="Correo Electrónico"
-                    name="email"
-                    type="email"
-                    value={employeeData.email}
-                    onChange={handleChange}
-                    placeholder="usuario@cineflix.com"
-                    disabled={isSubmitting}
-                    error={errors.email}
-                  />
-                </div>
-
-                {/* ROL DE USUARIO */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-brand-primary uppercase">
-                    Rol de Usuario
-                  </label>
-                  <Popover open={openRole} onOpenChange={setOpenRole}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        role="combobox"
-                        disabled={isSubmitting}
-                        aria-expanded={openRole}
-                        className="w-full justify-between bg-white border border-slate-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-brand-primary h-10 font-normal text-left"
-                      >
-                        <span className="truncate">
-                          {employeeData.role
-                            ? roles.find(
-                                (r) => String(r.id) === String(employeeData.role)
-                              )?.name ||
-                              roles.find(
-                                (r) => String(r.id) === String(employeeData.role)
-                              )?.code
-                            : "Seleccionar..."}
-                        </span>
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent
-                      className="w-[190px] p-2 bg-white shadow-xl rounded-md border flex flex-col gap-2"
-                      align="start"
-                    >
-                      <div className="flex items-center gap-2 border border-slate-200 rounded-md px-2 py-1 bg-slate-50">
-                        <Search className="h-4 w-4 text-slate-400" />
-                        <input
-                          type="text"
-                          placeholder="Buscar rol..."
-                          className="w-full bg-transparent text-sm focus:outline-none py-1 text-slate-700"
-                          value={searchRole}
-                          onChange={(e) => setSearchRole(e.target.value)}
-                        />
-                      </div>
-
-                      <div className="max-h-[180px] overflow-y-auto flex flex-col">
-                        {loadingRole ? (
-                          <div className="p-4 text-center flex justify-center items-center">
-                            <Loader2 className="h-4 w-4 animate-spin text-brand-primary" />
-                          </div>
-                        ) : filteredRoles.length === 0 ? (
-                          <span className="p-2 text-xs text-slate-400 text-center">
-                            Sin resultados.
-                          </span>
-                        ) : (
-                          filteredRoles.map((r) => (
-                            <button
-                              type="button"
-                              key={r.id}
-                              onClick={() => {
-                                handleSelectChange("role", String(r.id));
-                                setOpenRole(false);
-                              }}
-                              className="w-full text-left cursor-pointer hover:bg-slate-100 p-2 text-sm flex items-center justify-between rounded-md transition-colors"
-                            >
-                              <span className="truncate text-slate-700">
-                                {r.name || r.code}
-                              </span>
-                              <Check
-                                className={cn(
-                                  "ml-2 h-4 w-4 text-brand-primary",
-                                  String(employeeData.role) === String(r.id)
-                                    ? "opacity-100"
-                                    : "opacity-0"
-                                )}
-                              />
-                            </button>
-                          ))
-                        )}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                  <ErrorMsg message={errors.role} />
-                </div>
+              <div>
+                <InputForm
+                  label="Correo electrónico"
+                  name="email"
+                  value={employeeData.email}
+                  onChange={handleChange}
+                  placeholder="Ej: usuario@cineflix.com"
+                />
+                <ErrorMsg message={errors.email} />
               </div>
 
-              {/* CONTRASEÑA */}
               <div className="relative">
                 <InputForm
                   label="Contraseña"
@@ -634,68 +368,71 @@ export default function RegisterEmployeeModal({ open, onClose, initialData }) {
                   type={showPassword ? "text" : "password"}
                   value={employeeData.password}
                   onChange={handleChange}
-                  placeholder="••••••••"
-                  disabled={isSubmitting}
-                  error={errors.password}
+                  placeholder="Mínimo 8 caracteres"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  disabled={isSubmitting}
-                  className="absolute right-3 top-[34px] text-gray-400 hover:text-brand-primary"
+                  className="absolute right-3 top-9 -translate-y-1/2 text-gray-600 text-xl opacity-80 hover:opacity-100"
                 >
-                  {showPassword ? (
-                    <AiFillEyeInvisible size={20} />
-                  ) : (
-                    <AiFillEye size={20} />
-                  )}
+                  {showPassword ? <AiFillEyeInvisible /> : <AiFillEye />}
                 </button>
+                <ErrorMsg message={errors.password} />
+              </div>
+
+              <div>
+                <SelectForm
+                  label="Rol del Sistema"
+                  name="role"
+                  value={employeeData.role}
+                  onChange={handleChange}
+                >
+                  <option value="">Seleccione un rol...</option>
+                  {roles.map((role) => (
+                    <option key={role.id} value={role.id}>
+                      {role.name} ({role.code})
+                    </option>
+                  ))}
+                </SelectForm>
+                <ErrorMsg message={errors.role} />
               </div>
             </>
           )}
 
           {errors.general && (
-            <p className="text-[11px] text-red-500 font-bold uppercase text-center mt-2 italic">
-              * {errors.general}
+            <p className="text-red-500 text-xs text-center font-bold mt-2">
+              {errors.general}
             </p>
           )}
+        </div>
 
-          {/* FOOTER */}
-          <DialogFooter className="pt-6 border-t flex gap-2 justify-end">
+        <DialogFooter className="mt-8 flex gap-3">
+          <Button
+            variant="outline"
+            onClick={() => onClose(false)}
+            className="flex-1"
+          >
+            Cancelar
+          </Button>
+          <DisableIfNoPermission
+            permission={
+              isEdit ? "CRUD:UPDATE:EMPLOYEES" : "CRUD:CREATE:EMPLOYEES"
+            }
+            title="No tienes permiso para guardar empleados"
+          >
             <Button
-              type="button"
-              variant="outline"
-              onClick={() => onClose(false)}
+              onClick={handleSubmit}
               disabled={isSubmitting}
+              className="flex-1 bg-brand-primary text-white font-bold hover:bg-brand-primary/90"
             >
-              Cancelar
+              {isSubmitting
+                ? "Guardando..."
+                : isEdit
+                  ? "Actualizar"
+                  : "Registrar Empleado"}
             </Button>
-
-            <DisableIfNoPermission
-              permission={
-                isEdit ? "CRUD:UPDATE:EMPLOYEES" : "CRUD:CREATE:EMPLOYEES"
-              }
-              title="No tienes permiso para guardar empleados"
-            >
-              <Button
-                type="submit"
-                className="bg-brand-primary text-white font-bold px-6 flex items-center gap-2"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Procesando...
-                  </>
-                ) : isEdit ? (
-                  "Guardar Cambios"
-                ) : (
-                  "Registrar Empleado"
-                )}
-              </Button>
-            </DisableIfNoPermission>
-          </DialogFooter>
-        </form>
+          </DisableIfNoPermission>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

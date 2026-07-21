@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
 import { InputForm } from "@/components/ui/inputForm"; 
 import { SelectForm } from "@/components/ui/SelectForm";
-import { DatePickerCustom } from "@/components/ui/DatePickerCustom";
 import { getMovies } from "@/services/movie.service";
 import { getRoomsByCinema } from "@/services/room.service";
 import { getEvents } from "@/services/events.service"; 
@@ -15,7 +14,7 @@ import { useLoading } from "@/context/LoadingContext";
 import { createShowtimesBulk } from "@/services/showtime.service";
 import { toast } from "sonner";
 
-// Componentes UI & Iconos
+// Componentes de Shadcn UI 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Check, ChevronsUpDown, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -43,7 +42,7 @@ export function ShowtimeModal({
   const [roomsList, setRoomsList] = useState([]);
   const [isLoadingAux, setIsLoadingAux] = useState(false);
   const [openSearch, setOpenSearch] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(""); // Estado local para el filtro de texto
 
   const { register, handleSubmit, reset, control, setValue, formState } = useForm({
     defaultValues: {
@@ -51,8 +50,6 @@ export function ShowtimeModal({
       content_id: "",
       room: "",
       date: "",
-      period_start: "",
-      period_end: "",
       start_time_raw: "",
       end_time_raw: "",
       projection_type: "",
@@ -135,7 +132,7 @@ export function ShowtimeModal({
 
   useEffect(() => {
     setValue("content_id", "");
-    setSearchTerm("");
+    setSearchTerm(""); // Limpiar buscador al cambiar tipo
   }, [watchContentType, setValue]);
 
   useEffect(() => {
@@ -197,8 +194,6 @@ export function ShowtimeModal({
         content_id: String(initialContentId || ""),
         room: initialData.room?.id || initialData.room,
         date: datePart,
-        period_start: "",
-        period_end: "",
         start_time_raw: startTimePart,
         end_time_raw: endTimePart,
         projection_type: initialData.projection_type?.id || initialData.projection_type,
@@ -213,8 +208,6 @@ export function ShowtimeModal({
         content_id: "", 
         room: "", 
         date: "", 
-        period_start: "",
-        period_end: "",
         start_time_raw: "", 
         end_time_raw: "", 
         projection_type: "", 
@@ -293,6 +286,7 @@ export function ShowtimeModal({
   const priceOptions = ["3.00","6.00","10.00","12.00"];
   const searchableList = watchContentType === "movie" ? movies : events;
 
+  // Filtrado manual local por texto
   const filteredSearchList = searchableList.filter(item => 
     item.title?.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -328,7 +322,7 @@ export function ShowtimeModal({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             
-            {/* Buscador de Película/Evento */}
+            {/* BUSCADOR MANUAL MEDIANTE REEMPLAZO DE LA PROPIEDAD COMMAND */}
             <div className="flex flex-col gap-1">
               <label className="text-xs font-bold text-brand-primary uppercase">
                 {watchContentType === "movie" ? "Buscar Película" : "Buscar Evento"}
@@ -353,6 +347,7 @@ export function ShowtimeModal({
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-[300px] md:w-[310px] p-2 bg-white shadow-xl rounded-md border flex flex-col gap-2" align="start">
+                      {/* Input de búsqueda nativo */}
                       <div className="flex items-center gap-2 border border-slate-200 rounded-md px-2 py-1 bg-slate-50">
                         <Search className="h-4 w-4 text-slate-400" />
                         <input 
@@ -364,6 +359,7 @@ export function ShowtimeModal({
                         />
                       </div>
                       
+                      {/* Lista de elementos filtrados */}
                       <div className="max-h-[200px] overflow-y-auto flex flex-col">
                         {filteredSearchList.length === 0 ? (
                           <span className="p-2 text-xs text-slate-400 text-center">No se encontraron resultados.</span>
@@ -408,61 +404,17 @@ export function ShowtimeModal({
             </SelectForm>
           </div>
 
-          {/* Fecha Individual */}
           {!isBulk && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Controller
-                control={control}
-                name="date"
-                rules={{ required: "Este campo es obligatorio" }}
-                render={({ field }) => (
-                  <div>
-                    <DatePickerCustom
-                      label="Fecha de la Función"
-                      value={field.value}
-                      onChange={(iso) => field.onChange(iso)}
-                    />
-                    {errors.date && <span className="text-xs text-red-500">{errors.date.message}</span>}
-                  </div>
-                )}
-              />
+              <InputForm label="Fecha de la Función" type="date" error={errors.date?.message} {...register("date", { required: "Este campo es obligatorio" })} />
               <InputForm label="Puntos de Lealtad" type="number" placeholder="0" error={errors.earned_loyalty_points?.message} {...register("earned_loyalty_points")} />
             </div>
           )}
 
-          {/* Fechas en Lote (Periodo) */}
           {isBulk && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Controller
-                control={control}
-                name="period_start"
-                rules={{ required: "Este campo es obligatorio" }}
-                render={({ field }) => (
-                  <div>
-                    <DatePickerCustom
-                      label="Periodo Desde"
-                      value={field.value}
-                      onChange={(iso) => field.onChange(iso)}
-                    />
-                    {errors.period_start && <span className="text-xs text-red-500">{errors.period_start.message}</span>}
-                  </div>
-                )}
-              />
-              <Controller
-                control={control}
-                name="period_end"
-                rules={{ required: "Este campo es obligatorio" }}
-                render={({ field }) => (
-                  <div>
-                    <DatePickerCustom
-                      label="Periodo Hasta"
-                      value={field.value}
-                      onChange={(iso) => field.onChange(iso)}
-                    />
-                    {errors.period_end && <span className="text-xs text-red-500">{errors.period_end.message}</span>}
-                  </div>
-                )}
-              />
+              <InputForm label="Periodo Desde" type="date" error={errors.period_start?.message} {...register("period_start", { required: "Este campo es obligatorio" })} />
+              <InputForm label="Periodo Hasta" type="date" error={errors.period_end?.message} {...register("period_end", { required: "Este campo es obligatorio" })} />
               <InputForm label="Puntos de Lealtad" type="number" placeholder="0" error={errors.earned_loyalty_points?.message} {...register("earned_loyalty_points")} />
             </div>
           )}
@@ -478,7 +430,7 @@ export function ShowtimeModal({
             <div className="space-y-3">
               <div className="flex items-center gap-3 flex-wrap">
                 {['Dom','Lun','Mar','Mie','Jue','Vie','Sab'].map((label, idx) => (
-                  <label key={idx} className={`inline-flex items-center gap-2 p-2 rounded cursor-pointer ${daysSelected.includes(idx) ? 'bg-slate-100 font-bold' : ''}`}>
+                  <label key={idx} className={`inline-flex items-center gap-2 p-2 rounded ${daysSelected.includes(idx) ? 'bg-slate-100' : ''}`}>
                     <input type="checkbox" checked={daysSelected.includes(idx)} onChange={(e) => {
                       if (e.target.checked) setDaysSelected(prev => Array.from(new Set([...prev, idx])));
                       else setDaysSelected(prev => prev.filter(d => d !== idx));
@@ -501,19 +453,19 @@ export function ShowtimeModal({
                           const computedEnd = getComputedEndTime(newStart, selectedContent?.duration_minutes) || s.end_time;
                           setSlots(prev => prev.map((it, idx) => idx === i ? { ...it, start_time: newStart, end_time: computedEnd } : it));
                         }} 
-                        className="p-2 border rounded w-36 text-sm" 
+                        className="p-2 border rounded w-36" 
                       />
                       <span>-</span>
                       <input 
                         type="time" 
                         value={s.end_time} 
                         onChange={(e) => setSlots(prev => prev.map((it, idx) => idx === i ? { ...it, end_time: e.target.value } : it))} 
-                        className="p-2 border rounded w-36 text-sm" 
+                        className="p-2 border rounded w-36" 
                       />
-                      <button type="button" onClick={() => setSlots(prev => prev.filter((_,idx)=>idx!==i))} className="text-red-500 text-sm font-semibold">Eliminar</button>
+                      <button type="button" onClick={() => setSlots(prev => prev.filter((_,idx)=>idx!==i))} className="text-red-500">Eliminar</button>
                     </div>
                   ))}
-                  <button type="button" onClick={() => setSlots(prev => [...prev,{ start_time: '', end_time: '' }])} className="text-brand-primary text-sm font-bold">+ Añadir slot</button>
+                  <button type="button" onClick={() => setSlots(prev => [...prev,{ start_time: '', end_time: '' }])} className="text-brand-primary text-sm">Añadir slot</button>
                 </div>
               </div>
             </div>

@@ -60,27 +60,16 @@ export const SelectCustom = forwardRef(({
         </SelectTrigger>
 
         <SelectContent position="popper" className="bg-white z-[110] rounded-xl shadow-xl border-gray-100">
-          {Array.isArray(options) && options.length > 0 ? (
-            options
-              .map((opt, index) => {
-                const value = opt?.value;
-                const stringValue = value !== undefined && value !== null ? String(value) : "";
-                return {
-                  opt,
-                  stringValue,
-                  key: stringValue || `option-${index}`,
-                };
-              })
-              .filter(({ stringValue }) => stringValue !== "")
-              .map(({ opt, stringValue, key }) => (
-                <SelectItem
-                  key={key}
-                  value={stringValue}
-                  className="font-montserrat text-sm py-2.5 focus:bg-brand-primary/10 focus:text-brand-primary cursor-pointer"
-                >
-                  {opt?.label ?? "Opción"}
-                </SelectItem>
-              ))
+          {options.length > 0 ? (
+            options.map((opt) => (
+              <SelectItem
+                key={opt.value}
+                value={opt.value.toString()}
+                className="font-montserrat text-sm py-2.5 focus:bg-brand-primary/10 focus:text-brand-primary cursor-pointer"
+              >
+                {opt.label}
+              </SelectItem>
+            ))
           ) : (
             <div className="p-4 text-center text-[10px] text-gray-400 uppercase font-bold">
               Sin opciones
