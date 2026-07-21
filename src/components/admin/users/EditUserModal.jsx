@@ -10,15 +10,12 @@ import { Button } from "@/components/ui/button";
 import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
 import { InputForm } from "@/components/ui/inputForm";
 import { SelectForm } from "@/components/ui/SelectForm";
-import { updateUserStatus, updateUserEmail, updateUserRole } from "@/services/users.service";
-import { getRoles } from "@/services/roles.service";
+import { updateUserStatus, updateUserEmail } from "@/services/users.service";
 
-// Gestión de la cuenta de acceso del empleado: correo + estado + rol.
+// Gestión de la cuenta de acceso del empleado: correo + estado (activar/desactivar).
 export default function EditUserModal({ open, onClose, user }) {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState(1);
-  const [role, setRole] = useState("");
-  const [roles, setRoles] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -26,25 +23,8 @@ export default function EditUserModal({ open, onClose, user }) {
     if (user) {
       setEmail(user.email || "");
       setStatus(user.status ?? 1);
-      setRole(String(user.role ?? ""));
     }
   }, [user]);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const loadRoles = async () => {
-      try {
-        const data = await getRoles();
-        setRoles(data || []);
-      } catch (err) {
-        console.error("Error cargando los roles:", err);
-        setRoles([]);
-      }
-    };
-
-    loadRoles();
-  }, [open]);
 
   if (!user) return null;
 
@@ -55,11 +35,9 @@ export default function EditUserModal({ open, onClose, user }) {
       // Solo llamamos a cada endpoint si el valor realmente cambió.
       const emailChanged = email.trim() && email.trim() !== (user.email || "");
       const statusChanged = Number(status) !== Number(user.status ?? 1);
-      const roleChanged = String(role) !== String(user.role ?? "");
 
       if (emailChanged) await updateUserEmail(user.id, email.trim());
       if (statusChanged) await updateUserStatus(user.id, status);
-      if (roleChanged) await updateUserRole(user.id, Number(role));
 
       onClose(true);
     } catch (e) {
@@ -87,19 +65,11 @@ export default function EditUserModal({ open, onClose, user }) {
             onChange={(e) => setEmail(e.target.value)}
           />
 
-          <SelectForm
+          <InputForm
             label="Rol del Sistema"
-            name="role"
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-          >
-            <option value="">Seleccione un rol</option>
-            {roles.map((roleOption) => (
-              <option key={roleOption.id} value={String(roleOption.id)}>
-                {roleOption.name || roleOption.code || roleOption.description}
-              </option>
-            ))}
-          </SelectForm>
+            value={user?._Roles?.code || "—"}
+            disabled
+          />
 
           <SelectForm
             label="Estado"

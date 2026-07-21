@@ -30,7 +30,7 @@ export default function EditEmployeeModal({ open, onClose, employee }) {
   const loadCinemas = async () => {
     try {
       const data = await getCinemas();
-      setCinemas(data.data);
+      setCinemas(data?.data?.rows ?? data?.data ?? []);
     } catch (error) {
       console.error("Error cargando sucursales:", error);
     }
@@ -40,9 +40,9 @@ export default function EditEmployeeModal({ open, onClose, employee }) {
   useEffect(() => {
     if (employee) {
       setForm({
-        jobPosition: employee.job_position || employee.jobPosition || "",
-        cinema: employee.cinema || "",
-        salaryBase: employee.salary_base || employee.salaryBase || "",
+        jobPosition: String(employee.job_position || employee.jobPosition || ""),
+        cinema: String(employee.cinema || ""),
+        salaryBase: String(employee.salary_base || employee.salaryBase || ""),
         startDate: (employee.start_date || employee.startDate || "").split(
           "T",
         )[0],

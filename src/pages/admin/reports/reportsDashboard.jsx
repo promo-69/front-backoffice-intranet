@@ -275,8 +275,6 @@ function ManagerView() {
   const [chartType, setChart] = useState(null);
 
   const { data, loading, refetch } = useDashboard({ from, to });
-  // El backend deriva la sucursal del JWT; aquí solo se usa para los paneles.
-  const cinemaId = data?.cinema_id;
   const kpis = data?.kpis;
 
   return (

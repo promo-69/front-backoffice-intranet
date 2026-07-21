@@ -27,11 +27,6 @@ export const updateUserEmail = async (id, email) => {
   return api.patch(`/users/${id}/email`, { email });
 };
 
-// Cambiar el rol del usuario.
-export const updateUserRole = async (id, roleId) => {
-  return api.post(`/users/${id}/role`, { roleId: Number(roleId) });
-};
-
 // Activar (1) / desactivar (0) la cuenta de un usuario. RF-12.
 export const updateUserStatus = async (id, status) => {
   return api.patch(`/users/${id}/status`, { status: Number(status) });

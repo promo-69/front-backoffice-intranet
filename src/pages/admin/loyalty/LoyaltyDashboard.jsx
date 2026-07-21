@@ -67,7 +67,6 @@ function RewardsTab() {
   useEffect(() => {
     fetchRewards();
     fetchAuxCatalogs();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleOpenEditModal = (reward) => {
@@ -247,7 +246,6 @@ export default function LoyaltyDashboard() {
     } else if (activeTab === "equivalence") {
       fetchExchangeRates();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   // Editar Nivel

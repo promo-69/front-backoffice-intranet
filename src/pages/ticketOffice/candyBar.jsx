@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { AiOutlinePlus, AiOutlineMinus, AiOutlineDelete, AiOutlineShopping } from "react-icons/ai";
 import { ArrowLeft, ShoppingBag } from "lucide-react";
 import PopcornImg from "../../assets/images/candy/popcorn.png";
@@ -28,6 +28,9 @@ export default function CandyBar() {
   const [vesCurrencyId, setVesCurrencyId] = useState(2);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [paymentResult, setPaymentResult] = useState(null);
+  const paymentProcessingRef = useRef(false);
+  const pendingPaymentResult = useRef(null);
+  useEffect(() => { paymentProcessingRef.current = paymentProcessing }, [paymentProcessing]);
 
   const handleCustomerIdentified = async (customerData) => {
     setCustomer(customerData);
@@ -53,36 +56,52 @@ export default function CandyBar() {
 
     // Conectar socket para escuchar eventos de pago
     socketService.connect();
+    const applyPaymentResult = (result) => {
+      if (paymentProcessingRef.current) {
+        setPaymentProcessing(false);
+        setPaymentResult(result);
+      } else if (!pendingPaymentResult.current || result.billing || (!pendingPaymentResult.current.billing && result.success && !result.partial)) {
+        pendingPaymentResult.current = result;
+      }
+    };
     socketService.off("payment_success");
     socketService.on("payment_success", (data) => {
-      if (!paymentProcessing) return;
-      setPaymentProcessing(false);
-      setPaymentResult({ success: true, partial: true, remainingBalance: data.remaining_balance, message: data.message });
+      applyPaymentResult({ success: true, partial: true, remainingBalance: data.remaining_balance, message: data.message });
     });
     socketService.off("payment_completed");
     socketService.on("payment_completed", (data) => {
-      if (!paymentProcessing) return;
-      setPaymentProcessing(false);
-      setPaymentResult({ success: true, ...data });
+      applyPaymentResult({ success: true, ...data });
     });
     socketService.off("payment_failed");
     socketService.on("payment_failed", (data) => {
-      if (!paymentProcessing) return;
-      setPaymentProcessing(false);
-      setPaymentResult({ success: false, ...data });
+      applyPaymentResult({ success: false, ...data });
     });
     socketService.off("billing_required");
     socketService.on("billing_required", (data) => {
-      if (!paymentProcessing) return;
-      setPaymentProcessing(false);
-      setPaymentResult({ success: true, billing: true, ...data });
+      applyPaymentResult({ success: true, billing: true, ...data });
     });
 
     setLoading(false);
     setStep(2);
   };
 
-  const handleGoToPayment = () => {
+  const handleGoToPayment = async () => {
+    // Crear la orden antes de mostrar los pagos individuales
+    try {
+      const concessions = cart.map((item) => {
+        const isCombo = item.category === "Combos";
+        const rawId = Number(item.id.replace(/^(prod|combo)_/, ""));
+        return {
+          line_type: isCombo ? 2 : 1,
+          product: isCombo ? undefined : rawId,
+          combo: isCombo ? rawId : undefined,
+          quantity: item.quantity,
+        };
+      });
+      await ordersService.checkout([], concessions);
+    } catch (err) {
+      console.warn("Checkout before payment failed:", err);
+    }
     setStep(3);
   };
 
@@ -198,27 +217,11 @@ export default function CandyBar() {
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   const handleConfirm = async ({ payments }) => {
-    const userData = JSON.parse(localStorage.getItem("user") || "{}");
-    const cinemaId = userData.cinemaId || 1;
-
-    const concessions = cart.map((item) => {
-      const isCombo = item.category === "Combos";
-      const rawId = Number(item.id.replace(/^(prod|combo)_/, ""));
-      return {
-        line_type: isCombo ? 2 : 1,
-        product: isCombo ? undefined : rawId,
-        combo: isCombo ? rawId : undefined,
-        quantity: item.quantity,
-      };
-    });
-
     setPaymentProcessing(true);
     setPaymentResult(null);
 
     try {
-      await ordersService.cancelSession().catch(() => {});
-      await ordersService.createQuote(cinemaId, customer?.customerId);
-      await ordersService.checkout([], concessions);
+      // El checkout ya fue llamado en handleGoToPayment. Solo procesar pagos pendientes.
       const allPayments = payments
         .filter(p => p.method !== 5 && !p.confirmed)
         .map(p => ({
@@ -239,10 +242,19 @@ export default function CandyBar() {
       if (allPayments.length > 0) {
         await ordersService.registerPayments(allPayments);
       }
-      // Si todos los pagos ya estaban confirmados, completar directo
+      // Si todos los pagos ya estaban confirmados, usar resultado pendiente
       if (payments.every(p => p.confirmed || !p.amountVes || p.amountVes <= 0)) {
-        setPaymentProcessing(false);
-        setPaymentResult({ success: true });
+        if (pendingPaymentResult.current) {
+          const r = pendingPaymentResult.current
+          if (r.partial && r.remainingBalance != null && Number(r.remainingBalance) < 0.05) {
+            setPaymentProcessing(false);
+            setPaymentResult({ success: true });
+          } else {
+            setPaymentProcessing(false);
+            setPaymentResult(r);
+          }
+          pendingPaymentResult.current = null;
+        }
       }
       // El resultado llega por WebSocket (payment_completed / payment_failed / payment_success)
     } catch (err) {
@@ -257,6 +269,7 @@ export default function CandyBar() {
     setCart([]);
     setPaymentProcessing(false);
     setPaymentResult(null);
+    pendingPaymentResult.current = null;
     setStep(1);
   };
 

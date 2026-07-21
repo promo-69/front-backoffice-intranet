@@ -61,7 +61,7 @@ export default function RegisterEmployeeModal({ open, onClose, initialData }) {
   const loadCinemas = async () => {
     try {
       const data = await getCinemas();
-      setCinemas(data.data || []);
+      setCinemas(data?.data?.rows ?? data?.data ?? []);
     } catch (error) {
       console.error("Error cargando sucursales:", error);
     }
@@ -297,20 +297,24 @@ export default function RegisterEmployeeModal({ open, onClose, initialData }) {
             </div>
 
             <div>
-              <SelectForm
+              <SelectCustom
                 label="Sucursal"
-                name="cinema"
+                placeholder="Seleccione..."
                 value={employeeData.cinema}
-                onChange={handleChange}
+                onValueChange={(val) => {
+                  setEmployeeData((prev) => ({ ...prev, cinema: val }));
+                  setErrors((prev) => ({
+                    ...prev,
+                    cinema: null,
+                    general: null,
+                  }));
+                }}
+                options={cinemas.map((c) => ({
+                  value: String(c.id),
+                  label: c.name,
+                }))}
                 error={errors.cinema}
-              >
-                <option value="">Seleccione...</option>
-                {cinemas.map((c) => (
-                  <option key={c.id} value={String(c.id)}>
-                    {c.name}
-                  </option>
-                ))}
-              </SelectForm>
+              />
             </div>
           </div>
 
@@ -424,7 +428,7 @@ export default function RegisterEmployeeModal({ open, onClose, initialData }) {
               {isSubmitting
                 ? "Guardando..."
                 : isEdit
-                  ? "Actualizar Cargo"
+                  ? "Actualizar"
                   : "Registrar Empleado"}
             </Button>
           </DisableIfNoPermission>
