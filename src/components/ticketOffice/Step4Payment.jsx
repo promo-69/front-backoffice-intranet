@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ArrowLeft,
   CheckCircle,
@@ -47,6 +47,22 @@ export default function Step4Payment({
     },
   ]);
   const [confirmed, setConfirmed] = useState(false);
+  const [billingCompleted, setBillingCompleted] = useState(false);
+  const [billingName, setBillingName] = useState("");
+  const [billingDocument, setBillingDocument] = useState("");
+  const [billingAddress, setBillingAddress] = useState("");
+  const [billingLoading, setBillingLoading] = useState(false);
+  const [billingError, setBillingError] = useState(null);
+
+  // Auto-completar datos del cliente en factura
+  useEffect(() => {
+    if (paymentResult?.billing && customerInfo) {
+      setBillingName(customerInfo.firstName && customerInfo.lastName
+        ? `${customerInfo.firstName} ${customerInfo.lastName}`
+        : (billingName || ""))
+      setBillingDocument(customerInfo.documentNumber || "")
+    }
+  }, [paymentResult?.billing]);
 
   const grandTotal = totalTickets + concessionTotal;
   const grandTotalVes = totalTicketsVes + concessionTotalVes;
@@ -74,16 +90,39 @@ export default function Step4Payment({
 
   // ── Per-payment processing ──
   const processPayment = async (index) => {
-    const p = payments[index]
-    if (!p || p.confirmed || p.processing) return
-    if (!p.amountVes || p.amountVes <= 0) return
+    if (!payments[index] || payments[index].confirmed || payments[index].processing) return
+    if (!payments[index].amountVes || payments[index].amountVes <= 0) return
+
+    // Validar que no exceda el total o el remanente
+    const otherConfirmed = payments.filter((_, i) => i !== index && _.confirmed).reduce((s, _) => s + (Number(_.amountUsd) || 0), 0)
+    const thisAmount = Number(payments[index].amountUsd) || 0
+    if (thisAmount + otherConfirmed > grandTotal + 0.10) {
+      updatePayment(index, { error: "El monto excede el total de la orden" })
+      return
+    }
 
     updatePayment(index, { processing: true, error: null })
+
     try {
       const api = (await import("@/api/axios")).default
+      // Leer el valor más reciente del estado para evitar race conditions
+      const currentPayments = payments
+      const p = currentPayments[index]
+      let amountVes = p.amountVes
+      let amountUsd = Number(p.amountUsd) || 0
+
+      // Ajustar al último pago para cubrir exactamente el saldo restante
+      const otherConfirmed = currentPayments.filter((_, i) => i !== index && _.confirmed).reduce((s, _) => s + (Number(_.amountUsd) || 0), 0)
+      const remaining = parseFloat((grandTotal - otherConfirmed).toFixed(2))
+      if (remaining > 0 && remaining <= amountUsd) {
+        amountUsd = remaining
+        amountVes = Math.round(remaining * exchangeRate * 100) / 100
+        updatePayment(index, { amountUsd, amountVes })
+      }
+
       const payload = {
         payment_method: p.method,
-        amount: p.amountVes,
+        amount: amountVes,
         currency: vesCurrencyId,
         reference_number: p.fields?.Referencia || undefined,
         bank: p.fields?.Banco || undefined,
@@ -96,11 +135,36 @@ export default function Step4Payment({
   }
 
   const allConfirmed = payments.every(p => p.confirmed || !p.amountVes || p.amountVes <= 0)
-  const confirmedTotal = payments.filter(p => p.confirmed).reduce((s, p) => s + (Number(p.amountUsd) || 0), 0)
-  const isFullyConfirmed = allConfirmed && Math.abs(confirmedTotal - grandTotal) < 1.0
+  const confirmedTotal = parseFloat(payments.filter(p => p.confirmed).reduce((s, p) => s + (Number(p.amountUsd) || 0), 0).toFixed(2))
+  const roundedGrand = parseFloat(grandTotal.toFixed(2))
+  const isFullyConfirmed = allConfirmed && Math.abs(confirmedTotal - roundedGrand) < 0.10
+
+  // ── Billing ──
+  const handleBillingSubmit = async (e) => {
+    e?.preventDefault()
+    if (!billingName.trim() || !billingDocument.trim()) {
+      setBillingError("Nombre y cédula son obligatorios")
+      return
+    }
+    setBillingLoading(true)
+    setBillingError(null)
+    try {
+      const api = (await import("@/api/axios")).default
+      await api.post("/orders/billing", {
+        orderId: paymentResult?.orderId,
+        billing_name: billingName.trim(),
+        billing_document: billingDocument.trim(),
+        billing_address: billingAddress.trim() || undefined,
+      })
+      setBillingCompleted(true)
+    } catch (e) {
+      setBillingError(e?.response?.data?.message || "Error al generar la factura")
+    } finally {
+      setBillingLoading(false)
+    }
+  }
 
   const handleConfirm = () => {
-    setConfirmed(true);
     onConfirm({ payments });
   };
 
@@ -122,7 +186,7 @@ export default function Step4Payment({
   };
 
   const onAmountUsdChange = (index, usdAmount) => {
-    const usd = parseFloat(usdAmount) || 0;
+    const usd = parseFloat((parseFloat(usdAmount) || 0).toFixed(2));
     updatePayment(index, {
       amountUsd: usd,
       amountVes: Math.round(usd * exchangeRate * 100) / 100,
@@ -130,10 +194,10 @@ export default function Step4Payment({
   };
 
   const onAmountVesChange = (index, vesAmount) => {
-    const ves = parseFloat(vesAmount) || 0;
+    const ves = parseFloat((parseFloat(vesAmount) || 0).toFixed(2));
     updatePayment(index, {
       amountVes: ves,
-      amountUsd: Math.round((ves / exchangeRate) * 100) / 100,
+      amountUsd: parseFloat((Math.round((ves / exchangeRate) * 100) / 100).toFixed(2)),
     });
   };
 
@@ -186,26 +250,87 @@ export default function Step4Payment({
         );
       }
       return (
-        <div className="flex flex-col items-center justify-center py-20 animate-in fade-in zoom-in-95">
-          <div className="relative mb-6">
+        <div className="flex flex-col items-center justify-center py-12 animate-in fade-in zoom-in-95">
+          <div className="relative mb-4">
             <div className="absolute inset-0 bg-[#3E2186]/20 rounded-full scale-150 animate-ping" />
-            <div className="relative w-24 h-24 rounded-full bg-[#3E2186] flex items-center justify-center shadow-2xl shadow-[#3E2186]/40">
-              <CheckCircle className="w-12 h-12 text-white" strokeWidth={2.5} />
+            <div className="relative w-20 h-20 rounded-full bg-[#3E2186] flex items-center justify-center shadow-2xl shadow-[#3E2186]/40">
+              <CheckCircle className="w-10 h-10 text-white" strokeWidth={2.5} />
             </div>
           </div>
-          <h2 className="text-3xl font-bold text-[#3E2186] mb-2 uppercase tracking-widest">¡Venta Exitosa!</h2>
-          <p className="text-slate-700 text-center max-w-sm">
-            {movie ? "Los boletos han sido registrados correctamente. Entrega los tiquetes al cliente." : "Los productos han sido registrados correctamente. Entrega el pedido al cliente."}
-          </p>
-          {paymentResult.billing && (
-            <p className="text-amber-600 text-sm mt-2 font-semibold">Recuerda completar la facturación.</p>
+          <h2 className="text-2xl font-bold text-[#3E2186] mb-1 uppercase tracking-widest">¡Venta Exitosa!</h2>
+
+          {paymentResult.billing && !billingCompleted && (
+            <div className="mt-4 bg-white border border-amber-300 rounded-2xl p-6 w-full max-w-sm space-y-3 shadow-sm">
+              <h3 className="text-sm font-bold text-amber-700">Datos de Facturación</h3>
+              {billingError && <p className="text-xs text-red-500">{billingError}</p>}
+              <input type="text" placeholder="Nombre o Razón Social *" value={billingName} onChange={e => setBillingName(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" />
+              <input type="text" placeholder="Cédula o RIF *" value={billingDocument} onChange={e => setBillingDocument(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" />
+              <input type="text" placeholder="Dirección (opcional)" value={billingAddress} onChange={e => setBillingAddress(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" />
+              <button onClick={handleBillingSubmit} disabled={billingLoading}
+                className="w-full bg-amber-500 text-white font-bold py-2.5 rounded-xl text-sm hover:brightness-110 disabled:opacity-50">
+                {billingLoading ? "Emitiendo..." : "Emitir Factura"}
+              </button>
+            </div>
           )}
-          <div className="mt-6 bg-gray-50 border border-[#3E2186]/30 rounded-2xl p-6 text-center w-full max-w-sm">
-            <p className="text-2xl font-bold text-[#3E2186] mt-2">${grandTotal.toFixed(2)}</p>
-            {grandTotalVes > 0 && <p className="text-sm text-slate-600">Bs. {grandTotalVes.toFixed(2)}</p>}
+
+          <div className="mt-4 bg-gray-50 border border-[#3E2186]/30 rounded-2xl p-5 w-full max-w-sm space-y-3 text-left">
+            {movie && (
+              <div className="pb-3 border-b border-gray-200">
+                <p className="font-bold text-[#3E2186] text-sm">{movie.title}</p>
+                <p className="text-xs text-slate-600">{showtime?.time} · {showtime?.room} · {showtime?.date}</p>
+                {selectedSeats.length > 0 && (
+                  <div className="flex gap-1 flex-wrap mt-1">
+                    {selectedSeats.map((s) => (
+                      <span key={s.id} className="bg-[#3E2186]/20 text-[#3E2186] px-1.5 py-0.5 rounded text-[10px] font-bold">{s.id}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {concessionItems.length > 0 && (
+              <div className="pb-3 border-b border-gray-200">
+                <p className="text-xs font-semibold text-slate-700 mb-1">Confitería</p>
+                {concessionItems.map((entry, idx) => (
+                  <div key={entry.id || entry._key || idx} className="flex justify-between text-xs text-slate-600">
+                    <span>{entry.item?.name || entry.name} ×{entry.qty ?? entry.quantity}</span>
+                    <span className="font-medium">${(((entry.item?.price ?? entry.price) || 0) * (entry.qty ?? entry.quantity)).toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="pb-3 border-b border-gray-200">
+              <p className="text-xs font-semibold text-slate-700 mb-1">Métodos de Pago</p>
+              {payments.filter(p => p.amountUsd > 0 || p.amountVes > 0).map((p, i) => {
+                const m = paymentMethods.find((pm) => pm.id === p.method)
+                return (
+                  <div key={i} className="flex justify-between text-xs text-slate-600">
+                    <span>{m?.description || `Método ${p.method}`}</span>
+                    <span className="font-medium">Bs. {(Number(p.amountVes) || 0).toFixed(2)}</span>
+                  </div>
+                )
+              })}
+            </div>
+
+            <div className="flex justify-between items-center">
+              <span className="font-bold text-slate-800 text-sm">Total</span>
+              <div className="text-right">
+                <span className="text-[#3E2186] font-bold text-lg">${grandTotal.toFixed(2)}</span>
+                {grandTotalVes > 0 && <span className="text-slate-600 text-xs block">Bs. {grandTotalVes.toFixed(2)}</span>}
+              </div>
+            </div>
           </div>
+
+          {billingCompleted && (
+            <p className="text-green-600 text-sm mt-2 font-semibold">✅ Factura emitida correctamente</p>
+          )}
+
           {onNewSale && (
-            <button onClick={onNewSale} className="mt-8 px-8 py-3 border border-[#3E2186]/40 text-[#3E2186] rounded-xl text-sm font-bold hover:bg-[#3E2186]/10 transition-all">+ Nueva Venta</button>
+            <button onClick={onNewSale} className="mt-6 px-8 py-3 border border-[#3E2186]/40 text-[#3E2186] rounded-xl text-sm font-bold hover:bg-[#3E2186]/10 transition-all">+ Nueva Venta</button>
           )}
         </div>
       );
@@ -311,15 +436,6 @@ export default function Step4Payment({
             </p>
           )}
         </div>
-
-        {onNewSale && (
-          <button
-            onClick={onNewSale}
-            className="mt-8 px-8 py-3 border border-[#3E2186]/40 text-[#3E2186] rounded-xl text-sm font-bold hover:bg-[#3E2186]/10 transition-all"
-          >
-            + Nueva Venta
-          </button>
-        )}
       </div>
     );
   }
@@ -495,7 +611,7 @@ export default function Step4Payment({
               {payments.map((p, index) => {
                 const methodDef = paymentMethods.find((m) => m.id === p.method);
                 const isLoyalty = p.method === 5;
-                const hasReference = [2, 3, 4].includes(p.method);
+                const hasReference = [3, 4].includes(p.method);
                 const bankAccounts = bankAccountsByMethod[p.method] || [];
                 return (
                   <div

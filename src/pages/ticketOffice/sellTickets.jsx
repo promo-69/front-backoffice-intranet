@@ -190,6 +190,9 @@ export default function SellTickets() {
   const [exchangeRate, setExchangeRate] = useState(600);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [paymentResult, setPaymentResult] = useState(null);
+  const paymentProcessingRef = useRef(false);
+  const pendingPaymentResult = useRef(null);
+  useEffect(() => { paymentProcessingRef.current = paymentProcessing }, [paymentProcessing]);
   useEffect(() => {
     let cancelled = false;
     async function load() {
@@ -350,7 +353,12 @@ export default function SellTickets() {
     try {
       const cinemaId = selectedCinema?.id || 1;
       await ordersService.cancelSession().catch(() => {});
-      await ordersService.createQuote(cinemaId, saleData.customer?.customerId);
+      try {
+        await ordersService.createQuote(cinemaId, saleData.customer?.customerId || 1);
+      } catch (quoteErr) {
+        console.error("Error al crear cotización:", quoteErr);
+        return;
+      }
 
       const seatMapRes = await getSeatMap(showtime.id);
       const apiSeats = seatMapRes?.seats || [];
@@ -380,7 +388,11 @@ export default function SellTickets() {
 
       await socketService.waitForConnection();
       socketService.joinShowtime(showtime.id);
-      await socketService.waitForJoin(showtime.id);
+      try {
+        await socketService.waitForJoin(showtime.id);
+      } catch (joinErr) {
+        console.warn("join_showtime falló, continuando sin socket:", joinErr.message);
+      }
 
       socketService.off("quote_expired");
       socketService.on("quote_expired", () => {
@@ -388,30 +400,30 @@ export default function SellTickets() {
         setTimeLeft(0);
       });
 
-      // Payment WebSocket events
+      // Payment WebSocket events (guarda resultado pendiente si no está procesando)
+      const applyPaymentResult = (result) => {
+        if (paymentProcessingRef.current) {
+          setPaymentProcessing(false);
+          setPaymentResult(result);
+        } else if (!pendingPaymentResult.current || result.billing || (!pendingPaymentResult.current.billing && result.success && !result.partial)) {
+          pendingPaymentResult.current = result;
+        }
+      };
       socketService.off("payment_success");
       socketService.on("payment_success", (data) => {
-        if (!paymentProcessing) return; // Ignorar durante pagos individuales
-        setPaymentProcessing(false);
-        setPaymentResult({ success: true, partial: true, remainingBalance: data.remaining_balance, message: data.message });
+        applyPaymentResult({ success: true, partial: true, remainingBalance: data.remaining_balance, message: data.message });
       });
       socketService.off("payment_completed");
       socketService.on("payment_completed", (data) => {
-        if (!paymentProcessing) return;
-        setPaymentProcessing(false);
-        setPaymentResult({ success: true, ...data });
+        applyPaymentResult({ success: true, ...data });
       });
       socketService.off("payment_failed");
       socketService.on("payment_failed", (data) => {
-        if (!paymentProcessing) return;
-        setPaymentProcessing(false);
-        setPaymentResult({ success: false, ...data });
+        applyPaymentResult({ success: false, ...data });
       });
       socketService.off("billing_required");
       socketService.on("billing_required", (data) => {
-        if (!paymentProcessing) return;
-        setPaymentProcessing(false);
-        setPaymentResult({ success: true, billing: true, ...data });
+        applyPaymentResult({ success: true, billing: true, ...data });
       });
 
       setStep(4);
@@ -546,11 +558,21 @@ export default function SellTickets() {
         concessionItems: saleData.concessionItems,
         payments,
       });
-      // Si todos los pagos ya estaban confirmados, completar directo
+      // Si todos los pagos ya estaban confirmados, usar resultado pendiente del WebSocket
       const allConfirmed = payments.every(p => p.confirmed)
       if (allConfirmed) {
-        setPaymentProcessing(false);
-        setPaymentResult({ success: true });
+        if (pendingPaymentResult.current) {
+          const r = pendingPaymentResult.current
+          // Ignorar saldo pendiente insignificante (< $0.05)
+          if (r.partial && r.remainingBalance != null && Number(r.remainingBalance) < 0.10) {
+            setPaymentProcessing(false);
+            setPaymentResult({ success: true });
+          } else {
+            setPaymentProcessing(false);
+            setPaymentResult(r);
+          }
+          pendingPaymentResult.current = null;
+        }
       }
     } catch (err) {
       console.warn("Backend order failed:", err);
@@ -585,6 +607,7 @@ export default function SellTickets() {
     });
     setPaymentProcessing(false);
     setPaymentResult(null);
+    pendingPaymentResult.current = null;
     setStep(1);
     setSessionExpired(false);
     setTimeLeft(null);
@@ -724,17 +747,6 @@ export default function SellTickets() {
             />
           )}
         </div>
-
-        {step === 6 && (
-          <div className="flex justify-center mt-6">
-            <button
-              onClick={handleNewSale}
-              className="px-8 py-3 border border-[#3E2186]/40 text-[#3E2186] rounded-xl text-sm font-bold hover:bg-[#3E2186]/10 transition-all"
-            >
-              + Nueva Venta
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );
