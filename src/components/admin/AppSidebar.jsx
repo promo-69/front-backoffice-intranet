@@ -125,13 +125,6 @@ const navItems = [
 
   // Cajero
   {
-    id: "dashboard_cashier",
-    title: "Dashboard Cajero",
-    url: "/ticketOffice/dashboard",
-    icon: LayoutDashboard,
-    requiredPermissions: PERMISSIONS_GROUPS.DASHBOARD_CASHIER,
-  },
-  {
     id: "sell_tickets",
     title: "Venta de Boletos",
     url: "/ticketOffice/sell",
