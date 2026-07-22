@@ -1,8 +1,10 @@
 import HeaderCashier from "../../components/ticketOffice/HeaderCashier";
 import { AiOutlineDollar, AiOutlineShopping, AiOutlineUser } from "react-icons/ai";
-import { HiOutlineTicket } from "react-icons/hi";
+import { HiOutlineTicket, HiOutlineCash } from "react-icons/hi";
+import { useNavigate } from "react-router-dom";
 
 export default function DashboardCashier() {
+  const navigate = useNavigate();
   const stats = [
     { label: "Ventas de Hoy", value: "$450.00", icon: <AiOutlineDollar />, color: "bg-green-500" },
     { label: "Boletos Emitidos", value: "124", icon: <HiOutlineTicket />, color: "bg-blue-500" },
@@ -37,8 +39,11 @@ export default function DashboardCashier() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="bg-[rgba(45,23,72,0.87)] p-8 rounded-3xl border border-white/10 flex flex-col items-center justify-center text-center space-y-4 hover:border-[#F6AD38] transition-colors cursor-pointer group">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div
+            onClick={() => navigate("/ticketOffice/sell")}
+            className="bg-[rgba(45,23,72,0.87)] p-8 rounded-3xl border border-white/10 flex flex-col items-center justify-center text-center space-y-4 hover:border-[#F6AD38] transition-colors cursor-pointer group"
+          >
             <div className="w-20 h-20 bg-[#F6AD38] rounded-full flex items-center justify-center text-4xl text-[#1d1430] group-hover:scale-110 transition-transform">
               <HiOutlineTicket />
             </div>
@@ -46,12 +51,26 @@ export default function DashboardCashier() {
             <p className="text-gray-400">Inicia una nueva venta de boletos por taquilla</p>
           </div>
 
-          <div className="bg-[rgba(45,23,72,0.87)] p-8 rounded-3xl border border-white/10 flex flex-col items-center justify-center text-center space-y-4 hover:border-[#F6AD38] transition-colors cursor-pointer group">
+          <div
+            onClick={() => navigate("/ticketOffice/candy")}
+            className="bg-[rgba(45,23,72,0.87)] p-8 rounded-3xl border border-white/10 flex flex-col items-center justify-center text-center space-y-4 hover:border-[#F6AD38] transition-colors cursor-pointer group"
+          >
             <div className="w-20 h-20 bg-purple-500 rounded-full flex items-center justify-center text-4xl text-white group-hover:scale-110 transition-transform">
               <AiOutlineShopping />
             </div>
             <h3 className="text-xl font-bold text-white">Confitería</h3>
             <p className="text-gray-400">Procesa ventas de productos de confitería</p>
+          </div>
+
+          <div
+            onClick={() => navigate("/ticketOffice/rentals")}
+            className="bg-[rgba(45,23,72,0.87)] p-8 rounded-3xl border border-white/10 flex flex-col items-center justify-center text-center space-y-4 hover:border-[#F6AD38] transition-colors cursor-pointer group"
+          >
+            <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center text-4xl text-white group-hover:scale-110 transition-transform">
+              <HiOutlineCash />
+            </div>
+            <h3 className="text-xl font-bold text-white">Cobro de Alquileres</h3>
+            <p className="text-gray-400">Cobra solicitudes de alquiler aprobadas</p>
           </div>
         </div>
       </main>

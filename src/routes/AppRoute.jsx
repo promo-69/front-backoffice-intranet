@@ -7,6 +7,7 @@ import Billboard from "../pages/admin/billboard/billboard";
 //import Exhibition from "@/pages/admin/exhibition/bilboardPage";
 import SellTickets from "../pages/ticketOffice/sellTickets";
 import CandyBar from "../pages/ticketOffice/candyBar";
+import RentalPayments from "../pages/ticketOffice/rentalPayments";
 
 import AuthLayout from "../layouts/AuthLayout";
 import AdminLayout from "../layouts/AdminLayout";
@@ -253,6 +254,17 @@ function AppRoute() {
             <ProtectedRoute anyOf={PERMISSIONS_GROUPS.CONFECTIONERY}>
               <AdminLayout>
                 <CandyBar />
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/ticketOffice/rentals"
+          element={
+            <ProtectedRoute anyOf={PERMISSIONS_GROUPS.RENTALS}>
+              <AdminLayout>
+                <RentalPayments />
               </AdminLayout>
             </ProtectedRoute>
           }

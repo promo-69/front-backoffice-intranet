@@ -150,13 +150,26 @@ export default function Step4Payment({
     setBillingError(null)
     try {
       const api = (await import("@/api/axios")).default
-      await api.post("/orders/billing", {
+      const res = await api.post("/orders/billing", {
         orderId: paymentResult?.orderId,
         billing_name: billingName.trim(),
         billing_document: billingDocument.trim(),
         billing_address: billingAddress.trim() || undefined,
       })
       setBillingCompleted(true)
+      // Mostramos en pantalla la factura recién emitida (misma técnica
+      // autenticada por blob que "Ver e imprimir" en Gestión de Facturas).
+      const invoiceId =
+        res?.data?.data?.invoice?.id ?? res?.data?.data?.id ?? res?.data?.data?.invoiceId;
+      if (invoiceId) {
+        try {
+          const { viewInvoicePdf } = await import("@/services/invoices.service");
+          await viewInvoicePdf(invoiceId);
+        } catch {
+          // Si el visor falla, la factura igual queda emitida y accesible
+          // desde Gestión de Facturas.
+        }
+      }
     } catch (e) {
       setBillingError(e?.response?.data?.message || "Error al generar la factura")
     } finally {
