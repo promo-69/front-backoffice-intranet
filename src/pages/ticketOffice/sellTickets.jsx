@@ -198,7 +198,7 @@ export default function SellTickets() {
     async function load() {
       console.log("Loading cinemas...");
       try {
-        const allCinemas = await getCinemas();
+        const allCinemas = await getCinemas({ limit: -1 });
         const cinemaList = allCinemas?.data || allCinemas?.rows || [];
         if (!Array.isArray(cinemaList) || !cinemaList.length) {
           if (!cancelled) setCinemas(Array.isArray(cinemaList) ? cinemaList : []);
