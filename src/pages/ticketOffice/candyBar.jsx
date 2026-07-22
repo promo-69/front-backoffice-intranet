@@ -7,6 +7,7 @@ import ComboImg from "../../assets/images/candy/combo.png";
 import { concessionsService } from "../../services/concessions.service";
 import { ordersService } from "../../services/orders.service";
 import { paymentsService } from "../../services/payments.service";
+import { getCinemas } from "../../services/cinema.service";
 import StepIdentifyCustomer from "../../components/ticketOffice/StepIdentifyCustomer";
 import Step4Payment from "../../components/ticketOffice/Step4Payment";
 import socketService from "../../services/socket.service";
@@ -14,13 +15,17 @@ import socketService from "../../services/socket.service";
 const CATEGORIES = ["Todos", "Popcorn", "Drinks", "Combos", "Candies", "Promociones"];
 
 export default function CandyBar() {
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(0);
   const [customer, setCustomer] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState("Todos");
   const [cart, setCart] = useState([]);
   const [apiProducts, setApiProducts] = useState([]);
   const [apiCombos, setApiCombos] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Cinema selection
+  const [cinemas, setCinemas] = useState([]);
+  const [selectedCinema, setSelectedCinema] = useState(null);
 
   // Payment states
   const [paymentMethods, setPaymentMethods] = useState([]);
@@ -36,8 +41,7 @@ export default function CandyBar() {
     setCustomer(customerData);
     try {
       await ordersService.cancelSession().catch(() => {});
-      const userData = JSON.parse(localStorage.getItem("user") || "{}");
-      const cinemaId = userData.cinemaId || 1;
+      const cinemaId = selectedCinema?.id || 1;
       await ordersService.createQuote(cinemaId, customerData.customerId);
       const state = await ordersService.getSessionState().catch(() => null);
       const usdRate = state?.exchange_rates?.["1"]?.rate;
@@ -45,11 +49,10 @@ export default function CandyBar() {
     } catch (err) {
       console.warn("Error creating quote:", err);
     }
-    const userData2 = JSON.parse(localStorage.getItem("user") || "{}");
-    const cId = userData2.cinemaId || 1;
+    const cinemaId = selectedCinema?.id || 1;
     const [products, combos] = await Promise.all([
-      concessionsService.getAvailableProducts(cId),
-      concessionsService.getAvailableCombos(cId),
+      concessionsService.getAvailableProducts(cinemaId),
+      concessionsService.getAvailableCombos(cinemaId),
     ]);
     setApiProducts(products || []);
     setApiCombos(combos || []);
@@ -107,6 +110,19 @@ export default function CandyBar() {
 
   const [exchangeRate, setExchangeRate] = useState(600);
   const [concessionTotalVes, setConcessionTotalVes] = useState(0);
+
+  useEffect(() => {
+    async function loadCinemas() {
+      try {
+        const res = await getCinemas();
+        const list = res?.data || res?.rows || [];
+        setCinemas(Array.isArray(list) ? list : []);
+      } catch (err) {
+        console.error("Error loading cinemas:", err);
+      }
+    }
+    loadCinemas();
+  }, []);
 
   useEffect(() => {
     async function loadPaymentData() {
@@ -221,8 +237,8 @@ export default function CandyBar() {
     setPaymentResult(null);
 
     try {
-      // El checkout ya fue llamado en handleGoToPayment. Solo procesar pagos pendientes.
-      const allPayments = payments
+      // Solo enviar pagos NO confirmados individualmente
+      const unconfirmedPayments = payments
         .filter(p => p.method !== 5 && !p.confirmed)
         .map(p => ({
           payment_method: p.method,
@@ -232,33 +248,38 @@ export default function CandyBar() {
           bank: p.fields?.Banco || undefined,
         }));
       const ptsPayment = payments.find(p => p.method === 5);
-      if (ptsPayment && ptsPayment.amountVes > 0) {
-        allPayments.push({
+      if (ptsPayment && ptsPayment.amountVes > 0 && !ptsPayment.confirmed) {
+        unconfirmedPayments.push({
           payment_method: 5,
           amount: ptsPayment.amountVes,
           currency: vesCurrencyId,
         });
       }
-      if (allPayments.length > 0) {
-        await ordersService.registerPayments(allPayments);
+      if (unconfirmedPayments.length > 0) {
+        await ordersService.registerPayments(unconfirmedPayments);
       }
-      // Si todos los pagos ya estaban confirmados, usar resultado pendiente
-      if (payments.every(p => p.confirmed || !p.amountVes || p.amountVes <= 0)) {
+      // Siempre prevenir que WebSocket futuros sobreescriban el resultado
+      paymentProcessingRef.current = false;
+      // Si todos los pagos ya estaban confirmados, la orden está completa
+      const allConfirmed = payments.every(p => p.confirmed || !p.amountVes || p.amountVes <= 0);
+      if (allConfirmed) {
         if (pendingPaymentResult.current) {
-          const r = pendingPaymentResult.current
-          if (r.partial && r.remainingBalance != null && Number(r.remainingBalance) < 0.05) {
-            setPaymentProcessing(false);
-            setPaymentResult({ success: true });
-          } else {
-            setPaymentProcessing(false);
-            setPaymentResult(r);
-          }
+          const r = pendingPaymentResult.current;
           pendingPaymentResult.current = null;
+          if (r.partial && r.remainingBalance != null && Number(r.remainingBalance) < 0.10) {
+            setPaymentResult({ success: true, orderId: r.orderId, qrCode: r.qrCode, billing: r.billing });
+          } else if (!r.partial || !r.remainingBalance) {
+            setPaymentResult({ success: true, ...r });
+          } else {
+            setPaymentResult({ success: true, ...r });
+          }
+        } else {
+          setPaymentResult({ success: true });
         }
       }
-      // El resultado llega por WebSocket (payment_completed / payment_failed / payment_success)
+      setPaymentProcessing(false);
     } catch (err) {
-      console.warn("Backend order failed:", err);
+      paymentProcessingRef.current = false;
       setPaymentProcessing(false);
       setPaymentResult({ success: false, message: err?.response?.data?.message || "Error al procesar la orden" });
     }
@@ -270,8 +291,39 @@ export default function CandyBar() {
     setPaymentProcessing(false);
     setPaymentResult(null);
     pendingPaymentResult.current = null;
-    setStep(1);
+    setSelectedCinema(null);
+    setStep(0);
   };
+
+  // ----------------------------------------------------
+  // STEP 0: SUCURSAL
+  // ----------------------------------------------------
+  if (step === 0) {
+    return (
+      <div className="bg-white rounded-3xl border border-gray-200 shadow-2xl p-6 md:p-8 max-w-2xl mx-auto">
+        <div className="flex items-center gap-3 mb-6">
+          <ShoppingBag className="w-6 h-6 text-brand-primary" />
+          <h2 className="text-xl font-bold text-slate-800">Caramelería</h2>
+        </div>
+        <h3 className="text-sm font-semibold text-slate-600 mb-3">Seleccionar Sucursal</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {cinemas.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => {
+                setSelectedCinema(c);
+                setStep(1);
+              }}
+              className="bg-white border-2 border-gray-200 rounded-2xl p-5 text-left hover:border-[#3E2186] hover:shadow-lg transition-all"
+            >
+              <h4 className="font-bold text-slate-800 text-base">{c.name}</h4>
+              <p className="text-slate-500 text-sm mt-1">{c.address || ""}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   // ----------------------------------------------------
   // STEP 1: CLIENTE
@@ -280,6 +332,12 @@ export default function CandyBar() {
     return (
       <div className="bg-white rounded-3xl border border-gray-200 shadow-2xl p-6 md:p-8 max-w-2xl mx-auto">
         <StepIdentifyCustomer onNext={handleCustomerIdentified} />
+        <button
+          onClick={() => setStep(0)}
+          className="mt-4 flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-300 text-slate-600 hover:border-gray-400 hover:text-slate-900 transition-all text-sm"
+        >
+          <ArrowLeft className="w-4 h-4" /> Volver a sucursales
+        </button>
       </div>
     );
   }
@@ -329,7 +387,22 @@ export default function CandyBar() {
       
       {/* Left Side: Categories and Products */}
       <div className="flex-1 space-y-6">
-        
+
+        {/* Cinema & Customer */}
+        <div className="flex flex-wrap items-center gap-3">
+          {selectedCinema && (
+            <span className="inline-flex items-center gap-1.5 bg-brand-primary/10 text-brand-primary text-xs font-semibold px-3 py-1.5 rounded-full">
+              <ShoppingBag className="w-3.5 h-3.5" />
+              {selectedCinema.name}
+            </span>
+          )}
+          {customer && (
+            <span className="inline-flex items-center gap-1.5 bg-gray-100 text-slate-600 text-xs font-semibold px-3 py-1.5 rounded-full">
+              {customer.name || `Cliente #${customer.customerId}`}
+            </span>
+          )}
+        </div>
+
         {/* Categories Tabs */}
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide border-b border-gray-100">
           {CATEGORIES.map(cat => (
