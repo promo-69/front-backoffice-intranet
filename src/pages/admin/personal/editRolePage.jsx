@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import SuccessModal from "@/components/ui/SuccessModal";
 
-import { getAllPermissions } from "@/services/permissions.service";
+import { getAllPermissionsPaginated } from "@/services/permissions.service";
 import {
   getRoleById,
   updateRolePermissions,
@@ -40,32 +40,7 @@ export default function EditRolePage() {
         const roleData = await getRoleById(roleId);
         setRoleName(roleData.code);
 
-        // 2. Resolver la paginación recursivamente para traer los 104+ permisos
-        let allPermissions = [];
-        let currentPage = 1;
-        let hasMorePages = true;
-
-        while (hasMorePages) {
-          // Asumiendo que tu servicio acepta pasar el número de página como argumento
-          const response = await getAllPermissions({ page: currentPage });
-
-          // Manejo flexible por si el servicio devuelve directo el array o el objeto estructurado
-          const pageData = response.data || response;
-          const metadata = response.metadata;
-
-          if (Array.isArray(pageData) && pageData.length > 0) {
-            allPermissions = [...allPermissions, ...pageData];
-
-            // Si el backend nos da metadata explícita de páginas, la usamos
-            if (metadata && metadata.current_page < metadata.total_pages) {
-              currentPage++;
-            } else {
-              hasMorePages = false; // Ya no hay más páginas que procesar
-            }
-          } else {
-            hasMorePages = false;
-          }
-        }
+        const allPermissions = await getAllPermissionsPaginated();
 
         // 3. Permisos actualmente asignados al rol
         const rolePermissions = roleData._RolePermissions || [];
