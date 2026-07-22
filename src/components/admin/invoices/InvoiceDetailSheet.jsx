@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useInvoiceDetail } from "@/hooks/useInvoices";
-import { getInvoicePdfUrl, downloadInvoicePdf } from "@/services/invoices.service";
+import { viewInvoicePdf, downloadInvoicePdf } from "@/services/invoices.service";
 import { toast } from "react-hot-toast";
 import { CustomToast } from "@/components/ui/CustomToast";
 
@@ -162,7 +162,7 @@ export function InvoiceDetailSheet({ invoiceId, cinemaId, open, onOpenChange, on
               <Button
                 variant="outline"
                 className="w-full justify-center gap-2"
-                onClick={() => window.open(getInvoicePdfUrl(invoice.id, cinemaId), "_blank")}
+                onClick={() => viewInvoicePdf(invoice.id, cinemaId).catch((e) => alert(e.message))}
               >
                 <ExternalLink className="w-4 h-4" /> Ver e imprimir
               </Button>

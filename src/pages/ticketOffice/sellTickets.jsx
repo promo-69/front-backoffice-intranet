@@ -352,12 +352,41 @@ export default function SellTickets() {
   const handleMovieNext = async ({ movie, showtime }) => {
     try {
       const cinemaId = selectedCinema?.id || 1;
+      // Venta en taquilla SIEMPRE con cliente identificado: el fallback "|| 1"
+      // facturaba silenciosamente al cliente #1 cualquier venta sin cliente.
+      const customerId = saleData.customer?.customerId;
+      if (!customerId) {
+        alert("Busca o registra al cliente antes de continuar con la venta.");
+        return;
+      }
       await ordersService.cancelSession().catch(() => {});
       try {
-        await ordersService.createQuote(cinemaId, saleData.customer?.customerId || 1);
+        await ordersService.createQuote(cinemaId, customerId);
       } catch (quoteErr) {
-        console.error("Error al crear cotización:", quoteErr);
-        return;
+        // 409 = quedó una sesión previa del cajero. La adoptamos si es del
+        // mismo cine y cliente; si no, la cancelamos y reintentamos una vez.
+        if (quoteErr?.response?.status === 409) {
+          try {
+            const state = await ordersService.getSessionState().catch(() => null);
+            const compatible =
+              state &&
+              Number(state.cinema) === Number(cinemaId) &&
+              Number(state.customerId) === Number(customerId);
+            if (!compatible) {
+              await ordersService.cancelSession().catch(() => {});
+              await new Promise((r) => setTimeout(r, 400));
+              await ordersService.createQuote(cinemaId, customerId);
+            }
+          } catch (retryErr) {
+            console.error("Error al crear cotización:", retryErr);
+            alert("No se pudo iniciar la sesión de venta. Intenta de nuevo.");
+            return;
+          }
+        } else {
+          console.error("Error al crear cotización:", quoteErr);
+          alert(quoteErr?.response?.data?.message || "No se pudo crear la cotización.");
+          return;
+        }
       }
 
       const seatMapRes = await getSeatMap(showtime.id);

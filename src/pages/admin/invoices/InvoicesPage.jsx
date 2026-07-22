@@ -20,7 +20,7 @@ const STATUS_FILTERS = [
   { value: "all", label: "Todas" },
   { value: "active", label: "Activas" },
   { value: "voided", label: "Anuladas" },
-  { value: "pending_billing", label: "Pendientes" },
+  { value: "pending_billing", label: "Por facturar" },
 ];
 
 function StatusBadge({ isVoided }) {
@@ -65,7 +65,7 @@ export default function InvoicesPage() {
     const params = { page, limit: 20 }
     if (search) params.search = search
     if (cinemaId) params.cinemaId = cinemaId
-    ordersService.getPendingBilling(status, params)
+    ordersService.getPendingBilling(status === "all" ? "pending_billing" : status, params)
       .then(res => {
         const data = res?.data ?? res ?? []
         const orders = Array.isArray(data) ? data : (data?.rows || data?.orders || [])
@@ -242,11 +242,12 @@ export default function InvoicesPage() {
         </div>
       </div>
 
-      {/* ── ÓRDENES ── */}
+      {/* ── ÓRDENES POR FACTURAR (en su pestaña y en "Todas") ── */}
+      {(status === "pending_billing" || status === "all") && (
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="bg-amber-50 px-6 py-3 border-b border-amber-200">
           <h4 className="text-sm font-bold text-amber-800">
-            {status === "pending_billing" ? "Órdenes Pendientes por Facturar" : status === "voided" ? "Órdenes Anuladas" : status === "active" ? "Órdenes Facturadas" : "Todas las Órdenes"}
+            Órdenes Pendientes por Facturar
           </h4>
         </div>
         {pendingLoading ? (
@@ -272,7 +273,13 @@ export default function InvoicesPage() {
                     <td className="px-4 py-3">{order.customer_document || order._Customers?._People?.document_number || "—"}</td>
                     <td className="px-4 py-3 font-bold text-[#3E2186]">${order.total_amount_base_currency || order.total || "—"}</td>
                     <td className="px-4 py-3">
-                      {status === "pending_billing" && (
+                      {/* La acción depende del estado de LA FILA, no del filtro
+                          de la página: con "Todas" también deben poder
+                          facturarse las órdenes pendientes. */}
+                      {(status === "pending_billing" ||
+                        order.order_status === 2 ||
+                        order.status === 2 ||
+                        order._Statuses?.id === 2) ? (
                         <Button
                           size="sm"
                           onClick={() => setBillingTarget({
@@ -285,6 +292,8 @@ export default function InvoicesPage() {
                         >
                           <FileText className="w-3 h-3 mr-1" /> Facturar
                         </Button>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
                       )}
                     </td>
                   </tr>
@@ -293,8 +302,9 @@ export default function InvoicesPage() {
             </table>
           )}
         </div>
+      )}
 
-      {/* ── TABLA ── */}
+      {/* ── TABLA DE FACTURAS ── */}
       {status !== "pending_billing" && (
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
         {loading ? (
@@ -356,7 +366,7 @@ export default function InvoicesPage() {
                     </td>
                   )}
                   <td className="px-4 py-3 text-foreground">
-                    {inv.order?.employee?.name ?? "—"}
+                    {inv.order?.employee?.name ?? "En línea (Web/App)"}
                   </td>
                   <td className="px-4 py-3 text-foreground">
                     {inv.billing_name}

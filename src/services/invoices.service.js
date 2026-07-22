@@ -31,6 +31,31 @@ export const getInvoicePdfUrl = (id, cinemaId, disposition = "inline") => {
   return `${api.defaults.baseURL}${BASE}/${id}/pdf?${params.toString()}`;
 };
 
+// Visualización del PDF en pestaña nueva. Descarga el blob por axios (con
+// credenciales) y abre un objectURL: window.open directo a la URL del API
+// fallaba con auth error porque la pestaña nueva no lleva la sesión
+// (backoffice y API viven en dominios distintos).
+export const viewInvoicePdf = async (id, cinemaId) => {
+  const response = await api.get(`${BASE}/${id}/pdf`, {
+    params: p({ disposition: "inline" }, cinemaId),
+    responseType: "blob",
+  });
+
+  const contentType = response.headers["content-type"] || "";
+  if (contentType.includes("application/json")) {
+    const text = await response.data.text();
+    const errorData = JSON.parse(text);
+    throw new Error(errorData.message || "Error al visualizar la factura");
+  }
+
+  const url = URL.createObjectURL(
+    new Blob([response.data], { type: "application/pdf" }),
+  );
+  window.open(url, "_blank");
+  // Revocamos después de un margen para que la pestaña alcance a cargarlo
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+};
+
 // Descarga forzada del PDF (botón "Descargar" en la fila/detalle)
 export const downloadInvoicePdf = async (id, invoiceNumber, cinemaId) => {
   const response = await api.get(`${BASE}/${id}/pdf`, {

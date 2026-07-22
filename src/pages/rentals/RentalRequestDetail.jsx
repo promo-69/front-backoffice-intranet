@@ -150,17 +150,15 @@ export default function RentalRequestDetail() {
           </div>
           <div>
             <span className="text-muted-foreground text-xs">Cliente</span>
-            <p className="font-medium">
-              {req.customer?.people?.first_name} {req.customer?.people?.last_name}
-            </p>
+            <p className="font-medium">{req.contact_name || "—"}</p>
           </div>
           <div>
             <span className="text-muted-foreground text-xs">Contacto</span>
-            <p className="font-medium">{req.customer?.people?.email || "—"}</p>
+            <p className="font-medium">{req.contact_email || "—"}</p>
           </div>
           <div>
             <span className="text-muted-foreground text-xs">Teléfono</span>
-            <p className="font-medium">{req.customer?.people?.phone || "—"}</p>
+            <p className="font-medium">{req.contact_phone || "—"}</p>
           </div>
           <div>
             <span className="text-muted-foreground text-xs">Inicio</span>
