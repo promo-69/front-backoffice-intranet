@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import SuccessModal from "@/components/ui/SuccessModal";
 
-import { getAllPermissions } from "@/services/permissions.service";
+import { getAllPermissionsPaginated } from "@/services/permissions.service";
 import { createRole, updateRolePermissions } from "@/services/roles.service";
 
 export default function CreateRolePage() {
@@ -31,7 +31,7 @@ export default function CreateRolePage() {
   useEffect(() => {
     async function load() {
       try {
-        const allPermissions = await getAllPermissions();
+        const allPermissions = await getAllPermissionsPaginated();
 
         const grouped = {};
         allPermissions.forEach((perm) => {
