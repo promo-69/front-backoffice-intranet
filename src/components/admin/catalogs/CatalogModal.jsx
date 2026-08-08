@@ -11,6 +11,8 @@ import DisableIfNoPermission from "@/components/ui/DisableIfNoPermission";
 import { createCatalogRecord, updateCatalogRecord } from "../../../services/catalog.service";
 import { useLoading } from "../../../context/LoadingContext";
 
+// Esto es un ejemplo de un commit
+
 const CatalogModal = ({ open, onClose, initialData, selectedCatalog, metadata }) => {
   const { showLoader, hideLoader } = useLoading();
   const [error, setError] = useState("");
